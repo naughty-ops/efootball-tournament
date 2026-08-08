@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
@@ -16,6 +16,10 @@ export interface RealtimePayload {
 /**
  * Custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
  * Passes realtime payload to onUpdate callback so components can update React state instantly.
+ *
+ * Uses a ref for the onUpdate callback to prevent infinite re-render loops:
+ * the channel subscription only recreates when tournamentId or matchId changes,
+ * NOT when the callback reference changes.
  */
 export function useRealtimeMatches(
   onUpdate: (payload?: RealtimePayload) => void,
@@ -23,17 +27,28 @@ export function useRealtimeMatches(
   matchId?: string
 ) {
   const [connectionStatus, setConnectionStatus] = useState<RealtimeConnectionStatus>('connecting');
+  const onUpdateRef = useRef(onUpdate);
+
+  // Keep the ref current without triggering re-subscriptions
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
     const supabase = createClient();
     let isMounted = true;
     let hasConnectedOnce = false;
 
+    // Unique suffix per mount to avoid Supabase reusing an already-subscribed channel.
+    // The Supabase client is a singleton and .channel(name) returns the existing channel
+    // if one with that name already exists — which throws if it's already subscribed.
+    const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     const channelName = matchId
-      ? `public:matches:match:${matchId}`
+      ? `public:matches:match:${matchId}:${uid}`
       : tournamentId
-      ? `public:matches:tournament:${tournamentId}`
-      : 'public:matches:all';
+      ? `public:matches:tournament:${tournamentId}:${uid}`
+      : `public:matches:all:${uid}`;
 
     // Note: matches table does NOT have tournament_id column directly.
     // If matchId is specified, we filter by id=eq.matchId.
@@ -60,7 +75,7 @@ export function useRealtimeMatches(
             console.log('[Realtime Match Event Received]', payload);
           }
           if (isMounted) {
-            onUpdate(payload as unknown as RealtimePayload);
+            onUpdateRef.current(payload as unknown as RealtimePayload);
           }
         }
       )
@@ -77,7 +92,7 @@ export function useRealtimeMatches(
             console.log('[Realtime Tournament Event Received]', payload);
           }
           if (isMounted) {
-            onUpdate(payload as unknown as RealtimePayload);
+            onUpdateRef.current(payload as unknown as RealtimePayload);
           }
         }
       )
@@ -91,7 +106,7 @@ export function useRealtimeMatches(
         if (status === 'SUBSCRIBED') {
           if (hasConnectedOnce) {
             // Reconnection recovery: revalidate data upon re-subscribing
-            onUpdate();
+            onUpdateRef.current();
           }
           hasConnectedOnce = true;
           setConnectionStatus('connected');
@@ -107,7 +122,8 @@ export function useRealtimeMatches(
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [onUpdate, tournamentId, matchId]);
+    // Only re-subscribe when the filter parameters change, NOT when onUpdate changes
+  }, [tournamentId, matchId]);
 
   return { connectionStatus };
 }
