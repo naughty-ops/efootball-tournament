@@ -16,8 +16,8 @@ export interface RealtimePayload {
 
 /**
  * Production-hardened custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
+ * Uses useRef for the onUpdate callback to prevent re-subscription loops when parent components re-render.
  * Ensures ALL .on() listeners are attached strictly BEFORE .subscribe() is called.
- * Uses the exact same Supabase client instance for subscription and cleanup.
  */
 export function useRealtimeMatches(
   onUpdate: (payload?: RealtimePayload) => void,
@@ -30,16 +30,17 @@ export function useRealtimeMatches(
   const onUpdateRef = useRef(onUpdate);
   useEffect(() => {
     onUpdateRef.current = onUpdate;
-  });
+  }, [onUpdate]);
 
   useEffect(() => {
     const supabase = createClient();
     let isMounted = true;
+    let hasConnectedOnce = false;
     let channel: RealtimeChannel | null = null;
 
     try {
       // Unique topic name per subscription instance to avoid topic collision in Supabase JS client
-      const instanceId = Math.random().toString(36).substring(2, 8);
+      const instanceId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
       const topicName = matchId
         ? `matches-realtime-m-${matchId}-${instanceId}`
         : tournamentId
@@ -106,12 +107,19 @@ export function useRealtimeMatches(
           }
 
           if (status === 'SUBSCRIBED') {
+            if (hasConnectedOnce && onUpdateRef.current) {
+              // Reconnection recovery: revalidate data upon re-subscribing
+              try {
+                onUpdateRef.current();
+              } catch { /* silent */ }
+            }
+            hasConnectedOnce = true;
             setConnectionStatus('connected');
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             if (err) {
               console.warn('[Realtime matches channel warning]', err);
             }
-            setConnectionStatus('reconnecting');
+            setConnectionStatus(hasConnectedOnce ? 'reconnecting' : 'disconnected');
           }
         });
     } catch (err) {
