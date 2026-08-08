@@ -299,6 +299,9 @@ export default function PublicTournamentPage() {
             src={tournament.banner_image}
             alt={tournament.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/images/banner1.jpg';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B3323] via-[#0B3323]/50 to-transparent" />
           <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
