@@ -291,6 +291,24 @@ export default function PublicTournamentPage() {
         </div>
       )}
 
+      {/* Hero Banner Image if provided */}
+      {tournament.banner_image && (
+        <div className="relative h-48 sm:h-64 md:h-80 w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-border shadow-lg bg-slate-950">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={tournament.banner_image}
+            alt={tournament.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B3323] via-[#0B3323]/50 to-transparent" />
+          <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
+            <Badge variant="efootball" className="bg-[#00C853] text-white font-extrabold text-xs shadow-md">
+              Official Tournament Banner
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* Tournament Header */}
       <div className="rounded-2xl border border-border bg-white p-5 sm:p-7 space-y-4 shadow-xs">
         <div className="flex flex-wrap gap-2 items-center">

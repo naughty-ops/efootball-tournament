@@ -340,17 +340,49 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
               </h3>
 
               <div>
-                <label className="text-xs font-bold text-[#0B3323] block mb-1.5">
-                  Banner Image URL
+                <label className="text-xs font-bold text-[#0B3323] flex items-center justify-between mb-1.5">
+                  <span>Banner Image URL</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Visible on Admin & Public pages</span>
                 </label>
                 <Input
                   disabled={isSubmitting}
+                  placeholder="https://domain.com/banner.jpg"
                   {...register('banner_image')}
                 />
                 {errors.banner_image && (
                   <p className="text-xs text-destructive mt-1 font-medium">
                     {errors.banner_image.message}
                   </p>
+                )}
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <span className="text-[11px] font-bold text-muted-foreground">Quick Presets:</span>
+                  {[
+                    { label: 'Banner 1', url: '/images/banner1.jpg' },
+                    { label: 'Banner 2', url: '/images/banner2.jpg' },
+                    { label: 'Banner 3', url: '/images/banner3.jpg' },
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.url}
+                      onClick={() => setValue('banner_image', preset.url, { shouldValidate: true })}
+                      className="text-[11px] px-2 py-0.5 rounded-lg bg-secondary hover:bg-primary/20 text-[#0B3323] font-semibold border border-border transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                {watch('banner_image') && (
+                  <div className="mt-3 relative h-32 rounded-xl overflow-hidden border border-border shadow-inner bg-slate-950">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={watch('banner_image') || '/images/banner1.jpg'}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold">
+                      Live Banner Preview
+                    </span>
+                  </div>
                 )}
               </div>
 

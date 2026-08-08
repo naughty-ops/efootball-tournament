@@ -1,6 +1,5 @@
 import React from 'react';
 import PublicHeader from '@/components/public/PublicHeader';
-import PublicFooter from '@/components/public/PublicFooter';
 
 export default function PublicLayout({
   children,
@@ -16,9 +15,6 @@ export default function PublicLayout({
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
         {children}
       </main>
-
-      {/* Public Footer */}
-      <PublicFooter />
     </div>
   );
 }

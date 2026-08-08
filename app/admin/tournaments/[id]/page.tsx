@@ -172,6 +172,24 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
+      {/* Hero Banner Image if provided */}
+      {tournament.banner_image && (
+        <div className="relative h-48 sm:h-64 w-full rounded-3xl overflow-hidden border border-border shadow-lg bg-slate-950">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={tournament.banner_image}
+            alt={tournament.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B3323] via-[#0B3323]/50 to-transparent" />
+          <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
+            <Badge variant="efootball" className="bg-[#00C853] text-white font-extrabold text-xs shadow-md">
+              Tournament Banner Image
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
