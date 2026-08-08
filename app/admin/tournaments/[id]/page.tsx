@@ -174,12 +174,12 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
       {/* Hero Banner Image if provided */}
       {tournament.banner_image && (
-        <div className="relative h-48 sm:h-64 w-full rounded-3xl overflow-hidden border border-border shadow-lg bg-slate-950">
+        <div className="relative w-full aspect-[21/8] min-h-[180px] max-h-[340px] rounded-2xl sm:rounded-3xl overflow-hidden border border-border shadow-lg bg-slate-950">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={tournament.banner_image}
             alt={tournament.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/images/banner1.jpg';
             }}

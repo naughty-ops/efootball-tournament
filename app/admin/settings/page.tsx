@@ -233,12 +233,12 @@ export default function AdminSettingsPage() {
                 {/* Banner Content & Preview */}
                 <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
                   {/* Left Col: Live Slide Preview */}
-                  <div className="relative h-44 rounded-xl overflow-hidden border border-border bg-slate-900 shadow-inner group">
+                  <div className="relative w-full aspect-[16/9] min-h-[140px] max-h-[220px] rounded-xl overflow-hidden border border-border bg-slate-900 shadow-inner group">
                     <Image
                       src={isEditing ? (editForm.image || slide.image) : slide.image}
                       alt={slide.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-center"
                       unoptimized={(isEditing ? editForm.image : slide.image)?.startsWith('http')}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0B3323] via-[#0B3323]/50 to-transparent" />

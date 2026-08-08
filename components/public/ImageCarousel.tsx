@@ -134,7 +134,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
       onTouchEnd={onTouchEnd}
     >
       {/* Slides Container */}
-      <div className="relative h-[280px] min-h-[280px] sm:h-[360px] md:h-[420px] w-full">
+      <div className="relative w-full aspect-[21/9] min-h-[240px] max-h-[440px] sm:min-h-[320px] md:min-h-[380px] overflow-hidden">
         {slides.map((slide, idx) => {
           const isActive = idx === activeIndex;
           return (
@@ -151,7 +151,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
                 alt={slide.title}
                 fill
                 priority={idx === 0}
-                className="object-cover object-center transform scale-105 transition-transform duration-10000"
+                className="object-cover object-center"
                 unoptimized={slide.image?.startsWith('http')}
               />
 

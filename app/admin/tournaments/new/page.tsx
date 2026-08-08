@@ -335,12 +335,12 @@ export default function CreateTournamentPage() {
                   ))}
                 </div>
                 {watch('banner_image') && (
-                  <div className="mt-3 relative h-32 rounded-xl overflow-hidden border border-border shadow-inner bg-slate-950">
+                  <div className="mt-3 relative w-full aspect-[21/9] min-h-[140px] max-h-[220px] rounded-xl overflow-hidden border border-border shadow-inner bg-slate-950">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={watch('banner_image') || '/images/banner1.jpg'}
                       alt="Banner Preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                     />
                     <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold">
                       Live Banner Preview
