@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Settings, Plus, Trash2, Edit3, Save, RotateCcw, Check, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CarouselSlide } from '@/components/public/ImageCarousel';
-import { getHomeBanners, saveHomeBanners, resetHomeBanners } from '@/services/bannerService';
+import { getHomeBanners, saveHomeBanners, resetHomeBanners, fetchHomeBannersFromDB } from '@/services/bannerService';
 
 const SAMPLE_BANNERS = [
   '/images/banner1.jpg',
@@ -23,9 +23,20 @@ export default function AdminSettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [newSlideModalOpen, setNewSlideModalOpen] = useState(false);
 
-  const handleSaveAll = (updatedSlides: CarouselSlide[]) => {
-    saveHomeBanners(updatedSlides);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const dbBanners = await fetchHomeBannersFromDB();
+      if (!cancelled) setSlides(dbBanners);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSaveAll = async (updatedSlides: CarouselSlide[]) => {
     setSlides(updatedSlides);
+    await saveHomeBanners(updatedSlides);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -78,9 +89,9 @@ export default function AdminSettingsPage() {
     setEditForm({});
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('Reset home banners to default eFootball theme slides?')) {
-      const def = resetHomeBanners();
+      const def = await resetHomeBanners();
       setSlides(def);
       setEditingId(null);
     }

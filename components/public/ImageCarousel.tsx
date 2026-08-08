@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { DEFAULT_HOME_BANNERS, getHomeBanners } from '@/services/bannerService';
+import { DEFAULT_HOME_BANNERS, fetchHomeBannersFromDB } from '@/services/bannerService';
 
 export interface CarouselSlide {
   id: string;
@@ -28,22 +28,27 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  const reloadBanners = useCallback(() => {
+  const reloadBanners = useCallback(async () => {
     if (propSlides && propSlides.length > 0) {
       setSlides(propSlides);
-    } else {
-      setSlides(getHomeBanners());
+      return;
     }
+    const dbBanners = await fetchHomeBannersFromDB();
+    setSlides(dbBanners);
   }, [propSlides]);
 
   // Read stored custom banners after hydration is complete
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      if (!cancelled) reloadBanners();
+      if (propSlides && propSlides.length > 0) return;
+      const dbBanners = await fetchHomeBannersFromDB();
+      if (!cancelled) setSlides(dbBanners);
     })();
 
-    const handleUpdate = () => reloadBanners();
+    const handleUpdate = () => {
+      void reloadBanners();
+    };
     window.addEventListener('efootball_banners_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
@@ -52,7 +57,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
       window.removeEventListener('efootball_banners_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [reloadBanners]);
+  }, [propSlides, reloadBanners]);
 
   const minSwipeDistance = 40;
 
