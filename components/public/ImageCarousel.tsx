@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getHomeBanners } from '@/services/bannerService';
+import { DEFAULT_HOME_BANNERS, getHomeBanners } from '@/services/bannerService';
 
 export interface CarouselSlide {
   id: string;
@@ -19,10 +19,10 @@ export interface CarouselSlide {
 }
 
 export default function ImageCarousel({ slides: propSlides }: { slides?: CarouselSlide[] }) {
-  const [slides, setSlides] = useState<CarouselSlide[]>(() => {
-    if (propSlides && propSlides.length > 0) return propSlides;
-    return getHomeBanners();
-  });
+  // Guarantee 100% identical SSR and initial client hydration state to eliminate hydration mismatch
+  const [slides, setSlides] = useState<CarouselSlide[]>(
+    propSlides && propSlides.length > 0 ? propSlides : DEFAULT_HOME_BANNERS
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -36,12 +36,19 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
     }
   }, [propSlides]);
 
+  // Read stored custom banners after hydration is complete
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!cancelled) reloadBanners();
+    })();
+
     const handleUpdate = () => reloadBanners();
     window.addEventListener('efootball_banners_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('efootball_banners_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
