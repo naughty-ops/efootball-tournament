@@ -6,7 +6,8 @@ import { ChevronLeft, ChevronRight, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { DEFAULT_HOME_BANNERS, fetchHomeBannersFromDB } from '@/services/bannerService';
+import { createClient } from '@/lib/supabase/client';
+import { DEFAULT_HOME_BANNERS, fetchHomeBannersFromDB, BANNERS_STORAGE_KEY } from '@/services/bannerService';
 
 export interface CarouselSlide {
   id: string;
@@ -37,9 +38,11 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
     setSlides(dbBanners);
   }, [propSlides]);
 
-  // Read stored custom banners after hydration is complete
+  // Read stored custom banners after hydration and listen for Realtime updates
   useEffect(() => {
     let cancelled = false;
+    const supabase = createClient();
+
     void (async () => {
       if (propSlides && propSlides.length > 0) return;
       const dbBanners = await fetchHomeBannersFromDB();
@@ -52,10 +55,26 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
     window.addEventListener('efootball_banners_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
+    // Listen for Realtime Broadcast from Admin
+    const realtimeChannel = supabase
+      .channel('site_settings_realtime')
+      .on('broadcast', { event: 'banners_updated' }, (payload) => {
+        if (!cancelled && payload?.payload?.slides && Array.isArray(payload.payload.slides)) {
+          setSlides(payload.payload.slides);
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(payload.payload.slides));
+            } catch { /* silent */ }
+          }
+        }
+      })
+      .subscribe();
+
     return () => {
       cancelled = true;
       window.removeEventListener('efootball_banners_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [propSlides, reloadBanners]);
 

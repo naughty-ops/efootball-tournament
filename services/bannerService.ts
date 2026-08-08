@@ -3,8 +3,8 @@
 import { createClient } from '@/lib/supabase/client';
 import { CarouselSlide } from '@/components/public/ImageCarousel';
 
-const BANNERS_STORAGE_KEY = 'efootball_home_banners_v1';
-const SITE_SETTING_KEY = 'home_banners';
+export const BANNERS_STORAGE_KEY = 'efootball_home_banners_v1';
+export const SITE_SETTING_KEY = 'home_banners';
 
 export const DEFAULT_HOME_BANNERS: CarouselSlide[] = [
   {
@@ -78,6 +78,7 @@ export function getHomeBanners(): CarouselSlide[] {
 }
 
 export async function saveHomeBanners(slides: CarouselSlide[]): Promise<void> {
+  // 1. Update localStorage for immediate local responsiveness
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem(BANNERS_STORAGE_KEY, JSON.stringify(slides));
@@ -87,17 +88,28 @@ export async function saveHomeBanners(slides: CarouselSlide[]): Promise<void> {
     }
   }
 
+  // 2. Persist to Supabase PostgreSQL DB and broadcast Realtime update
   try {
     const supabase = createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('site_settings') as any).upsert({
+    const { error } = await (supabase.from('site_settings') as any).upsert({
       key: SITE_SETTING_KEY,
       value: slides,
       updated_at: new Date().toISOString(),
     });
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('efootball_banners_updated'));
+
+    if (error) {
+      console.warn('[Banner Service] Supabase DB upsert error:', error);
     }
+
+    // 3. Broadcast Realtime Event to all connected user clients
+    const channel = supabase.channel('site_settings_realtime');
+    await channel.send({
+      type: 'broadcast',
+      event: 'banners_updated',
+      payload: { slides },
+    });
+    supabase.removeChannel(channel);
   } catch (err) {
     console.warn('Could not save home banners to Supabase DB:', err);
   }
@@ -113,9 +125,14 @@ export async function resetHomeBanners(): Promise<CarouselSlide[]> {
   try {
     const supabase = createClient();
     await supabase.from('site_settings').delete().eq('key', SITE_SETTING_KEY);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('efootball_banners_updated'));
-    }
+
+    const channel = supabase.channel('site_settings_realtime');
+    await channel.send({
+      type: 'broadcast',
+      event: 'banners_updated',
+      payload: { slides: DEFAULT_HOME_BANNERS },
+    });
+    supabase.removeChannel(channel);
   } catch (err) {
     console.warn('Could not reset home banners in Supabase DB:', err);
   }
