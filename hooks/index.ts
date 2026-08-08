@@ -1,4 +1,1 @@
-// Hooks placeholder
-export function usePlaceholder() {
-  return { ready: true };
-}
+export * from './useRealtimeMatches';

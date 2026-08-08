@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
@@ -14,8 +15,8 @@ export interface RealtimePayload {
 }
 
 /**
- * Custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
- * Passes realtime payload to onUpdate callback so components can update React state instantly.
+ * Robust, production-hardened custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
+ * Defensively catches any subscription errors to prevent Next.js page crashes on Vercel deployment.
  */
 export function useRealtimeMatches(
   onUpdate: (payload?: RealtimePayload) => void,
@@ -25,87 +26,105 @@ export function useRealtimeMatches(
   const [connectionStatus, setConnectionStatus] = useState<RealtimeConnectionStatus>('connecting');
 
   useEffect(() => {
-    const supabase = createClient();
     let isMounted = true;
     let hasConnectedOnce = false;
+    let channel: RealtimeChannel | null = null;
 
-    const channelName = matchId
-      ? `public:matches:match:${matchId}`
-      : tournamentId
-      ? `public:matches:tournament:${tournamentId}`
-      : 'public:matches:all';
+    try {
+      const supabase = createClient();
 
-    // Note: matches table does NOT have tournament_id column directly.
-    // If matchId is specified, we filter by id=eq.matchId.
-    // Otherwise we subscribe to public.matches table events without invalid column filters.
-    const matchFilter = matchId ? `id=eq.${matchId}` : undefined;
-    const tournamentFilter = tournamentId ? `id=eq.${tournamentId}` : undefined;
+      // Instance-unique channel name compatible with all Supabase Realtime client versions
+      const instanceId = Math.random().toString(36).substring(2, 8);
+      const channelName = matchId
+        ? `matches-realtime-match-${matchId}-${instanceId}`
+        : tournamentId
+        ? `matches-realtime-tournament-${tournamentId}-${instanceId}`
+        : `matches-realtime-all-${instanceId}`;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Realtime] Initializing subscription channel: ${channelName}`);
+      const matchFilter = matchId ? `id=eq.${matchId}` : undefined;
+      const tournamentFilter = tournamentId ? `id=eq.${tournamentId}` : undefined;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Realtime matches] Subscribing channel: ${channelName}`);
+      }
+
+      channel = supabase.channel(channelName);
+
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'matches',
+            ...(matchFilter ? { filter: matchFilter } : {}),
+          },
+          (payload) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Realtime matches event]', payload);
+            }
+            if (isMounted) {
+              onUpdate(payload as unknown as RealtimePayload);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'tournaments',
+            ...(tournamentFilter ? { filter: tournamentFilter } : {}),
+          },
+          (payload) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Realtime tournaments event]', payload);
+            }
+            if (isMounted) {
+              onUpdate(payload as unknown as RealtimePayload);
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          if (!isMounted) return;
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Realtime matches] Status: ${channelName} -> ${status}`, err || '');
+          }
+
+          if (status === 'SUBSCRIBED') {
+            if (hasConnectedOnce) {
+              // Reconnection recovery: revalidate data upon re-subscribing
+              onUpdate();
+            }
+            hasConnectedOnce = true;
+            setConnectionStatus('connected');
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            if (err) {
+              console.warn('[Realtime matches warning]', err);
+            }
+            setConnectionStatus(hasConnectedOnce ? 'reconnecting' : 'disconnected');
+          }
+        });
+    } catch (err) {
+      console.warn('[Realtime matches defensive catch] Could not initialize subscription:', err);
+      setTimeout(() => {
+        if (isMounted) {
+          setConnectionStatus('disconnected');
+        }
+      }, 0);
     }
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: matchFilter,
-        },
-        (payload) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Realtime Match Event Received]', payload);
-          }
-          if (isMounted) {
-            onUpdate(payload as unknown as RealtimePayload);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tournaments',
-          filter: tournamentFilter,
-        },
-        (payload) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Realtime Tournament Event Received]', payload);
-          }
-          if (isMounted) {
-            onUpdate(payload as unknown as RealtimePayload);
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (!isMounted) return;
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Realtime Channel Status]: ${channelName} -> ${status}`);
-        }
-
-        if (status === 'SUBSCRIBED') {
-          if (hasConnectedOnce) {
-            // Reconnection recovery: revalidate data upon re-subscribing
-            onUpdate();
-          }
-          hasConnectedOnce = true;
-          setConnectionStatus('connected');
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setConnectionStatus(hasConnectedOnce ? 'reconnecting' : 'disconnected');
-        }
-      });
-
     return () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[Realtime] Removing channel subscription: ${channelName}`);
-      }
       isMounted = false;
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          const supabase = createClient();
+          supabase.removeChannel(channel);
+        } catch (cleanupErr) {
+          console.warn('[Realtime matches cleanup warning]', cleanupErr);
+        }
+      }
     };
   }, [onUpdate, tournamentId, matchId]);
 
