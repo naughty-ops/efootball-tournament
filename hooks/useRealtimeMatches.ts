@@ -16,7 +16,8 @@ export interface RealtimePayload {
 
 /**
  * Production-hardened custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
- * Uses useRef for the onUpdate callback to prevent re-subscription loops when parent components re-render.
+ * Ensures ALL .on() listeners are attached strictly BEFORE .subscribe() is called.
+ * Uses the exact same Supabase client instance for subscription and cleanup.
  */
 export function useRealtimeMatches(
   onUpdate: (payload?: RealtimePayload) => void,
@@ -32,30 +33,29 @@ export function useRealtimeMatches(
   });
 
   useEffect(() => {
+    const supabase = createClient();
     let isMounted = true;
     let channel: RealtimeChannel | null = null;
 
     try {
-      const supabase = createClient();
-
-      // Generate a unique topic for each hook instance to prevent channel object reuse conflicts in Supabase client
-      const channelId = Math.random().toString(36).substring(2, 9);
+      // Unique topic name per subscription instance to avoid topic collision in Supabase JS client
+      const instanceId = Math.random().toString(36).substring(2, 8);
       const topicName = matchId
-        ? `rt-matches-m-${matchId}-${channelId}`
+        ? `matches-realtime-m-${matchId}-${instanceId}`
         : tournamentId
-        ? `rt-matches-t-${tournamentId}-${channelId}`
-        : `rt-matches-all-${channelId}`;
+        ? `matches-realtime-t-${tournamentId}-${instanceId}`
+        : `matches-realtime-all-${instanceId}`;
 
       const matchFilter = matchId ? `id=eq.${matchId}` : undefined;
       const tournamentFilter = tournamentId ? `id=eq.${tournamentId}` : undefined;
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Realtime matches] Subscribing channel topic: ${topicName}`);
+        console.log(`[Realtime matches] Registering channel topic: ${topicName}`);
       }
 
-      channel = supabase.channel(topicName);
-
-      channel
+      // Single fluid chain: create channel -> attach ALL .on() listeners -> call .subscribe()
+      channel = supabase
+        .channel(topicName)
         .on(
           'postgres_changes',
           {
@@ -127,7 +127,7 @@ export function useRealtimeMatches(
       isMounted = false;
       if (channel) {
         try {
-          const supabase = createClient();
+          // Use the exact same supabase client instance for channel removal
           supabase.removeChannel(channel);
         } catch (cleanupErr) {
           console.warn('[Realtime matches cleanup warning]', cleanupErr);
