@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Trophy, Award, Zap, ChevronRight, Loader2 } from 'lucide-react';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trophy, ChevronRight, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ImageCarousel from '@/components/public/ImageCarousel';
@@ -217,53 +216,6 @@ export default function HomePage() {
             </div>
           </div>
         )}
-      </section>
-
-      {/* 4. Platform Highlights */}
-      <section className="space-y-6 pt-2">
-        <div className="flex flex-col space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0B3323]">
-            Platform Features
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Explore live updates, interactive tournament brackets, and standings.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-          <Card className="hover:border-primary/50 transition-all">
-            <CardHeader className="space-y-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary">
-                <Trophy className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Championship Brackets</CardTitle>
-              <CardDescription className="text-xs leading-relaxed">
-                Interactive knockout and group stage tournament brackets updated in real time.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:border-primary/50 transition-all">
-            <CardHeader className="space-y-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary">
-                <Zap className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Live Scores</CardTitle>
-              <CardDescription className="text-xs leading-relaxed">
-                Real-time live match scores and results powered by Supabase Realtime.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="hover:border-primary/50 transition-all">
-            <CardHeader className="space-y-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary">
-                <Award className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-lg">Real-Time Standings</CardTitle>
-              <CardDescription className="text-xs leading-relaxed">
-                Comprehensive group tables, points, goal differentials, and global player rankings.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
       </section>
     </div>
   );

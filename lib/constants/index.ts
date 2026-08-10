@@ -3,10 +3,8 @@ export const APP_DESCRIPTION = 'Official eFootball Esports & Tournament Manageme
 
 export const PUBLIC_NAV_ITEMS = [
   { label: 'Home', href: '/' },
-  { label: 'Tournaments', href: '/tournaments' },
   { label: 'Live', href: '/live' },
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Tournaments', href: '/tournaments' },
 ] as const;
 
 export const ADMIN_NAV_ITEMS = [

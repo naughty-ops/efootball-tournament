@@ -5,16 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PUBLIC_NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { Home, Trophy, Radio, Info, Mail } from 'lucide-react';
+import { Home, Radio, Trophy } from 'lucide-react';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
 
 const NAV_ICONS: Record<string, React.ElementType> = {
   '/': Home,
-  '/tournaments': Trophy,
   '/live': Radio,
-  '/about': Info,
-  '/contact': Mail,
+  '/tournaments': Trophy,
 };
 
 interface PublicNavProps {
