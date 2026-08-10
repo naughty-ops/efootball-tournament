@@ -233,16 +233,18 @@ export async function getTournamentStageInfo(tournamentId: string) {
   const t = await getTournamentById(tournamentId);
   if (!t) throw new Error('Tournament not found');
 
-  const { data: participants } = await supabase
-    .from('participants')
-    .select('*')
-    .eq('tournament_id', tournamentId);
+  const [
+    { data: participants },
+    { data: groups },
+    { data: rounds },
+  ] = await Promise.all([
+    supabase.from('participants').select('*').eq('tournament_id', tournamentId),
+    supabase.from('groups').select('*').eq('tournament_id', tournamentId),
+    supabase.from('rounds').select('*').eq('tournament_id', tournamentId),
+  ]);
+
   const psList = (participants || []) as Participant[];
-
-  const { data: groups } = await supabase.from('groups').select('*').eq('tournament_id', tournamentId);
   const gList = (groups || []) as Group[];
-
-  const { data: rounds } = await supabase.from('rounds').select('*').eq('tournament_id', tournamentId);
   const rList = (rounds || []) as Round[];
 
   const participantMap = new Map<string, Participant>(psList.map((p) => [p.id, p]));
@@ -251,23 +253,25 @@ export async function getTournamentStageInfo(tournamentId: string) {
   const groupIds = gList.map((g) => g.id);
 
   const rawMatches: Match[] = [];
-  if (roundIds.length > 0) {
-    const { data: rMatches } = await (supabase.from('matches') as unknown as UnknownQuery)
-      .select('*')
-      .in('round_id', roundIds);
-    if (rMatches) rawMatches.push(...(rMatches as Match[]));
+
+  const [rMatchesRes, gMatchesRes] = await Promise.all([
+    roundIds.length > 0
+      ? (supabase.from('matches') as unknown as UnknownQuery).select('*').in('round_id', roundIds)
+      : Promise.resolve({ data: [] }),
+    groupIds.length > 0
+      ? (supabase.from('matches') as unknown as UnknownQuery).select('*').in('group_id', groupIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  if (rMatchesRes.data) {
+    rawMatches.push(...(rMatchesRes.data as Match[]));
   }
 
-  if (groupIds.length > 0) {
-    const { data: gMatches } = await (supabase.from('matches') as unknown as UnknownQuery)
-      .select('*')
-      .in('group_id', groupIds);
-    if (gMatches) {
-      const matchMap = new Map<string, Match>(rawMatches.map((m) => [m.id, m]));
-      for (const gm of gMatches as Match[]) {
-        if (!matchMap.has(gm.id)) {
-          rawMatches.push(gm);
-        }
+  if (gMatchesRes.data) {
+    const matchMap = new Map<string, Match>(rawMatches.map((m) => [m.id, m]));
+    for (const gm of gMatchesRes.data as Match[]) {
+      if (!matchMap.has(gm.id)) {
+        rawMatches.push(gm);
       }
     }
   }

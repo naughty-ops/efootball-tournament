@@ -31,7 +31,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/modal';
-import { CsvImportModal } from '@/components/admin/CsvImportModal';
+import dynamic from 'next/dynamic';
+
+const CsvImportModal = dynamic(
+  () => import('@/components/admin/CsvImportModal').then((mod) => mod.CsvImportModal),
+  { ssr: false }
+);
 
 const STATUS_TABS = [
   { label: 'All', value: 'all' },

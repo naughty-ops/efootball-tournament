@@ -151,6 +151,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
                 alt={slide.title}
                 fill
                 priority={idx === 0}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
                 className="object-cover object-center"
                 unoptimized={slide.image?.startsWith('http')}
               />

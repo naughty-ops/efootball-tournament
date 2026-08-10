@@ -33,7 +33,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { formatDate } from '@/lib/utils';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
-import { ScoreEntryModal } from '@/components/match/ScoreEntryModal';
+import dynamic from 'next/dynamic';
+
+const ScoreEntryModal = dynamic(
+  () => import('@/components/match/ScoreEntryModal').then((mod) => mod.ScoreEntryModal),
+  { ssr: false }
+);
 
 const STAGE_OPTIONS = [
   { label: 'All Stages', value: 'all' },

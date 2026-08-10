@@ -28,7 +28,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmModal } from '@/components/ui/modal';
-import { ManualSlotOverrideModal } from '@/components/admin/ManualSlotOverrideModal';
+import dynamic from 'next/dynamic';
+
+const ManualSlotOverrideModal = dynamic(
+  () => import('@/components/admin/ManualSlotOverrideModal').then((mod) => mod.ManualSlotOverrideModal),
+  { ssr: false }
+);
 
 export default function AdminBracketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = use(params);

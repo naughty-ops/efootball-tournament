@@ -136,33 +136,28 @@ export async function getPublicLiveMatches(tournamentId?: string): Promise<{
     if (m.round_id) roundIds.add(m.round_id);
   }
 
-  // Batch-fetch participants (public fields only)
+  // Batch-fetch participants and rounds concurrently
+  const [participantsRes, roundsRes] = await Promise.all([
+    participantIds.size > 0
+      ? supabase.from('participants').select('id, username').in('id', Array.from(participantIds))
+      : Promise.resolve({ data: [] }),
+    roundIds.size > 0
+      ? supabase.from('rounds').select('*').in('id', Array.from(roundIds))
+      : Promise.resolve({ data: [] }),
+  ]);
+
   const participantMap = new Map<string, string>();
-  if (participantIds.size > 0) {
-    const { data: participants } = await supabase
-      .from('participants')
-      .select('id, username')
-      .in('id', Array.from(participantIds));
-    for (const p of (participants || []) as { id: string; username: string }[]) {
-      participantMap.set(p.id, p.username);
-    }
+  for (const p of (participantsRes.data || []) as { id: string; username: string }[]) {
+    participantMap.set(p.id, p.username);
   }
 
-  // Batch-fetch rounds with their tournament IDs
   const roundMap = new Map<string, Round & { tournamentId: string }>();
-  if (roundIds.size > 0) {
-    const { data: rounds } = await supabase
-      .from('rounds')
-      .select('*')
-      .in('id', Array.from(roundIds));
-    for (const r of (rounds || []) as (Round & { tournament_id: string })[]) {
-      roundMap.set(r.id, { ...r, tournamentId: r.tournament_id });
-    }
+  const tournamentIds = new Set<string>();
+  for (const r of (roundsRes.data || []) as (Round & { tournament_id: string })[]) {
+    roundMap.set(r.id, { ...r, tournamentId: r.tournament_id });
+    if (r.tournament_id) tournamentIds.add(r.tournament_id);
   }
 
-  // Batch-fetch tournaments for names
-  const tournamentIds = new Set<string>();
-  for (const r of roundMap.values()) tournamentIds.add(r.tournamentId);
   const tournamentNameMap = new Map<string, string>();
   if (tournamentIds.size > 0) {
     const { data: tournaments } = await supabase
