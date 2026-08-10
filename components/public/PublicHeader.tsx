@@ -46,10 +46,10 @@ export default function PublicHeader() {
         </div>
       </div>
 
-      {/* Mobile Horizontal Navigation Row (Visible on screens < md) */}
-      <div className="md:hidden border-t border-border/50 bg-slate-50/90 px-3 py-1.5 overflow-x-auto no-scrollbar touch-pan-x">
-        <div className="mx-auto max-w-7xl">
-          <PublicNav />
+      {/* Mobile Centered Horizontal Navigation Row (Visible on screens < md) */}
+      <div className="md:hidden border-t border-border/50 bg-slate-50/95 backdrop-blur-md px-2 py-1.5 flex items-center justify-center overflow-x-auto no-scrollbar touch-pan-x">
+        <div className="w-full max-w-md flex items-center justify-center">
+          <PublicNav className="justify-center w-full" />
         </div>
       </div>
     </header>
