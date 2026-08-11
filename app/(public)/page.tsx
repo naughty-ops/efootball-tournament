@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Trophy, ChevronRight, Loader2 } from 'lucide-react';
+import { Trophy, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ImageCarousel from '@/components/public/ImageCarousel';
-import { getPublicTournaments, getPublicLiveMatches } from '@/services/publicTournamentService';
+import { getPublicTournaments, getPublicLiveMatches, type LiveMatchEntry } from '@/services/publicTournamentService';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import { formatDate } from '@/lib/utils';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
-
-type LiveEntry = Awaited<ReturnType<typeof getPublicLiveMatches>>[number];
 
 function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   const isLive = t.status === 'ongoing';
@@ -49,25 +47,30 @@ function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   );
 }
 
+function CardSkeleton() {
+  return (
+    <div className="h-16 w-full rounded-xl bg-slate-100 animate-pulse border border-border/40" />
+  );
+}
+
 export default function HomePage() {
-  const [liveMatches, setLiveMatches] = useState<LiveEntry[]>([]);
+  const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>([]);
   const [activeT, setActiveT] = useState<TournamentWithStats[]>([]);
   const [upcomingT, setUpcomingT] = useState<TournamentWithStats[]>([]);
   const [completedT, setCompletedT] = useState<TournamentWithStats[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (bypassCache = false) => {
     try {
-      const [live, active, upcoming, completed] = await Promise.all([
-        getPublicLiveMatches(),
-        getPublicTournaments({ status: 'ongoing' }),
-        getPublicTournaments({ status: 'registration' }),
-        getPublicTournaments({ status: 'completed' }),
+      // Parallelized single-batch fetch for maximum speed
+      const [live, allTournaments] = await Promise.all([
+        getPublicLiveMatches(undefined, bypassCache),
+        getPublicTournaments({ bypassCache }),
       ]);
       setLiveMatches(live);
-      setActiveT(active);
-      setUpcomingT(upcoming);
-      setCompletedT(completed.slice(0, 5));
+      setActiveT(allTournaments.filter((t) => t.status === 'ongoing'));
+      setUpcomingT(allTournaments.filter((t) => t.status === 'registration'));
+      setCompletedT(allTournaments.filter((t) => t.status === 'completed').slice(0, 5));
     } catch {
       // Silent fail on home page
     } finally {
@@ -82,7 +85,8 @@ export default function HomePage() {
     })();
     return () => { cancelled = true; };
   }, [fetchAll]);
-  useRealtimeMatches(fetchAll);
+
+  useRealtimeMatches(() => fetchAll(true));
 
   return (
     <div className="space-y-12 pb-12 w-full overflow-hidden">
@@ -109,9 +113,10 @@ export default function HomePage() {
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2 py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-xs text-muted-foreground">Loading live matches...</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -162,9 +167,9 @@ export default function HomePage() {
               </Button>
             </div>
             {loading ? (
-              <div className="flex items-center gap-2 py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground">Loading...</span>
+              <div className="space-y-2">
+                <CardSkeleton />
+                <CardSkeleton />
               </div>
             ) : activeT.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center">
@@ -184,9 +189,8 @@ export default function HomePage() {
           <div className="space-y-3">
             <h2 className="text-lg font-extrabold text-[#0B3323]">Upcoming</h2>
             {loading ? (
-              <div className="flex items-center gap-2 py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground">Loading...</span>
+              <div className="space-y-2">
+                <CardSkeleton />
               </div>
             ) : upcomingT.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center">

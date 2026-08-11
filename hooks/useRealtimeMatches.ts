@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { clearPublicCache } from '@/services/publicTournamentService';
 
 export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
@@ -66,6 +67,7 @@ export function useRealtimeMatches(
             ...(matchFilter ? { filter: matchFilter } : {}),
           },
           (payload) => {
+            clearPublicCache();
             if (process.env.NODE_ENV === 'development') {
               console.log('[Realtime match payload]', payload);
             }
@@ -87,6 +89,7 @@ export function useRealtimeMatches(
             ...(tournamentFilter ? { filter: tournamentFilter } : {}),
           },
           (payload) => {
+            clearPublicCache();
             if (process.env.NODE_ENV === 'development') {
               console.log('[Realtime tournament payload]', payload);
             }

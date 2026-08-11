@@ -121,9 +121,10 @@ export default function LivePage() {
 
       {/* Content */}
       {loading ? (
-        <div className="min-h-[240px] flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-          <span className="text-sm font-semibold text-[#0B3323]">Loading live matches...</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
         </div>
       ) : error ? (
         <Card className="p-12 text-center border-destructive/30 bg-destructive/5">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Trophy, Search, ChevronRight, Users, Calendar, Loader2,
+  Trophy, Search, ChevronRight, Users, Calendar,
   Flame, CheckCircle2, Clock, Filter,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -127,9 +127,10 @@ export default function TournamentsPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="min-h-[240px] flex items-center justify-center p-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-          <span className="text-xs font-semibold text-[#0B3323]">Loading Tournaments...</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
         </div>
       ) : error ? (
         <Card className="p-12 text-center border-destructive/30 bg-destructive/5">

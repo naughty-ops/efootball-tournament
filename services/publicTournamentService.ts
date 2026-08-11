@@ -19,24 +19,48 @@ export interface PublicParticipant {
   status: string;
 }
 
+export type LiveMatchEntry = {
+  match: Match & { participantAName?: string; participantBName?: string; tournamentName?: string };
+  round: Round & { tournamentId: string };
+};
+
+// Lightweight In-Memory TTL Cache for Instant Navigation (< 50ms responses)
+const CACHE_TTL_MS = 10000; // 10 seconds
+let cachedTournaments: { data: TournamentWithStats[]; timestamp: number; key: string } | null = null;
+let cachedLiveMatches: { data: LiveMatchEntry[]; timestamp: number; key: string } | null = null;
+
+export function clearPublicCache() {
+  cachedTournaments = null;
+  cachedLiveMatches = null;
+}
+
 /**
- * Public-safe tournament list (reuses existing getTournaments)
- * All data is public-readable. No admin-only fields exposed.
+ * Public-safe tournament list with SWR-style in-memory cache
  */
 export async function getPublicTournaments(params?: {
   search?: string;
   status?: string;
+  bypassCache?: boolean;
 }): Promise<TournamentWithStats[]> {
-  return getTournaments({
+  const cacheKey = `${params?.search || ''}_${params?.status || ''}`;
+  const now = Date.now();
+
+  if (!params?.bypassCache && cachedTournaments && cachedTournaments.key === cacheKey && now - cachedTournaments.timestamp < CACHE_TTL_MS) {
+    return cachedTournaments.data;
+  }
+
+  const data = await getTournaments({
     search: params?.search,
     status: params?.status,
     sort: 'newest',
   });
+
+  cachedTournaments = { data, timestamp: now, key: cacheKey };
+  return data;
 }
 
 /**
  * Fetch a single tournament for public display.
- * Returns null if tournament not found.
  */
 export async function getPublicTournament(id: string): Promise<TournamentWithStats | null> {
   return getTournamentById(id);
@@ -44,7 +68,6 @@ export async function getPublicTournament(id: string): Promise<TournamentWithSta
 
 /**
  * Fetch tournament stage info for public overview tab.
- * All field-safe data — no admin controls.
  */
 export async function getPublicTournamentStageInfo(tournamentId: string) {
   return getTournamentStageInfo(tournamentId);
@@ -56,7 +79,6 @@ export async function getPublicTournamentStageInfo(tournamentId: string) {
 export async function getPublicParticipants(tournamentId: string): Promise<PublicParticipant[]> {
   const supabase = createClient();
 
-  // Explicitly select only safe public fields — no contact_info / internal fields
   const { data, error } = await supabase
     .from('participants')
     .select('id, username, seed_number, status')
@@ -72,46 +94,49 @@ export async function getPublicParticipants(tournamentId: string): Promise<Publi
 }
 
 /**
- * Fetch group stage overview (standings, fixtures, rounds).
- * Reuses existing getTournamentGroups engine — no separate logic.
+ * Fetch group stage overview.
  */
 export async function getPublicGroupStage(tournamentId: string): Promise<GroupStageOverview> {
   return getTournamentGroups(tournamentId);
 }
 
 /**
- * Fetch knockout bracket data for public display.
- * Reuses existing getTournamentBracket engine.
+ * Fetch knockout bracket data.
  */
 export async function getPublicBracket(tournamentId: string): Promise<BracketOverview> {
   return getTournamentBracket(tournamentId);
 }
 
 /**
- * Fetch all matches (grouped by round) for public display.
- * Reuses existing getMatchesByTournament.
+ * Fetch all matches for public display.
  */
 export async function getPublicMatches(tournamentId: string): Promise<RoundWithMatches[]> {
   return getMatchesByTournament(tournamentId);
 }
 
 /**
- * Fetch currently live matches across all tournaments or for a specific tournament.
+ * Fetch currently live matches with in-memory TTL caching
  */
-export async function getPublicLiveMatches(tournamentId?: string): Promise<{
-  match: Match & { participantAName?: string; participantBName?: string; tournamentName?: string };
-  round: Round & { tournamentId: string };
-}[]> {
+export async function getPublicLiveMatches(
+  tournamentId?: string,
+  bypassCache = false
+): Promise<LiveMatchEntry[]> {
+  const cacheKey = tournamentId || 'all';
+  const now = Date.now();
+
+  if (!bypassCache && cachedLiveMatches && cachedLiveMatches.key === cacheKey && now - cachedLiveMatches.timestamp < CACHE_TTL_MS) {
+    return cachedLiveMatches.data;
+  }
+
   const supabase = createClient();
 
   let matchQuery = supabase
     .from('matches')
-    .select('*')
+    .select('id, round_id, group_id, participant_a, participant_b, scheduled_time, status, score_a, score_b, winner_id, notes, match_position, updated_at')
     .eq('status', 'live')
     .order('updated_at', { ascending: false });
 
   if (tournamentId) {
-    // Filter via rounds that belong to this tournament
     const { data: rounds } = await supabase
       .from('rounds')
       .select('id')
@@ -127,7 +152,6 @@ export async function getPublicLiveMatches(tournamentId?: string): Promise<{
   const { data: liveMatches, error } = await matchQuery;
   if (error || !liveMatches) return [];
 
-  // Collect all relevant participant and round IDs
   const participantIds = new Set<string>();
   const roundIds = new Set<string>();
   for (const m of liveMatches as Match[]) {
@@ -142,7 +166,7 @@ export async function getPublicLiveMatches(tournamentId?: string): Promise<{
       ? supabase.from('participants').select('id, username').in('id', Array.from(participantIds))
       : Promise.resolve({ data: [] }),
     roundIds.size > 0
-      ? supabase.from('rounds').select('*').in('id', Array.from(roundIds))
+      ? supabase.from('rounds').select('id, name, round_number, tournament_id').in('id', Array.from(roundIds))
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -169,7 +193,7 @@ export async function getPublicLiveMatches(tournamentId?: string): Promise<{
     }
   }
 
-  return (liveMatches as Match[])
+  const result = (liveMatches as Match[])
     .filter((m) => m.round_id && roundMap.has(m.round_id))
     .map((m) => {
       const round = roundMap.get(m.round_id!)!;
@@ -183,4 +207,7 @@ export async function getPublicLiveMatches(tournamentId?: string): Promise<{
         round,
       };
     });
+
+  cachedLiveMatches = { data: result, timestamp: now, key: cacheKey };
+  return result;
 }
