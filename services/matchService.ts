@@ -550,10 +550,13 @@ export async function submitMatchResult(
 
   // 3. AUTOMATIC TOURNAMENT COMPLETION IF FINAL MATCH
   if (!match.group_id && !match.next_match_id && winnerId) {
+    const runnerUpId = match.participant_a === winnerId ? match.participant_b : match.participant_a;
     await (supabase.from('tournaments') as unknown as UnknownQuery)
       .update({
         status: 'completed',
         champion_id: winnerId,
+        runner_up_id: runnerUpId || null,
+        completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', tournamentId);

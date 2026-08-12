@@ -6,6 +6,8 @@ import { FullMatchData } from '@/services/matchService';
 
 export interface TournamentWithStats extends Tournament {
   participant_count: number;
+  championUser?: Participant | null;
+  runnerUpUser?: Participant | null;
 }
 
 export interface GetTournamentsParams {
@@ -23,6 +25,8 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<TournamentStatus, TournamentStat
 
 interface SupabaseTournamentRow extends Tournament {
   participants?: { count: number }[];
+  champion?: Participant | null;
+  runner_up?: Participant | null;
 }
 
 type UnknownQuery = {
@@ -61,7 +65,9 @@ function formatSupabaseError(error: unknown): string {
  */
 export async function getTournaments(params?: GetTournamentsParams): Promise<TournamentWithStats[]> {
   const supabase = createClient();
-  let query = (supabase.from('tournaments') as unknown as UnknownQuery).select('*, participants:participants!participants_tournament_id_fkey(count)');
+  let query = (supabase.from('tournaments') as unknown as UnknownQuery).select(
+    '*, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)'
+  );
 
   if (params?.search && params.search.trim().length > 0) {
     query = query.ilike('name', `%${params.search.trim()}%`);
@@ -91,16 +97,20 @@ export async function getTournaments(params?: GetTournamentsParams): Promise<Tou
   return rows.map((t) => ({
     ...t,
     participant_count: t.participants?.[0]?.count ?? 0,
+    championUser: t.champion ?? null,
+    runnerUpUser: t.runner_up ?? null,
   }));
 }
 
 /**
- * Fetch a single tournament by UUID with participant count
+ * Fetch a single tournament by UUID with participant count, champion, and runner-up
  */
 export async function getTournamentById(id: string): Promise<TournamentWithStats | null> {
   const supabase = createClient();
   const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
-    .select('*, participants:participants!participants_tournament_id_fkey(count)')
+    .select(
+      '*, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)'
+    )
     .eq('id', id)
     .single();
 
@@ -117,6 +127,8 @@ export async function getTournamentById(id: string): Promise<TournamentWithStats
   return {
     ...row,
     participant_count: row.participants?.[0]?.count ?? 0,
+    championUser: row.champion ?? null,
+    runnerUpUser: row.runner_up ?? null,
   };
 }
 

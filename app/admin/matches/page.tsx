@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { formatDate } from '@/lib/utils';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 import dynamic from 'next/dynamic';
 
 const ScoreEntryModal = dynamic(
@@ -81,6 +82,12 @@ export default function AdminMatchCenterPage() {
   // Modal State
   const [activeScoreMatch, setActiveScoreMatch] = useState<MatchWithDetails | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [celebrationData, setCelebrationData] = useState<{
+    isOpen: boolean;
+    tournamentName: string;
+    championName: string;
+    runnerUpName?: string;
+  } | null>(null);
 
   const fetchMatchCenterData = useCallback(async () => {
     try {
@@ -178,6 +185,8 @@ export default function AdminMatchCenterPage() {
   const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
+    const isFinalMatch = !activeScoreMatch.next_match_id && !activeScoreMatch.group_id;
+
     try {
       const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
       if (isCompleted) {
@@ -193,8 +202,25 @@ export default function AdminMatchCenterPage() {
           result_type: 'normal',
         });
       }
+      const matchToCelebrate = activeScoreMatch;
       setActiveScoreMatch(null);
-      fetchMatchCenterData();
+      await fetchMatchCenterData();
+
+      if (isFinalMatch) {
+        const winnerName = scoreA > scoreB
+          ? matchToCelebrate.participantAUser?.username
+          : matchToCelebrate.participantBUser?.username;
+        const runnerName = scoreA > scoreB
+          ? matchToCelebrate.participantBUser?.username
+          : matchToCelebrate.participantAUser?.username;
+
+        setCelebrationData({
+          isOpen: true,
+          tournamentName: matchToCelebrate.tournamentName || 'Tournament',
+          championName: winnerName || 'Champion',
+          runnerUpName: runnerName || undefined,
+        });
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save match result';
       alert(msg);
@@ -563,6 +589,17 @@ export default function AdminMatchCenterPage() {
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
           isLoading={actionLoading}
+        />
+      )}
+
+      {/* Winner Celebration Overlay */}
+      {celebrationData && (
+        <WinnerCelebrationOverlay
+          isOpen={celebrationData.isOpen}
+          onClose={() => setCelebrationData(null)}
+          tournamentName={celebrationData.tournamentName}
+          championName={celebrationData.championName}
+          runnerUpName={celebrationData.runnerUpName}
         />
       )}
     </div>

@@ -11,23 +11,34 @@ import type { TournamentWithStats } from '@/services/tournamentService';
 import { formatDate } from '@/lib/utils';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
 
+import { TournamentCard } from '@/components/tournament/TournamentCard';
+
 function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   const isLive = t.status === 'ongoing';
+  const isCompleted = t.status === 'completed';
+
   return (
     <Link
       href={`/tournaments/${t.id}`}
-      className="group flex items-center gap-3 rounded-xl border border-border bg-white p-3.5 hover:border-primary/40 hover:shadow-sm transition-all"
+      className={`group flex items-center gap-3 rounded-xl border p-3.5 hover:shadow-md transition-all ${
+        isCompleted
+          ? 'border-emerald-200 bg-gradient-to-r from-white via-emerald-50/20 to-amber-50/20'
+          : 'border-border bg-white hover:border-primary/40'
+      }`}
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-        <Trophy className="h-4.5 w-4.5" />
+        <Trophy className={`h-4.5 w-4.5 ${isCompleted ? 'text-amber-500' : ''}`} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-[#0B3323] truncate group-hover:text-primary transition-colors">
           {t.name}
         </p>
-        <p className="text-[11px] text-muted-foreground font-semibold">
-          {t.participant_count}/{t.max_participants} players
-          {t.start_date ? ` · ${formatDate(t.start_date)}` : ''}
+        <p className="text-[11px] text-muted-foreground font-semibold truncate">
+          {isCompleted && t.championUser ? (
+            <span className="text-amber-800 font-bold">🏆 Winner: {t.championUser.username}</span>
+          ) : (
+            `${t.participant_count}/${t.max_participants} players${t.start_date ? ` · ${formatDate(t.start_date)}` : ''}`
+          )}
         </p>
       </div>
       {isLive ? (
@@ -38,8 +49,8 @@ function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
           </span>
           LIVE
         </Badge>
-      ) : t.status === 'completed' ? (
-        <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground shrink-0">DONE</Badge>
+      ) : isCompleted ? (
+        <Badge className="bg-emerald-600 text-white text-[10px] font-bold shrink-0">WINNER</Badge>
       ) : (
         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
       )}

@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmModal } from '@/components/ui/modal';
 import { updateLiveScore, submitMatchResult, editMatchResult } from '@/services/matchService';
+import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 import dynamic from 'next/dynamic';
 
 const ManualSlotOverrideModal = dynamic(
@@ -103,6 +104,9 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
     };
   }, [tournamentId]);
 
+  // Winner Celebration State
+  const [showCelebration, setShowCelebration] = useState(false);
+
   const handleUpdateLiveScore = async (scoreA: number, scoreB: number) => {
     if (!activeScoreMatch) return;
     try {
@@ -117,6 +121,8 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
   const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
+    const isFinalMatch = !activeScoreMatch.next_match_id && !activeScoreMatch.group_id;
+
     try {
       const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
       if (isCompleted) {
@@ -134,6 +140,10 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
       }
       setActiveScoreMatch(null);
       await fetchBracketData();
+
+      if (isFinalMatch) {
+        setShowCelebration(true);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save score result';
       setError(msg);
@@ -528,6 +538,17 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
           isLoading={actionLoading}
+        />
+      )}
+
+      {/* Winner Celebration Overlay */}
+      {showCelebration && overview?.tournament && (
+        <WinnerCelebrationOverlay
+          isOpen={showCelebration}
+          onClose={() => setShowCelebration(false)}
+          tournamentName={overview.tournament.name}
+          championName={overview.tournament.championUser?.username || 'Champion'}
+          runnerUpName={overview.tournament.runnerUpUser?.username}
         />
       )}
     </div>

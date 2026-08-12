@@ -28,6 +28,10 @@ export default function PublicOverviewTab({
   groupStage,
   bracket,
 }: PublicOverviewTabProps) {
+  const isCompleted = tournament.status === 'completed';
+  const champion = tournament.championUser;
+  const runnerUp = tournament.runnerUpUser;
+
   const stats: { icon: React.ElementType; label: string; value: string }[] = [
     {
       icon: Users,
@@ -67,6 +71,50 @@ export default function PublicOverviewTab({
 
   return (
     <div className="space-y-6">
+      {/* Championship Honor Roll Banner if Completed */}
+      {isCompleted && (
+        <div className="rounded-3xl bg-gradient-to-b from-slate-900 via-[#0B2518] to-slate-950 border border-amber-500/40 p-6 shadow-xl text-white space-y-4">
+          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-widest px-2.5 py-0.5 border-0">
+                CHAMPIONSHIP RESULT
+              </Badge>
+              <span className="text-xs text-amber-300 font-bold uppercase tracking-wider">Official Winner</span>
+            </div>
+            {tournament.completed_at && (
+              <span className="text-[11px] text-slate-400 font-mono">
+                Completed {new Date(tournament.completed_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Champion Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-amber-500/20 border border-amber-400/50 space-y-1">
+              <div className="flex items-center gap-1.5 text-amber-300 text-xs font-black uppercase tracking-wider">
+                <Trophy className="h-4 w-4 text-amber-400" />
+                <span>🏆 TOURNAMENT CHAMPION</span>
+              </div>
+              <p className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 truncate">
+                {champion?.username || 'Champion TBD'}
+              </p>
+            </div>
+
+            {/* Runner Up Card */}
+            {runnerUp && (
+              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <Badge variant="outline" className="text-[9px] font-bold border-slate-500 text-slate-300">2nd</Badge>
+                  <span>🥈 RUNNER-UP</span>
+                </div>
+                <p className="text-lg sm:text-xl font-bold text-slate-200 truncate">
+                  {runnerUp.username}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* Format card */}
       <Card className="bg-white border-border">
         <CardHeader className="pb-3">

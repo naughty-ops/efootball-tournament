@@ -8,6 +8,8 @@ import {
   getRoundName,
 } from '@/lib/bracket/bracketEngine';
 
+import { getTournamentById, TournamentWithStats } from '@/services/tournamentService';
+
 export interface FullMatchData extends Match {
   participantAUser?: Participant | null;
   participantBUser?: Participant | null;
@@ -19,7 +21,7 @@ export interface RoundWithMatches extends Round {
 }
 
 export interface BracketOverview {
-  tournament: Tournament;
+  tournament: TournamentWithStats;
   participants: Participant[];
   rounds: RoundWithMatches[];
   bracketSize: number;
@@ -60,16 +62,11 @@ function formatSupabaseError(error: unknown): string {
 export async function getTournamentBracket(tournamentId: string): Promise<BracketOverview> {
   const supabase = createClient();
 
-  // 1. Fetch Tournament
-  const tRes = await (supabase.from('tournaments') as unknown as UnknownQuery)
-    .select('*')
-    .eq('id', tournamentId)
-    .single();
-
-  if (tRes.error || !tRes.data) {
-    throw new Error(`Tournament not found: ${formatSupabaseError(tRes.error)}`);
+  // 1. Fetch Tournament with stats, champion, and runner-up
+  const tournament = await getTournamentById(tournamentId);
+  if (!tournament) {
+    throw new Error('Tournament not found');
   }
-  const tournament = tRes.data as Tournament;
 
   // 2. Fetch Participants
   const pRes = await (supabase.from('participants') as unknown as UnknownQuery)

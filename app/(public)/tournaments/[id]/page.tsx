@@ -367,8 +367,12 @@ export default function PublicTournamentPage() {
       </div>
 
       {/* Champion Banner (if completed) */}
-      {tournament.status === 'completed' && stageInfo?.champion && (
-        <PublicChampionBanner champion={stageInfo.champion} />
+      {tournament.status === 'completed' && (tournament.championUser || stageInfo?.champion) && (
+        <PublicChampionBanner
+          champion={tournament.championUser || stageInfo!.champion!}
+          runnerUp={tournament.runnerUpUser}
+          completedAt={tournament.completed_at}
+        />
       )}
 
       {/* Tab Navigation */}

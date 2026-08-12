@@ -22,6 +22,8 @@ export interface Database {
           rounds_per_pair: number;
           is_group_stage_finalized: boolean;
           champion_id: string | null;
+          runner_up_id: string | null;
+          completed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -40,6 +42,8 @@ export interface Database {
           rounds_per_pair?: number;
           is_group_stage_finalized?: boolean;
           champion_id?: string | null;
+          runner_up_id?: string | null;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -58,6 +62,8 @@ export interface Database {
           rounds_per_pair?: number;
           is_group_stage_finalized?: boolean;
           champion_id?: string | null;
+          runner_up_id?: string | null;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

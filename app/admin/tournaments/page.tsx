@@ -23,6 +23,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { TournamentCard } from '@/components/tournament/TournamentCard';
 import { formatDate } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/modal';
 
@@ -234,85 +235,7 @@ export default function AdminTournamentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tournaments.map((t) => (
-            <Card key={t.id} className="hover:border-primary/50 transition-all flex flex-col justify-between group bg-white border-border">
-              <CardHeader className="space-y-3 pb-3">
-                <div className="flex items-center justify-between">
-                  <Badge
-                    variant={
-                      t.status === 'ongoing'
-                        ? 'default'
-                        : t.status === 'registration'
-                        ? 'secondary'
-                        : t.status === 'completed'
-                        ? 'outline'
-                        : 'efootball'
-                    }
-                    className="capitalize font-bold text-[11px]"
-                  >
-                    {t.status}
-                  </Badge>
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t.format.replace('_', ' + ')}
-                  </span>
-                </div>
-
-                <div>
-                  <CardTitle className="text-base font-extrabold text-[#0B3323] group-hover:text-primary transition-colors line-clamp-1">
-                    {t.name}
-                  </CardTitle>
-                  <CardDescription className="text-xs line-clamp-2 mt-1">
-                    {t.description || 'No description provided.'}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 pt-0">
-                <div className="grid grid-cols-2 gap-2 text-xs py-2 px-3 rounded-xl bg-[#F4F8F5] border border-border/50">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    <span>{t.participant_count}/{t.max_participants} Players</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground justify-end">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                    <span>{formatDate(t.start_date)}</span>
-                  </div>
-                </div>
-
-                {t.status === 'completed' && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[#0B3323] text-xs font-bold flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span className="truncate">Status: Completed</span>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-2 border-t border-border/40 gap-2">
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold text-[#0B3323]">
-                    <Link href={`/admin/tournaments/${t.id}`}>
-                      <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
-                      View
-                    </Link>
-                  </Button>
-
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold text-[#0B3323]">
-                    <Link href={`/admin/tournaments/${t.id}/edit`}>
-                      <Edit className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                      Edit
-                    </Link>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeletingId(t.id)}
-                    className="h-8 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <TournamentCard key={t.id} tournament={t} isAdmin={true} />
           ))}
         </div>
       )}

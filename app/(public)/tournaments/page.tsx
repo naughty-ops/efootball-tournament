@@ -15,6 +15,7 @@ import type { TournamentWithStats } from '@/services/tournamentService';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { TournamentCard } from '@/components/tournament/TournamentCard';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'All', icon: Filter },
@@ -154,52 +155,7 @@ export default function TournamentsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {tournaments.map((t) => (
-            <Card
-              key={t.id}
-              className="hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between bg-white border-border group"
-            >
-              <CardHeader className="space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  {getStatusBadge(t.status)}
-                  <span className="text-xs font-extrabold text-primary bg-secondary px-2.5 py-1 rounded-lg border border-primary/10 uppercase tracking-wide shrink-0">
-                    {formatTournamentFormat(t.format)}
-                  </span>
-                </div>
-                <CardTitle className="text-base font-bold text-[#0B3323] group-hover:text-primary transition-colors line-clamp-2">
-                  {t.name}
-                </CardTitle>
-                {t.description && (
-                  <CardDescription className="text-xs line-clamp-2">
-                    {t.description}
-                  </CardDescription>
-                )}
-              </CardHeader>
-
-              <CardContent className="pt-2 text-xs text-muted-foreground border-t border-border/50 space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-xs py-1.5 px-3 rounded-xl bg-[#F4F8F5]">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    <span>{t.participant_count}/{t.max_participants} Players</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground justify-end">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                    <span>{formatDate(t.start_date)}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-[11px] text-muted-foreground">
-                    {t.end_date ? `Ends ${formatDate(t.end_date)}` : 'End date TBD'}
-                  </span>
-                  <Button asChild variant="ghost" size="sm" className="h-8 text-xs text-primary font-bold gap-1 -mr-2">
-                    <Link href={`/tournaments/${t.id}`}>
-                      <span>View</span>
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <TournamentCard key={t.id} tournament={t} />
           ))}
         </div>
       )}
