@@ -28,6 +28,12 @@ import { formatDate } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/modal';
 import { StageProgressIndicator } from '@/components/tournament/StageProgressIndicator';
 import { TournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
+import {
+  getFixtureStatus,
+  generateTournamentFixtures,
+  regenerateTournamentFixtures,
+  FixtureStatusSummary,
+} from '@/services/fixtureService';
 
 export default function TournamentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -49,6 +55,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     champion: Participant | null;
   } | null>(null);
 
+  const [fixtureStatus, setFixtureStatus] = useState<FixtureStatusSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -56,11 +63,16 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
   // Modals
   const [isStartModalOpen, setIsStartModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
 
   const loadStageData = async () => {
     try {
-      const data = await getTournamentStageInfo(id);
+      const [data, fStatus] = await Promise.all([
+        getTournamentStageInfo(id),
+        getFixtureStatus(id),
+      ]);
       setStageInfo(data);
+      setFixtureStatus(fStatus);
       setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load tournament details.';
@@ -70,13 +82,46 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     }
   };
 
+  const handleGenerateFixtures = async () => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      await generateTournamentFixtures(id);
+      await loadStageData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Fixture generation failed.';
+      setError(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRegenerateFixtures = async () => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      await regenerateTournamentFixtures(id);
+      await loadStageData();
+      setIsRegenerateModalOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Fixture regeneration failed.';
+      setError(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     async function load() {
       try {
-        const data = await getTournamentStageInfo(id);
+        const [data, fStatus] = await Promise.all([
+          getTournamentStageInfo(id),
+          getFixtureStatus(id),
+        ]);
         if (isMounted) {
           setStageInfo(data);
+          setFixtureStatus(fStatus);
           setError(null);
         }
       } catch (err: unknown) {
@@ -295,6 +340,17 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                   {participantsCount} / {maxParticipants}
                 </span>
               </div>
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-muted-foreground">Fixture Status</span>
+                <Badge
+                  variant={fixtureStatus?.isGenerated ? 'efootball' : 'outline'}
+                  className="font-bold text-[11px]"
+                >
+                  {fixtureStatus?.isGenerated
+                    ? `Generated (${fixtureStatus.totalMatches} Matches)`
+                    : 'Not Generated'}
+                </Badge>
+              </div>
               {isGroupKnockout && (
                 <div className="flex justify-between py-2 border-b border-border/50">
                   <span className="text-muted-foreground">Group Progress</span>
@@ -329,25 +385,59 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {/* Draft / Registration Mode */}
-              {(subStage === 'draft' || subStage === 'registration') && (
-                <>
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-primary text-primary hover:bg-primary hover:text-white font-bold transition-colors">
-                    <Link href={`/admin/tournaments/${tournament.id}/participants`}>
-                      <Users className="h-4 w-4" />
-                      <span>Manage Participants ({participantsCount})</span>
-                    </Link>
-                  </Button>
+              {/* Participant Management Action */}
+              {!isCompleted && (
+                <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-primary text-primary hover:bg-primary hover:text-white font-bold transition-colors">
+                  <Link href={`/admin/tournaments/${tournament.id}/participants`}>
+                    <Users className="h-4 w-4" />
+                    <span>Manage Participants ({participantsCount})</span>
+                  </Link>
+                </Button>
+              )}
 
+              {/* Automatic Fixtures Action */}
+              {!isCompleted && tournament.format !== 'group_knockout' && (
+                !fixtureStatus?.isGenerated ? (
                   <Button
-                    onClick={() => setIsStartModalOpen(true)}
-                    disabled={participantsCount < 2}
-                    className="w-full justify-center gap-2 text-xs h-9 font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
+                    onClick={handleGenerateFixtures}
+                    disabled={actionLoading || participantsCount < 2}
+                    className="w-full justify-center gap-2 text-xs h-9 font-bold bg-primary text-white shadow-sm"
                   >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>Start Tournament</span>
+                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    <span>Auto Generate Fixtures</span>
                   </Button>
-                </>
+                ) : (
+                  <div className="space-y-2">
+                    <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-primary text-primary hover:bg-primary hover:text-white font-bold transition-colors">
+                      <Link href={tournament.format === 'knockout' ? `/admin/tournaments/${tournament.id}/bracket` : `/admin/tournaments/${tournament.id}/matches`}>
+                        {tournament.format === 'knockout' ? <GitBranch className="h-4 w-4" /> : <Swords className="h-4 w-4" />}
+                        <span>View Fixtures & Matches</span>
+                      </Link>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsRegenerateModalOpen(true)}
+                      disabled={actionLoading || (fixtureStatus?.completedMatches || 0) > 0}
+                      className="w-full justify-center gap-2 text-xs h-9 font-bold border-amber-600 text-amber-700 hover:bg-amber-50"
+                    >
+                      <Zap className="h-4 w-4" />
+                      <span>Regenerate Fixtures</span>
+                    </Button>
+                  </div>
+                )
+              )}
+
+              {/* Draft / Registration Mode Start Button */}
+              {(subStage === 'draft' || subStage === 'registration') && (
+                <Button
+                  onClick={() => setIsStartModalOpen(true)}
+                  disabled={participantsCount < 2}
+                  className="w-full justify-center gap-2 text-xs h-9 font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  <span>Start Tournament</span>
+                </Button>
               )}
 
               {/* Group Stage Mode */}
@@ -451,6 +541,18 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
         title="Complete Tournament"
         description={`The Final match has been completed! Champion: ${finalWinner?.username}. Are you sure you want to mark this tournament as COMPLETED? Tournament data will become read-only.`}
         confirmText="Complete Tournament"
+        isLoading={actionLoading}
+      />
+
+      {/* Regenerate Fixtures Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isRegenerateModalOpen}
+        onClose={() => setIsRegenerateModalOpen(false)}
+        onConfirm={handleRegenerateFixtures}
+        title="Regenerate Fixtures"
+        description="Are you sure you want to regenerate all tournament fixtures? Existing unplayed matches will be removed and recalculated."
+        confirmText="Regenerate Fixtures"
+        variant="destructive"
         isLoading={actionLoading}
       />
     </div>

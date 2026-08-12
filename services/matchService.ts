@@ -516,6 +516,24 @@ export async function submitMatchResult(
 
     if (advErr) {
       console.error('Error advancing winner to next match:', advErr);
+    } else {
+      // Transition next match status from 'pending' to 'ready' when both participants arrive
+      const { data: nextMatchData } = await (supabase.from('matches') as unknown as UnknownQuery)
+        .select('*')
+        .eq('id', match.next_match_id)
+        .single();
+
+      if (nextMatchData) {
+        const nMatch = nextMatchData as Match;
+        if (nMatch.participant_a && nMatch.participant_b && nMatch.status === 'pending') {
+          await (supabase.from('matches') as unknown as UnknownQuery)
+            .update({
+              status: 'ready',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', match.next_match_id);
+        }
+      }
     }
   }
 

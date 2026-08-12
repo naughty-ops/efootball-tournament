@@ -37,8 +37,9 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Status Filter
+  // Filters
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedRoundId, setSelectedRoundId] = useState('all');
 
   useEffect(() => {
     let isMounted = true;
@@ -137,21 +138,63 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
         </Button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setStatusFilter(tab.value)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap touch-target ${
-              statusFilter === tab.value
-                ? 'bg-[#0B3323] text-white shadow-xs'
-                : 'bg-white border border-border text-muted-foreground hover:bg-secondary hover:text-[#0B3323]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Filter Bar: Status & Round Selector */}
+      <div className="space-y-3 bg-white p-4 rounded-2xl border border-border shadow-xs">
+        {/* Status Filter Tabs */}
+        <div>
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground block mb-1.5">
+            Status Filter
+          </span>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap touch-target ${
+                  statusFilter === tab.value
+                    ? 'bg-[#0B3323] text-white shadow-xs'
+                    : 'bg-white border border-border text-muted-foreground hover:bg-secondary hover:text-[#0B3323]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Round Filter Tabs (Knockout / League Round Selector) */}
+        {rounds.length > 0 && (
+          <div className="pt-2 border-t border-border/50">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground block mb-1.5">
+              Select Round
+            </span>
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+              <button
+                onClick={() => setSelectedRoundId('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap touch-target ${
+                  selectedRoundId === 'all'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'bg-white border border-border text-muted-foreground hover:bg-secondary hover:text-[#0B3323]'
+                }`}
+              >
+                All Rounds ({rounds.length})
+              </button>
+              {rounds.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedRoundId(r.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap touch-target ${
+                    selectedRoundId === r.id
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'bg-white border border-border text-muted-foreground hover:bg-secondary hover:text-[#0B3323]'
+                  }`}
+                >
+                  {r.name} ({r.matches.length})
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Matches List Grouped by Round / Empty State */}
@@ -175,24 +218,26 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
         </Card>
       ) : (
         <div className="space-y-8">
-          {rounds.map((round) => (
-            <div key={round.id} className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-2">
-                <h3 className="text-lg font-extrabold text-[#0B3323] flex items-center gap-2">
-                  <span>{round.name}</span>
-                  <Badge variant="outline" className="text-[11px] font-mono font-bold">
-                    {round.matches.length} {round.matches.length === 1 ? 'Match' : 'Matches'}
-                  </Badge>
-                </h3>
-              </div>
+          {rounds
+            .filter((round) => selectedRoundId === 'all' || round.id === selectedRoundId)
+            .map((round) => (
+              <div key={round.id} className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="text-lg font-extrabold text-[#0B3323] flex items-center gap-2">
+                    <span>{round.name}</span>
+                    <Badge variant="outline" className="text-[11px] font-mono font-bold">
+                      {round.matches.length} {round.matches.length === 1 ? 'Match' : 'Matches'}
+                    </Badge>
+                  </h3>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {round.matches.map((m) => (
-                  <AdminMatchCard key={m.id} match={m} tournamentId={tournamentId} />
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {round.matches.map((m) => (
+                    <AdminMatchCard key={m.id} match={m} tournamentId={tournamentId} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
     </div>

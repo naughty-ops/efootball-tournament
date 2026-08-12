@@ -83,7 +83,7 @@ function BracketMatch({ match, isFinalRound }: { match: FullMatchData; isFinalRo
       </div>
 
       {/* Status badges */}
-      <div className="flex justify-center mt-2">
+      <div className="flex justify-center mt-2 gap-1.5 flex-wrap">
         {isLive && (
           <Badge className="bg-red-500 hover:bg-red-500 text-white border-0 gap-1 text-[10px] font-bold">
             <span className="relative flex h-1.5 w-1.5">
@@ -91,6 +91,11 @@ function BracketMatch({ match, isFinalRound }: { match: FullMatchData; isFinalRo
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
             </span>
             LIVE
+          </Badge>
+        )}
+        {match.status === 'walkover' && (
+          <Badge variant="outline" className="text-[10px] font-bold text-amber-700 bg-amber-50 border-amber-300">
+            BYE ADVANCE
           </Badge>
         )}
         {isDraw && (

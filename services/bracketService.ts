@@ -254,6 +254,9 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
 
       let participantA: string | null = null;
       let participantB: string | null = null;
+      let matchStatus: 'pending' | 'ready' | 'walkover' = 'pending';
+      let winnerId: string | null = null;
+      let notes: string | null = null;
 
       // Populate First Round participants from pairings
       if (r === 1) {
@@ -261,6 +264,14 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
         if (pairing) {
           participantA = pairing.slotA.participant ? pairing.slotA.participant.id : null;
           participantB = pairing.slotB.participant ? pairing.slotB.participant.id : null;
+
+          if (pairing.isByeMatch && pairing.byeWinner) {
+            matchStatus = 'walkover';
+            winnerId = pairing.byeWinner.id;
+            notes = 'Automatic BYE advancement';
+          } else {
+            matchStatus = 'pending';
+          }
         }
       }
 
@@ -271,7 +282,9 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
         winner_slot: winnerSlot,
         participant_a: participantA,
         participant_b: participantB,
-        status: 'pending',
+        status: matchStatus,
+        winner_id: winnerId,
+        notes,
         score_a: 0,
         score_b: 0,
       });
@@ -289,7 +302,7 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
     roundMatchMap.set(r, sortedMatches);
   }
 
-  // 6. Automatic Advancement for BYE Recipients into Round 2
+  // 6. Automatic Advancement for BYE Recipients into Round 2 & Ready status checks
   const round1Matches = roundMatchMap.get(1) || [];
   const round2Matches = roundMatchMap.get(2) || [];
 
@@ -298,12 +311,31 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
     if (pairing.isByeMatch && pairing.byeWinner && round2Matches.length > 0) {
       const r1Match = round1Matches[i];
       if (r1Match && r1Match.next_match_id && r1Match.winner_slot) {
-        // Advance BYE winner into Round 2 match slot directly
+        // Advance BYE winner into Round 2 match slot
         await (supabase.from('matches') as unknown as UnknownQuery)
           .update({
             [r1Match.winner_slot]: pairing.byeWinner.id,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', r1Match.next_match_id);
+
+        // Fetch Round 2 match to check if both slots are filled
+        const { data: r2Data } = await (supabase.from('matches') as unknown as UnknownQuery)
+          .select('*')
+          .eq('id', r1Match.next_match_id)
+          .single();
+
+        if (r2Data) {
+          const r2M = r2Data as Match;
+          if (r2M.participant_a && r2M.participant_b && r2M.status === 'pending') {
+            await (supabase.from('matches') as unknown as UnknownQuery)
+              .update({
+                status: 'ready',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', r2M.id);
+          }
+        }
       }
     }
   }

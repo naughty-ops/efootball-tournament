@@ -12,12 +12,20 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+import { ConfirmModal } from '@/components/ui/modal';
+import { getFixtureStatus } from '@/services/fixtureService';
+import type { Tournament } from '@/types/database';
+
 export default function EditTournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [originalTournament, setOriginalTournament] = useState<Tournament | null>(null);
+  const [hasFixtures, setHasFixtures] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<TournamentInput | null>(null);
 
   const {
     register,
@@ -48,10 +56,16 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
     async function loadData() {
       setLoading(true);
       try {
-        const t = await getTournamentById(id);
+        const [t, fStatus] = await Promise.all([
+          getTournamentById(id),
+          getFixtureStatus(id),
+        ]);
+
         if (!t) {
           setErrorMessage('Tournament not found.');
         } else {
+          setOriginalTournament(t);
+          setHasFixtures(fStatus.isGenerated);
           reset({
             name: t.name,
             description: t.description || '',
@@ -77,7 +91,7 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
     loadData();
   }, [id, reset]);
 
-  const onSubmit = async (data: TournamentInput) => {
+  const executeUpdate = async (data: TournamentInput) => {
     setErrorMessage(null);
     try {
       await updateTournament(id, data);
@@ -87,6 +101,19 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
       const msg = err instanceof Error ? err.message : 'Failed to update tournament';
       setErrorMessage(msg);
     }
+  };
+
+  const onSubmit = async (data: TournamentInput) => {
+    const formatChanged = originalTournament && originalTournament.format !== data.format;
+    const limitChanged = originalTournament && originalTournament.max_participants !== data.max_participants;
+
+    if (hasFixtures && (formatChanged || limitChanged)) {
+      setPendingSubmitData(data);
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    await executeUpdate(data);
   };
 
   if (loading) {
@@ -425,6 +452,25 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
           </form>
         </CardContent>
       </Card>
+
+      {/* Format Change Safety Warning Modal */}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setPendingSubmitData(null);
+        }}
+        onConfirm={async () => {
+          setIsConfirmModalOpen(false);
+          if (pendingSubmitData) {
+            await executeUpdate(pendingSubmitData);
+          }
+        }}
+        title="Warning: Modifying Tournament Format / Limit"
+        description="Fixtures have already been generated for this tournament. Changing the tournament format or participant limit may invalidate existing fixtures and brackets. Are you sure you want to continue?"
+        confirmText="Save & Continue"
+        variant="destructive"
+      />
     </div>
   );
 }

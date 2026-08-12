@@ -1,7 +1,7 @@
 export type TournamentFormat = 'knockout' | 'league' | 'group_knockout';
 export type TournamentStatus = 'draft' | 'registration' | 'ongoing' | 'completed';
 export type ParticipantStatus = 'active' | 'eliminated' | 'disqualified';
-export type MatchStatus = 'pending' | 'live' | 'completed' | 'walkover';
+export type MatchStatus = 'pending' | 'ready' | 'scheduled' | 'live' | 'completed' | 'walkover' | 'cancelled';
 
 export interface Database {
   public: {
