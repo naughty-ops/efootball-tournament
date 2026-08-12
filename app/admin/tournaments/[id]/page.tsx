@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Edit,
@@ -14,11 +15,13 @@ import {
   Grid,
   Trophy,
   Zap,
+  Trash2,
 } from 'lucide-react';
 import {
   getTournamentStageInfo,
   startTournament,
   completeTournament,
+  deleteTournament,
 } from '@/services/tournamentService';
 import type { Participant, Tournament } from '@/types/database';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -37,6 +40,7 @@ import {
 
 export default function TournamentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [stageInfo, setStageInfo] = useState<{
     tournament: Tournament;
@@ -64,6 +68,21 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
   const [isStartModalOpen, setIsStartModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteTournament = async () => {
+    setActionLoading(true);
+    try {
+      await deleteTournament(id);
+      router.push('/admin/tournaments');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete tournament.';
+      setError(msg);
+      setIsDeleteModalOpen(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const loadStageData = async () => {
     try {
@@ -258,16 +277,22 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {!isCompleted && (
-          <div className="flex items-center gap-3">
-            <Button asChild variant="outline" className="font-bold gap-2">
-              <Link href={`/admin/tournaments/${tournament.id}/edit`}>
-                <Edit className="h-4 w-4" />
-                <span>Edit Details</span>
-              </Link>
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <Button asChild variant="outline" className="font-bold gap-2">
+            <Link href={`/admin/tournaments/${tournament.id}/edit`}>
+              <Edit className="h-4 w-4" />
+              <span>Edit Details</span>
+            </Link>
+          </Button>
+
+          <Button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete Tournament</span>
+          </Button>
+        </div>
       </div>
 
       {/* Champion Banner if Completed */}
@@ -552,6 +577,18 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
         title="Regenerate Fixtures"
         description="Are you sure you want to regenerate all tournament fixtures? Existing unplayed matches will be removed and recalculated."
         confirmText="Regenerate Fixtures"
+        variant="destructive"
+        isLoading={actionLoading}
+      />
+
+      {/* Delete Tournament Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteTournament}
+        title="Delete Tournament"
+        description={`Are you sure you want to permanently delete "${tournament.name}"? All associated participants, rounds, and match records will be removed from Supabase. This action cannot be undone.`}
+        confirmText="Yes, Delete Tournament"
         variant="destructive"
         isLoading={actionLoading}
       />

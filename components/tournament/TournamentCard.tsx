@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Trophy, Medal, Users, Calendar, ChevronRight, Award, Sparkles } from 'lucide-react';
+import { Trophy, Medal, Users, Calendar, ChevronRight, Award, Sparkles, Edit, Trash2 } from 'lucide-react';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import { formatDate } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 interface TournamentCardProps {
   tournament: TournamentWithStats;
   isAdmin?: boolean;
+  onDelete?: (id: string) => void;
 }
 
 export function formatTournamentFormat(format: string): string {
@@ -27,7 +28,7 @@ export function formatTournamentFormat(format: string): string {
   }
 }
 
-export function TournamentCard({ tournament: t, isAdmin = false }: TournamentCardProps) {
+export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: TournamentCardProps) {
   const isCompleted = t.status === 'completed';
   const champion = t.championUser;
   const runnerUp = t.runnerUpUser;
@@ -135,16 +136,50 @@ export function TournamentCard({ tournament: t, isAdmin = false }: TournamentCar
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-1 border-t border-border/40">
-          <span className="text-[11px] text-muted-foreground truncate">
-            {t.end_date ? `Ends ${formatDate(t.end_date)}` : 'End date TBD'}
-          </span>
-          <Button asChild variant="ghost" size="sm" className="h-8 text-xs text-primary font-bold gap-1 -mr-2 hover:bg-primary/10">
-            <Link href={detailUrl}>
-              <span>{isCompleted ? 'Results' : 'View'}</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
+        <div className="flex items-center justify-between pt-2 border-t border-border/40 gap-2 flex-wrap">
+          {isAdmin ? (
+            <>
+              <div className="flex items-center gap-1">
+                <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold text-[#0B3323]">
+                  <Link href={`/admin/tournaments/${t.id}/edit`}>
+                    <Edit className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    Edit
+                  </Link>
+                </Button>
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(t.id)}
+                    className="h-8 px-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    title="Delete Tournament"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+
+              <Button asChild size="sm" className="h-8 px-3 text-xs font-bold gap-1 rounded-xl">
+                <Link href={detailUrl}>
+                  <span>Manage</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {t.end_date ? `Ends ${formatDate(t.end_date)}` : 'End date TBD'}
+              </span>
+              <Button asChild variant="ghost" size="sm" className="h-8 text-xs text-primary font-bold gap-1 -mr-2 hover:bg-primary/10">
+                <Link href={detailUrl}>
+                  <span>{isCompleted ? 'Results' : 'View'}</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

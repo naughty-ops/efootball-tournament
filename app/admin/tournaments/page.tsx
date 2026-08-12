@@ -235,7 +235,12 @@ export default function AdminTournamentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tournaments.map((t) => (
-            <TournamentCard key={t.id} tournament={t} isAdmin={true} />
+            <TournamentCard
+              key={t.id}
+              tournament={t}
+              isAdmin={true}
+              onDelete={(id) => setDeletingId(id)}
+            />
           ))}
         </div>
       )}
