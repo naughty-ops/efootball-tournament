@@ -22,12 +22,14 @@ import {
   startMatch,
   updateLiveScore,
   submitMatchResult,
+  editMatchResult,
   MatchWithDetails,
   MatchDashboardStats,
 } from '@/services/matchService';
 import { getTournaments } from '@/services/tournamentService';
 import type { Tournament } from '@/types/database';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { ConfirmModal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -173,20 +175,37 @@ export default function AdminMatchCenterPage() {
     }
   };
 
-  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+  const [isCascadingModalOpen, setIsCascadingModalOpen] = useState(false);
+
+  const handleCompleteMatch = async (scoreA: number, scoreB: number, forceCascadingReset = false) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
     try {
-      await submitMatchResult(activeScoreMatch.id, activeScoreMatch.tournamentId, {
-        score_a: scoreA,
-        score_b: scoreB,
-        result_type: 'normal',
-      });
+      const isAlreadyCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      if (isAlreadyCompleted) {
+        await editMatchResult(
+          activeScoreMatch.id,
+          activeScoreMatch.tournamentId,
+          { score_a: scoreA, score_b: scoreB, result_type: 'normal' },
+          { forceCascadingReset }
+        );
+      } else {
+        await submitMatchResult(activeScoreMatch.id, activeScoreMatch.tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
+      }
       setActiveScoreMatch(null);
+      setIsCascadingModalOpen(false);
       fetchMatchCenterData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to complete match';
-      alert(msg);
+      if (msg.startsWith('CASCADING_WARNING:')) {
+        setIsCascadingModalOpen(true);
+      } else {
+        alert(msg);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -407,7 +426,7 @@ export default function AdminMatchCenterPage() {
             const isCompleted = m.status === 'completed' || m.status === 'walkover';
             const isLive = m.status === 'live';
             const isScheduled = m.status === 'pending';
-            const isLocked = m.tournamentStatus === 'completed' || (m.group_id && m.isGroupStageFinalized);
+            const isLocked = Boolean(m.group_id && m.isGroupStageFinalized);
 
             return (
               <Card
@@ -492,7 +511,7 @@ export default function AdminMatchCenterPage() {
 
                 {/* Action Buttons Footer */}
                 <div className="p-3 bg-[#F4F8F5] border-t border-border/50 flex items-center justify-between gap-2">
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold">
+                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold rounded-xl">
                     <Link href={`/admin/tournaments/${m.tournamentId}/matches/${m.id}`}>
                       <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
                       Details
@@ -500,49 +519,42 @@ export default function AdminMatchCenterPage() {
                   </Button>
 
                   <div className="flex items-center gap-1.5">
-                    {/* Scheduled Match -> Start Match */}
-                    {isScheduled && !isLocked && (
+                    {/* Scheduled Match -> Optional Quick Start */}
+                    {isScheduled && !isLocked && m.participant_a && m.participant_b && (
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={() => handleStartMatch(m)}
-                        disabled={actionLoading || !m.participant_a || !m.participant_b}
-                        className="h-8 px-2.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
+                        disabled={actionLoading}
+                        className="h-8 px-2.5 text-xs font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1 rounded-xl"
                       >
                         <Play className="h-3 w-3 fill-current" />
                         <span>Start</span>
                       </Button>
                     )}
 
-                    {/* Live Match -> Update Live Score */}
-                    {isLive && !isLocked && (
+                    {/* Universal Edit Score Button for All Playable Matches (League, R16, QF, SF, Final) */}
+                    {m.participant_a && m.participant_b && !isLocked ? (
                       <Button
                         size="sm"
                         onClick={() => setActiveScoreMatch(m)}
-                        className="h-8 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 animate-pulse"
+                        className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-xl transition-all shadow-xs ${
+                          isLive
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
+                            : 'bg-primary text-white hover:bg-primary/90'
+                        }`}
                       >
-                        <Zap className="h-3 w-3" />
-                        <span>Score</span>
+                        <Edit className="h-3.5 w-3.5" />
+                        <span>Edit Score</span>
                       </Button>
-                    )}
-
-                    {/* Completed Match -> Edit Result */}
-                    {isCompleted && !isLocked && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveScoreMatch(m)}
-                        className="h-8 px-2.5 text-xs font-semibold text-[#0B3323]"
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" />
-                        Edit
-                      </Button>
-                    )}
-
-                    {/* Locked Match -> View Only */}
-                    {isLocked && (
+                    ) : isLocked ? (
                       <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
                         Locked
                       </Badge>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground italic font-medium">
+                        Waiting for Opponent
+                      </span>
                     )}
                   </div>
                 </div>
@@ -558,13 +570,27 @@ export default function AdminMatchCenterPage() {
           isOpen={Boolean(activeScoreMatch)}
           onClose={() => setActiveScoreMatch(null)}
           onUpdateLiveScore={handleUpdateLiveScore}
-          onCompleteMatch={handleCompleteMatch}
+          onCompleteMatch={(a, b) => handleCompleteMatch(a, b, false)}
           participantA={activeScoreMatch.participantAUser?.username || 'Player A'}
           participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
           currentScoreA={activeScoreMatch.score_a}
           currentScoreB={activeScoreMatch.score_b}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Cascading Reset Warning Modal */}
+      {activeScoreMatch && (
+        <ConfirmModal
+          isOpen={isCascadingModalOpen}
+          onClose={() => setIsCascadingModalOpen(false)}
+          onConfirm={() => handleCompleteMatch(activeScoreMatch.score_a, activeScoreMatch.score_b, true)}
+          title="Warning: Cascading Downstream Reset Required"
+          description="Changing the winner of this match affects the next round match which has already completed. Proceeding will reset downstream match results and advance the new winner into the bracket."
+          confirmText="Confirm & Overwrite Downstream"
+          variant="destructive"
           isLoading={actionLoading}
         />
       )}

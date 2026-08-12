@@ -252,7 +252,7 @@ function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournam
   const playerB = match.participantBUser;
   const winner = match.winnerUser;
 
-  const isReadyToPlay = Boolean(playerA && playerB && match.status === 'pending');
+  const isReadyToPlay = Boolean(playerA && playerB);
   const isCompleted = match.status === 'completed' || match.status === 'walkover';
   const isLive = match.status === 'live';
 

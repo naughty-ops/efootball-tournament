@@ -466,10 +466,6 @@ export async function submitMatchResult(
     .single();
   const tObj = tData as Tournament;
 
-  if (tObj?.status === 'completed') {
-    throw new Error('Cannot submit result: Tournament is completed and read-only.');
-  }
-
   if (match.group_id && tObj?.is_group_stage_finalized) {
     throw new Error('Cannot submit result: Group stage is finalized and locked.');
   }
@@ -562,26 +558,23 @@ export async function submitMatchResult(
 }
 
 /**
- * Edit Completed Match Result with Downstream Protection
+ * Edit Completed Match Result with Downstream Protection & Winner Recalculation
  */
 export async function editMatchResult(
   matchId: string,
   tournamentId: string,
-  input: MatchResultInput
+  input: MatchResultInput,
+  options?: { forceCascadingReset?: boolean }
 ): Promise<MatchDetailsOverview> {
   const supabase = createClient();
   const { match } = await getMatchDetails(matchId, tournamentId);
 
-  // Stage Protection Guards
+  // Group stage protection check
   const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)
     .select('*')
     .eq('id', tournamentId)
     .single();
   const tObj = tData as Tournament;
-
-  if (tObj?.status === 'completed') {
-    throw new Error('Cannot edit result: Tournament is completed and read-only.');
-  }
 
   if (match.group_id && tObj?.is_group_stage_finalized) {
     throw new Error('Cannot edit result: Group stage is finalized and locked.');
@@ -589,9 +582,10 @@ export async function editMatchResult(
 
   const { winnerId: newWinnerId } = determineWinner(match, input);
   const oldWinnerId = match.winner_id;
+  const winnerChanged = oldWinnerId !== null && newWinnerId !== oldWinnerId;
 
   // Downstream Protection Check if winner has changed
-  if (match.next_match_id && oldWinnerId && newWinnerId !== oldWinnerId) {
+  if (match.next_match_id && winnerChanged) {
     const { data: nextMatchData } = await (supabase.from('matches') as unknown as UnknownQuery)
       .select('*')
       .eq('id', match.next_match_id)
@@ -599,12 +593,58 @@ export async function editMatchResult(
 
     if (nextMatchData) {
       const nextM = nextMatchData as Match;
-      if (nextM.status === 'completed' || nextM.winner_id !== null || nextM.score_a > 0 || nextM.score_b > 0) {
-        throw new Error(
-          'Cannot edit result because downstream match in the next round has already completed or recorded scores. Reset downstream match first.'
-        );
+      const isNextCompleted =
+        nextM.status === 'completed' ||
+        nextM.status === 'walkover' ||
+        nextM.winner_id !== null ||
+        nextM.score_a > 0 ||
+        nextM.score_b > 0;
+
+      if (isNextCompleted) {
+        if (!options?.forceCascadingReset) {
+          throw new Error(
+            'CASCADING_WARNING: Changing this match winner will affect the next round match which has already been completed. Confirming will reset downstream match results and advance the new winner.'
+          );
+        }
+
+        // Safely reset downstream completed match
+        await (supabase.from('matches') as unknown as UnknownQuery)
+          .update({
+            status: 'pending',
+            score_a: 0,
+            score_b: 0,
+            winner_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', nextM.id);
       }
     }
+  }
+
+  // Update participant statuses if winner changed in knockout stage
+  if (!match.group_id && winnerChanged) {
+    // Re-activate new winner (who was previously eliminated)
+    if (newWinnerId) {
+      await (supabase.from('participants') as unknown as UnknownQuery)
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', newWinnerId);
+    }
+    // Eliminate old winner (who is now the loser)
+    if (oldWinnerId) {
+      await (supabase.from('participants') as unknown as UnknownQuery)
+        .update({ status: 'eliminated', updated_at: new Date().toISOString() })
+        .eq('id', oldWinnerId);
+    }
+  }
+
+  // If Final match (no next_match_id), update champion_id on tournament if winner changed
+  if (!match.group_id && !match.next_match_id && winnerChanged && newWinnerId) {
+    await (supabase.from('tournaments') as unknown as UnknownQuery)
+      .update({
+        champion_id: newWinnerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', tournamentId);
   }
 
   return submitMatchResult(matchId, tournamentId, input);

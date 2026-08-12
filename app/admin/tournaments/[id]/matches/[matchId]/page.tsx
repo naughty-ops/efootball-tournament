@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { MatchResultModal } from '@/components/admin/MatchResultModal';
+import { ConfirmModal } from '@/components/ui/modal';
 
 type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -218,8 +219,11 @@ export default function MatchDetailsPage({
     setIsConfirmModalOpen(true);
   };
 
+  // Cascading Reset Modal State
+  const [isCascadingModalOpen, setIsCascadingModalOpen] = useState(false);
+
   // Complete Match Action (Live/Edit -> Completed)
-  const handleConfirmComplete = async () => {
+  const handleConfirmComplete = async (forceCascadingReset = false) => {
     setIsSubmitting(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -235,18 +239,24 @@ export default function MatchDetailsPage({
     try {
       let updated: MatchDetailsOverview;
       if (isCompleted) {
-        updated = await editMatchResult(matchId, tournamentId, inputData);
+        updated = await editMatchResult(matchId, tournamentId, inputData, { forceCascadingReset });
       } else {
         updated = await submitMatchResult(matchId, tournamentId, inputData);
       }
       setDetails(updated);
       setSuccessMessage('Match completed! Final result saved and winner advanced.');
       setIsConfirmModalOpen(false);
+      setIsCascadingModalOpen(false);
       setIsEditMode(false);
       setSaveStatus('idle');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to complete match.';
-      setErrorMessage(msg);
+      if (msg.startsWith('CASCADING_WARNING:')) {
+        setIsConfirmModalOpen(false);
+        setIsCascadingModalOpen(true);
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -678,6 +688,18 @@ export default function MatchDetailsPage({
         scoreB={scoreB}
         winnerName={modalWinnerName}
         resultType={resultType}
+        isLoading={isSubmitting}
+      />
+
+      {/* Cascading Reset Warning Modal */}
+      <ConfirmModal
+        isOpen={isCascadingModalOpen}
+        onClose={() => setIsCascadingModalOpen(false)}
+        onConfirm={() => handleConfirmComplete(true)}
+        title="Warning: Cascading Downstream Reset Required"
+        description="Changing the winner of this match affects the next round match which has already completed. Proceeding will reset the downstream match results and advance the new winner into the bracket."
+        confirmText="Confirm & Overwrite Downstream"
+        variant="destructive"
         isLoading={isSubmitting}
       />
     </div>

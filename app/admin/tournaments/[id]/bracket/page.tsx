@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Loader2,
   Edit2,
+  Eye,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -28,10 +29,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmModal } from '@/components/ui/modal';
+import { updateLiveScore, submitMatchResult } from '@/services/matchService';
 import dynamic from 'next/dynamic';
 
 const ManualSlotOverrideModal = dynamic(
   () => import('@/components/admin/ManualSlotOverrideModal').then((mod) => mod.ManualSlotOverrideModal),
+  { ssr: false }
+);
+
+const ScoreEntryModal = dynamic(
+  () => import('@/components/match/ScoreEntryModal').then((mod) => mod.ScoreEntryModal),
   { ssr: false }
 );
 
@@ -49,6 +56,9 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
   // Modals
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+  // Score Entry Modal State
+  const [activeScoreMatch, setActiveScoreMatch] = useState<FullMatchData | null>(null);
 
   // Manual Slot Override State
   const [editingMatch, setEditingMatch] = useState<FullMatchData | null>(null);
@@ -92,6 +102,36 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
       isMounted = false;
     };
   }, [tournamentId]);
+
+  const handleUpdateLiveScore = async (scoreA: number, scoreB: number) => {
+    if (!activeScoreMatch) return;
+    try {
+      await updateLiveScore(activeScoreMatch.id, tournamentId, scoreA, scoreB);
+      fetchBracketData();
+    } catch (err: unknown) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+    if (!activeScoreMatch) return;
+    setActionLoading(true);
+    try {
+      await submitMatchResult(activeScoreMatch.id, tournamentId, {
+        score_a: scoreA,
+        score_b: scoreB,
+        result_type: 'normal',
+      });
+      setActiveScoreMatch(null);
+      await fetchBracketData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save score result';
+      setError(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleGenerate = async () => {
     setActionLoading(true);
@@ -379,11 +419,13 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
                       <MatchCard
                         key={m.id}
                         match={m}
+                        tournamentId={tournamentId}
                         roundNumber={round.round_number}
                         onEditSlot={(match, slot) => {
                           setEditingMatch(match);
                           setEditingSlot(slot);
                         }}
+                        onScoreMatch={(match) => setActiveScoreMatch(match)}
                       />
                     ))}
                   </div>
@@ -409,11 +451,13 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
                       <MatchCard
                         key={m.id}
                         match={m}
+                        tournamentId={tournamentId}
                         roundNumber={rounds[activeMobileRoundIdx].round_number}
                         onEditSlot={(match, slot) => {
                           setEditingMatch(match);
                           setEditingSlot(slot);
                         }}
+                        onScoreMatch={(match) => setActiveScoreMatch(match)}
                       />
                     ))}
                   </div>
@@ -460,6 +504,23 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
         slotToEdit={editingSlot}
         allParticipants={participants}
       />
+
+      {/* Quick Score Entry / Edit Modal */}
+      {activeScoreMatch && (
+        <ScoreEntryModal
+          isOpen={Boolean(activeScoreMatch)}
+          onClose={() => setActiveScoreMatch(null)}
+          onUpdateLiveScore={handleUpdateLiveScore}
+          onCompleteMatch={handleCompleteMatch}
+          participantA={activeScoreMatch.participantAUser?.username || 'Player A'}
+          participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
+          currentScoreA={activeScoreMatch.score_a}
+          currentScoreB={activeScoreMatch.score_b}
+          isLive={activeScoreMatch.status === 'live'}
+          isGroupMatch={Boolean(activeScoreMatch.group_id)}
+          isLoading={actionLoading}
+        />
+      )}
     </div>
   );
 }
@@ -469,12 +530,16 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
  */
 function MatchCard({
   match,
+  tournamentId,
   roundNumber,
   onEditSlot,
+  onScoreMatch,
 }: {
   match: FullMatchData;
+  tournamentId: string;
   roundNumber: number;
   onEditSlot: (match: FullMatchData, slot: 'participant_a' | 'participant_b') => void;
+  onScoreMatch: (match: FullMatchData) => void;
 }) {
   const isRound1 = roundNumber === 1;
 
@@ -483,6 +548,8 @@ function MatchCard({
 
   const isByeA = !playerA && isRound1;
   const isByeB = !playerB && isRound1;
+  const isReadyToScore = Boolean(playerA && playerB);
+  const isCompleted = match.status === 'completed' || match.status === 'walkover';
 
   return (
     <Card className="border-border bg-white shadow-xs hover:border-primary/50 transition-all overflow-hidden text-xs">
@@ -565,6 +632,27 @@ function MatchCard({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Footer Action Bar */}
+      <div className="px-3 py-2 bg-[#F4F8F5] border-t border-border flex items-center justify-between gap-1">
+        <Button asChild variant="ghost" size="sm" className="h-6 px-1.5 text-[10px] font-semibold text-primary">
+          <Link href={`/admin/tournaments/${tournamentId}/matches/${match.id}`}>
+            <Eye className="h-3 w-3 mr-1" />
+            <span>Details</span>
+          </Link>
+        </Button>
+
+        {isReadyToScore && (
+          <Button
+            size="sm"
+            onClick={() => onScoreMatch(match)}
+            className="h-6 px-2 text-[10px] font-bold gap-1 rounded-lg bg-primary text-white hover:bg-primary/90"
+          >
+            <Edit2 className="h-2.5 w-2.5" />
+            <span>{isCompleted ? 'Edit Score' : 'Score'}</span>
+          </Button>
+        )}
       </div>
     </Card>
   );
