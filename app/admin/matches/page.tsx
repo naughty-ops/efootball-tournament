@@ -15,6 +15,7 @@ import {
   Radio,
   Clock,
   Zap,
+  PlusCircle,
 } from 'lucide-react';
 import {
   getAllAdminMatches,
@@ -29,7 +30,6 @@ import {
 import { getTournaments } from '@/services/tournamentService';
 import type { Tournament } from '@/types/database';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { ConfirmModal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -175,20 +175,17 @@ export default function AdminMatchCenterPage() {
     }
   };
 
-  const [isCascadingModalOpen, setIsCascadingModalOpen] = useState(false);
-
-  const handleCompleteMatch = async (scoreA: number, scoreB: number, forceCascadingReset = false) => {
+  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
     try {
-      const isAlreadyCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
-      if (isAlreadyCompleted) {
-        await editMatchResult(
-          activeScoreMatch.id,
-          activeScoreMatch.tournamentId,
-          { score_a: scoreA, score_b: scoreB, result_type: 'normal' },
-          { forceCascadingReset }
-        );
+      const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      if (isCompleted) {
+        await editMatchResult(activeScoreMatch.id, activeScoreMatch.tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
       } else {
         await submitMatchResult(activeScoreMatch.id, activeScoreMatch.tournamentId, {
           score_a: scoreA,
@@ -197,15 +194,10 @@ export default function AdminMatchCenterPage() {
         });
       }
       setActiveScoreMatch(null);
-      setIsCascadingModalOpen(false);
       fetchMatchCenterData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to complete match';
-      if (msg.startsWith('CASCADING_WARNING:')) {
-        setIsCascadingModalOpen(true);
-      } else {
-        alert(msg);
-      }
+      const msg = err instanceof Error ? err.message : 'Failed to save match result';
+      alert(msg);
     } finally {
       setActionLoading(false);
     }
@@ -509,53 +501,46 @@ export default function AdminMatchCenterPage() {
                   )}
                 </CardContent>
 
-                {/* Action Buttons Footer */}
-                <div className="p-3 bg-[#F4F8F5] border-t border-border/50 flex items-center justify-between gap-2">
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold rounded-xl">
+                {/* Action Buttons Footer (Compulsory Live and Edit Score options for all matches) */}
+                <div className="p-3 bg-[#F4F8F5] border-t border-border/50 flex items-center justify-between gap-2 flex-wrap">
+                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold">
                     <Link href={`/admin/tournaments/${m.tournamentId}/matches/${m.id}`}>
                       <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
                       Details
                     </Link>
                   </Button>
 
-                  <div className="flex items-center gap-1.5">
-                    {/* Scheduled Match -> Optional Quick Start */}
-                    {isScheduled && !isLocked && m.participant_a && m.participant_b && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Live Action Option */}
+                    {isLive ? (
+                      <Badge className="bg-rose-600 text-white font-bold text-xs py-1 px-2.5 gap-1 animate-pulse">
+                        <Radio className="h-3 w-3" />
+                        <span>LIVE NOW</span>
+                      </Badge>
+                    ) : (
                       <Button
                         size="sm"
-                        variant="outline"
                         onClick={() => handleStartMatch(m)}
-                        disabled={actionLoading}
-                        className="h-8 px-2.5 text-xs font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-50 gap-1 rounded-xl"
+                        disabled={actionLoading || !m.participant_a || !m.participant_b || isCompleted}
+                        className="h-8 px-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1"
+                        title="Set match status to Live"
                       >
-                        <Play className="h-3 w-3 fill-current" />
-                        <span>Start</span>
+                        <Radio className="h-3 w-3" />
+                        <span>Start Live</span>
                       </Button>
                     )}
 
-                    {/* Universal Edit Score Button for All Playable Matches (League, R16, QF, SF, Final) */}
-                    {m.participant_a && m.participant_b && !isLocked ? (
-                      <Button
-                        size="sm"
-                        onClick={() => setActiveScoreMatch(m)}
-                        className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-xl transition-all shadow-xs ${
-                          isLive
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
-                            : 'bg-primary text-white hover:bg-primary/90'
-                        }`}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                        <span>Edit Score</span>
-                      </Button>
-                    ) : isLocked ? (
-                      <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-                        Locked
-                      </Badge>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground italic font-medium">
-                        Waiting for Opponent
-                      </span>
-                    )}
+                    {/* Edit Score Option (Compulsory on all match cards) */}
+                    <Button
+                      size="sm"
+                      onClick={() => setActiveScoreMatch(m)}
+                      disabled={actionLoading || (!m.participant_a && !m.participant_b && !isCompleted)}
+                      className="h-8 px-2.5 text-xs font-bold bg-primary hover:bg-primary/90 text-white gap-1"
+                      title="Edit or enter match score"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      <span>Edit Score</span>
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -570,27 +555,13 @@ export default function AdminMatchCenterPage() {
           isOpen={Boolean(activeScoreMatch)}
           onClose={() => setActiveScoreMatch(null)}
           onUpdateLiveScore={handleUpdateLiveScore}
-          onCompleteMatch={(a, b) => handleCompleteMatch(a, b, false)}
+          onCompleteMatch={handleCompleteMatch}
           participantA={activeScoreMatch.participantAUser?.username || 'Player A'}
           participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
           currentScoreA={activeScoreMatch.score_a}
           currentScoreB={activeScoreMatch.score_b}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
-          isLoading={actionLoading}
-        />
-      )}
-
-      {/* Cascading Reset Warning Modal */}
-      {activeScoreMatch && (
-        <ConfirmModal
-          isOpen={isCascadingModalOpen}
-          onClose={() => setIsCascadingModalOpen(false)}
-          onConfirm={() => handleCompleteMatch(activeScoreMatch.score_a, activeScoreMatch.score_b, true)}
-          title="Warning: Cascading Downstream Reset Required"
-          description="Changing the winner of this match affects the next round match which has already completed. Proceeding will reset downstream match results and advance the new winner into the bracket."
-          confirmText="Confirm & Overwrite Downstream"
-          variant="destructive"
           isLoading={actionLoading}
         />
       )}

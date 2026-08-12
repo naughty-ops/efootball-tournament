@@ -29,7 +29,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmModal } from '@/components/ui/modal';
-import { updateLiveScore, submitMatchResult } from '@/services/matchService';
+import { updateLiveScore, submitMatchResult, editMatchResult } from '@/services/matchService';
 import dynamic from 'next/dynamic';
 
 const ManualSlotOverrideModal = dynamic(
@@ -118,11 +118,20 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
     if (!activeScoreMatch) return;
     setActionLoading(true);
     try {
-      await submitMatchResult(activeScoreMatch.id, tournamentId, {
-        score_a: scoreA,
-        score_b: scoreB,
-        result_type: 'normal',
-      });
+      const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      if (isCompleted) {
+        await editMatchResult(activeScoreMatch.id, tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
+      } else {
+        await submitMatchResult(activeScoreMatch.id, tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
+      }
       setActiveScoreMatch(null);
       await fetchBracketData();
     } catch (err: unknown) {
@@ -531,25 +540,25 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
 function MatchCard({
   match,
   tournamentId,
-  roundNumber,
   onEditSlot,
   onScoreMatch,
 }: {
   match: FullMatchData;
   tournamentId: string;
-  roundNumber: number;
+  roundNumber?: number;
   onEditSlot: (match: FullMatchData, slot: 'participant_a' | 'participant_b') => void;
   onScoreMatch: (match: FullMatchData) => void;
 }) {
-  const isRound1 = roundNumber === 1;
-
   const playerA = match.participantAUser;
   const playerB = match.participantBUser;
 
-  const isByeA = !playerA && isRound1;
-  const isByeB = !playerB && isRound1;
-  const isReadyToScore = Boolean(playerA && playerB);
   const isCompleted = match.status === 'completed' || match.status === 'walkover';
+  const isLive = match.status === 'live';
+  const isByeA = !playerA && (Boolean(match.notes?.includes('BYE')) || match.status === 'walkover');
+  const isByeB = !playerB && (Boolean(match.notes?.includes('BYE')) || match.status === 'walkover');
+
+  // Generic Knockout Score Edit Eligibility for ALL rounds (Round of 16, QF, SF, Final)
+  const isReadyToScore = Boolean(playerA && playerB) || isCompleted || isLive || match.status === 'ready';
 
   return (
     <Card className="border-border bg-white shadow-xs hover:border-primary/50 transition-all overflow-hidden text-xs">
@@ -584,7 +593,7 @@ function MatchCard({
 
           <div className="flex items-center gap-1">
             <span className="font-mono font-bold text-muted-foreground">{match.score_a}</span>
-            {isRound1 && match.status === 'pending' && (
+            {match.status === 'pending' && (
               <button
                 onClick={() => onEditSlot(match, 'participant_a')}
                 title="Edit Slot A"
@@ -621,7 +630,7 @@ function MatchCard({
 
           <div className="flex items-center gap-1">
             <span className="font-mono font-bold text-muted-foreground">{match.score_b}</span>
-            {isRound1 && match.status === 'pending' && (
+            {match.status === 'pending' && (
               <button
                 onClick={() => onEditSlot(match, 'participant_b')}
                 title="Edit Slot B"

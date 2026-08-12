@@ -279,13 +279,13 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
       if (rName.includes('final') && !rName.includes('semi') && !rName.includes('quarter')) {
         stageType = 'Final';
       } else if (rName.includes('semi')) {
-        stageType = 'Semifinal';
+        stageType = 'Semi Final';
       } else if (rName.includes('quarter')) {
-        stageType = 'Quarterfinal';
+        stageType = 'Quarter Final';
       } else if (rName.includes('16') || rName.includes('round of 16')) {
         stageType = 'Round of 16';
       } else {
-        stageType = 'Knockout';
+        stageType = rObj.name || 'Knockout';
       }
     }
 
@@ -309,12 +309,12 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
 
   // Stage Filter
   if (params?.stage && params.stage !== 'all') {
-    const targetStage = params.stage.toLowerCase();
+    const targetStage = params.stage.toLowerCase().replace(/_/g, '').replace(/\s+/g, '');
     result = result.filter((m) => {
-      const sType = m.stageType.toLowerCase();
-      const rName = m.roundName.toLowerCase();
+      const sType = m.stageType.toLowerCase().replace(/_/g, '').replace(/\s+/g, '');
+      const rName = m.roundName.toLowerCase().replace(/_/g, '').replace(/\s+/g, '');
       if (targetStage === 'group') return m.group_id !== null && m.group_id !== undefined;
-      return sType.includes(targetStage) || rName.includes(targetStage);
+      return sType.includes(targetStage) || rName.includes(targetStage) || targetStage.includes(sType);
     });
   }
 
@@ -533,13 +533,18 @@ export async function submitMatchResult(
     }
   }
 
-  // Knockout match loser elimination (unless disqualified)
+  // Knockout match loser elimination & winner reinstatement (unless disqualified)
   if (!match.group_id && input.result_type !== 'disqualification') {
     const loserId = match.participant_a === winnerId ? match.participant_b : match.participant_a;
     if (loserId) {
       await (supabase.from('participants') as unknown as UnknownQuery)
         .update({ status: 'eliminated', updated_at: new Date().toISOString() })
         .eq('id', loserId);
+    }
+    if (winnerId) {
+      await (supabase.from('participants') as unknown as UnknownQuery)
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', winnerId);
     }
   }
 
@@ -558,18 +563,17 @@ export async function submitMatchResult(
 }
 
 /**
- * Edit Completed Match Result with Downstream Protection & Winner Recalculation
+ * Edit Completed Match Result with Downstream Protection
  */
 export async function editMatchResult(
   matchId: string,
   tournamentId: string,
-  input: MatchResultInput,
-  options?: { forceCascadingReset?: boolean }
+  input: MatchResultInput
 ): Promise<MatchDetailsOverview> {
   const supabase = createClient();
   const { match } = await getMatchDetails(matchId, tournamentId);
 
-  // Group stage protection check
+  // Stage Protection Guards
   const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)
     .select('*')
     .eq('id', tournamentId)
@@ -582,10 +586,9 @@ export async function editMatchResult(
 
   const { winnerId: newWinnerId } = determineWinner(match, input);
   const oldWinnerId = match.winner_id;
-  const winnerChanged = oldWinnerId !== null && newWinnerId !== oldWinnerId;
 
   // Downstream Protection Check if winner has changed
-  if (match.next_match_id && winnerChanged) {
+  if (match.next_match_id && oldWinnerId && newWinnerId !== oldWinnerId) {
     const { data: nextMatchData } = await (supabase.from('matches') as unknown as UnknownQuery)
       .select('*')
       .eq('id', match.next_match_id)
@@ -593,58 +596,12 @@ export async function editMatchResult(
 
     if (nextMatchData) {
       const nextM = nextMatchData as Match;
-      const isNextCompleted =
-        nextM.status === 'completed' ||
-        nextM.status === 'walkover' ||
-        nextM.winner_id !== null ||
-        nextM.score_a > 0 ||
-        nextM.score_b > 0;
-
-      if (isNextCompleted) {
-        if (!options?.forceCascadingReset) {
-          throw new Error(
-            'CASCADING_WARNING: Changing this match winner will affect the next round match which has already been completed. Confirming will reset downstream match results and advance the new winner.'
-          );
-        }
-
-        // Safely reset downstream completed match
-        await (supabase.from('matches') as unknown as UnknownQuery)
-          .update({
-            status: 'pending',
-            score_a: 0,
-            score_b: 0,
-            winner_id: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', nextM.id);
+      if (nextM.status === 'completed' || nextM.winner_id !== null || nextM.score_a > 0 || nextM.score_b > 0) {
+        throw new Error(
+          'Cannot edit result because downstream match in the next round has already completed or recorded scores. Reset downstream match first.'
+        );
       }
     }
-  }
-
-  // Update participant statuses if winner changed in knockout stage
-  if (!match.group_id && winnerChanged) {
-    // Re-activate new winner (who was previously eliminated)
-    if (newWinnerId) {
-      await (supabase.from('participants') as unknown as UnknownQuery)
-        .update({ status: 'active', updated_at: new Date().toISOString() })
-        .eq('id', newWinnerId);
-    }
-    // Eliminate old winner (who is now the loser)
-    if (oldWinnerId) {
-      await (supabase.from('participants') as unknown as UnknownQuery)
-        .update({ status: 'eliminated', updated_at: new Date().toISOString() })
-        .eq('id', oldWinnerId);
-    }
-  }
-
-  // If Final match (no next_match_id), update champion_id on tournament if winner changed
-  if (!match.group_id && !match.next_match_id && winnerChanged && newWinnerId) {
-    await (supabase.from('tournaments') as unknown as UnknownQuery)
-      .update({
-        champion_id: newWinnerId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', tournamentId);
   }
 
   return submitMatchResult(matchId, tournamentId, input);

@@ -15,11 +15,20 @@ import {
   Radio,
 } from 'lucide-react';
 import { getTournamentById, TournamentWithStats } from '@/services/tournamentService';
-import { getMatchesByTournament, RoundWithMatches, FullMatchData } from '@/services/matchService';
+import {
+  getMatchesByTournament,
+  startMatch,
+  updateLiveScore,
+  submitMatchResult,
+  editMatchResult,
+  RoundWithMatches,
+  FullMatchData,
+} from '@/services/matchService';
 import { formatDate } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ScoreEntryModal } from '@/components/match/ScoreEntryModal';
 
 const STATUS_TABS = [
   { label: 'All Matches', value: 'all' },
@@ -40,6 +49,71 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedRoundId, setSelectedRoundId] = useState('all');
+
+  // Score Modal
+  const [activeScoreMatch, setActiveScoreMatch] = useState<FullMatchData | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const reloadMatches = async () => {
+    try {
+      const rData = await getMatchesByTournament(tournamentId, statusFilter);
+      setRounds(rData);
+    } catch (err: unknown) {
+      console.error(err);
+    }
+  };
+
+  const handleStartMatch = async (m: FullMatchData) => {
+    setActionLoading(true);
+    try {
+      await startMatch(m.id, tournamentId);
+      await reloadMatches();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to start match';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateLiveScore = async (scoreA: number, scoreB: number) => {
+    if (!activeScoreMatch) return;
+    try {
+      await updateLiveScore(activeScoreMatch.id, tournamentId, scoreA, scoreB);
+      await reloadMatches();
+    } catch (err: unknown) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+    if (!activeScoreMatch) return;
+    setActionLoading(true);
+    try {
+      const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      if (isCompleted) {
+        await editMatchResult(activeScoreMatch.id, tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
+      } else {
+        await submitMatchResult(activeScoreMatch.id, tournamentId, {
+          score_a: scoreA,
+          score_b: scoreB,
+          result_type: 'normal',
+        });
+      }
+      setActiveScoreMatch(null);
+      await reloadMatches();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save match score';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -233,12 +307,36 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {round.matches.map((m) => (
-                    <AdminMatchCard key={m.id} match={m} tournamentId={tournamentId} />
+                    <AdminMatchCard
+                      key={m.id}
+                      match={m}
+                      tournamentId={tournamentId}
+                      onStartMatch={handleStartMatch}
+                      onScoreMatch={(match) => setActiveScoreMatch(match)}
+                      actionLoading={actionLoading}
+                    />
                   ))}
                 </div>
               </div>
             ))}
         </div>
+      )}
+
+      {/* Quick Score Modal */}
+      {activeScoreMatch && (
+        <ScoreEntryModal
+          isOpen={Boolean(activeScoreMatch)}
+          onClose={() => setActiveScoreMatch(null)}
+          onUpdateLiveScore={handleUpdateLiveScore}
+          onCompleteMatch={handleCompleteMatch}
+          participantA={activeScoreMatch.participantAUser?.username || 'Player A'}
+          participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
+          currentScoreA={activeScoreMatch.score_a}
+          currentScoreB={activeScoreMatch.score_b}
+          isLive={activeScoreMatch.status === 'live'}
+          isGroupMatch={Boolean(activeScoreMatch.group_id)}
+          isLoading={actionLoading}
+        />
       )}
     </div>
   );
@@ -247,7 +345,19 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
 /**
  * Admin Match Row/Card Component
  */
-function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournamentId: string }) {
+function AdminMatchCard({
+  match,
+  tournamentId,
+  onStartMatch,
+  onScoreMatch,
+  actionLoading = false,
+}: {
+  match: FullMatchData;
+  tournamentId: string;
+  onStartMatch: (match: FullMatchData) => void;
+  onScoreMatch: (match: FullMatchData) => void;
+  actionLoading?: boolean;
+}) {
   const playerA = match.participantAUser;
   const playerB = match.participantBUser;
   const winner = match.winnerUser;
@@ -300,7 +410,9 @@ function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournam
             <span className="truncate">{playerA ? playerA.username : 'Waiting for opponent...'}</span>
           </div>
 
-          <span className="font-mono font-extrabold text-sm ml-2">{isCompleted ? match.score_a : '-'}</span>
+          <span className="font-mono font-extrabold text-sm ml-2">
+            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0 ? match.score_a : '-'}
+          </span>
         </div>
 
         {/* Slot B */}
@@ -320,7 +432,9 @@ function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournam
             <span className="truncate">{playerB ? playerB.username : 'Waiting for opponent...'}</span>
           </div>
 
-          <span className="font-mono font-extrabold text-sm ml-2">{isCompleted ? match.score_b : '-'}</span>
+          <span className="font-mono font-extrabold text-sm ml-2">
+            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0 ? match.score_b : '-'}
+          </span>
         </div>
       </div>
 
@@ -332,8 +446,8 @@ function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournam
         </div>
       )}
 
-      {/* Footer Actions */}
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+      {/* Footer Actions (Compulsory Live and Edit Score options for all matches) */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 flex-wrap">
         <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-semibold">
           <Link href={`/admin/tournaments/${tournamentId}/matches/${match.id}`}>
             <Eye className="h-3.5 w-3.5 mr-1" />
@@ -341,26 +455,38 @@ function AdminMatchCard({ match, tournamentId }: { match: FullMatchData; tournam
           </Link>
         </Button>
 
-        {isCompleted ? (
-          <Button asChild variant="outline" size="sm" className="h-8 text-xs font-bold border-border">
-            <Link href={`/admin/tournaments/${tournamentId}/matches/${match.id}`}>
-              <Edit className="h-3.5 w-3.5 mr-1" />
-              <span>Edit Result</span>
-            </Link>
-          </Button>
-        ) : (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Live Action Option */}
+          {isLive ? (
+            <Badge className="bg-rose-600 text-white font-bold text-xs py-1 px-2.5 gap-1 animate-pulse">
+              <Radio className="h-3 w-3" />
+              <span>LIVE NOW</span>
+            </Badge>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => onStartMatch(match)}
+              disabled={actionLoading || !playerA || !playerB || isCompleted}
+              className="h-8 px-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1"
+              title="Set match status to Live"
+            >
+              <Radio className="h-3 w-3" />
+              <span>Start Live</span>
+            </Button>
+          )}
+
+          {/* Edit Score Option (Compulsory on all match cards) */}
           <Button
-            asChild
             size="sm"
-            disabled={!playerA || !playerB}
-            className="h-8 text-xs font-bold gap-1 rounded-xl"
+            onClick={() => onScoreMatch(match)}
+            disabled={actionLoading || (!playerA && !playerB && !isCompleted)}
+            className="h-8 px-2.5 text-xs font-bold bg-primary hover:bg-primary/90 text-white gap-1"
+            title="Edit or enter match score"
           >
-            <Link href={`/admin/tournaments/${tournamentId}/matches/${match.id}`}>
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span>Enter Result</span>
-            </Link>
+            <Edit className="h-3.5 w-3.5" />
+            <span>Edit Score</span>
           </Button>
-        )}
+        </div>
       </div>
     </Card>
   );

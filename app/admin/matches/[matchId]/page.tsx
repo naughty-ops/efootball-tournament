@@ -168,7 +168,7 @@ export default function SingleMatchCenterPage({
   const isCompleted = matchData.status === 'completed' || matchData.status === 'walkover';
   const isLive = matchData.status === 'live';
   const isScheduled = matchData.status === 'pending';
-  const isLocked = matchData.tournamentStatus === 'completed' || (matchData.group_id && matchData.isGroupStageFinalized);
+  const isLocked = Boolean(matchData.group_id && matchData.isGroupStageFinalized);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
@@ -201,10 +201,10 @@ export default function SingleMatchCenterPage({
               </Button>
             )}
 
-            {(isLive || isCompleted) && (
+            {(isLive || isCompleted || (isScheduled && matchData.participantAUser && matchData.participantBUser)) && (
               <Button onClick={() => setIsScoreModalOpen(true)} className="font-bold bg-primary text-white">
                 <Zap className="h-4 w-4 mr-2" />
-                {isLive ? 'Update Live Score' : 'Edit Score Result'}
+                {isLive ? 'Update Live Score' : isCompleted ? 'Edit Score Result' : 'Enter Score'}
               </Button>
             )}
           </div>
