@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmModal } from '@/components/ui/modal';
 import { updateLiveScore, submitMatchResult, editMatchResult } from '@/services/matchService';
 import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
+import SymmetricalKnockoutBracket from '@/components/tournament/SymmetricalKnockoutBracket';
 import dynamic from 'next/dynamic';
 
 const ManualSlotOverrideModal = dynamic(
@@ -392,99 +393,16 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
           </Button>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* Mobile Round Selector Tabs (Visible on small screens) */}
-          <div className="lg:hidden flex items-center justify-between bg-white p-2 rounded-2xl border border-border shadow-xs">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveMobileRoundIdx((prev) => Math.max(0, prev - 1))}
-              disabled={activeMobileRoundIdx === 0}
-              className="h-8 px-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <span className="text-xs font-extrabold text-[#0B3323]">
-              {rounds[activeMobileRoundIdx]?.name || `Round ${activeMobileRoundIdx + 1}`} ({activeMobileRoundIdx + 1}/{rounds.length})
-            </span>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveMobileRoundIdx((prev) => Math.min(rounds.length - 1, prev + 1))}
-              disabled={activeMobileRoundIdx === rounds.length - 1}
-              className="h-8 px-2"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Interactive Bracket Canvas (Touch-friendly & Desktop Scrollable) */}
-          <div className="w-full overflow-x-auto no-scrollbar rounded-3xl border border-border bg-white p-6 shadow-xs">
-            {/* Desktop View: Full Horizontal Track */}
-            <div className="hidden lg:flex items-start gap-8 min-w-max pb-4">
-              {rounds.map((round) => (
-                <div key={round.id} className="w-64 shrink-0 space-y-4">
-                  <div className="text-center py-2 bg-[#F4F8F5] rounded-xl border border-border">
-                    <h4 className="text-xs font-extrabold text-[#0B3323]">{round.name}</h4>
-                    <p className="text-[10px] text-muted-foreground font-semibold">
-                      {round.matches.length} {round.matches.length === 1 ? 'Match' : 'Matches'}
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    {round.matches.map((m) => (
-                      <MatchCard
-                        key={m.id}
-                        match={m}
-                        tournamentId={tournamentId}
-                        roundNumber={round.round_number}
-                        onEditSlot={(match, slot) => {
-                          setEditingMatch(match);
-                          setEditingSlot(slot);
-                        }}
-                        onScoreMatch={(match) => setActiveScoreMatch(match)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Mobile View: Single Round View */}
-            <div className="lg:hidden space-y-4">
-              {rounds[activeMobileRoundIdx] && (
-                <div className="space-y-3">
-                  <div className="text-center py-2 bg-[#F4F8F5] rounded-xl border border-border">
-                    <h4 className="text-xs font-extrabold text-[#0B3323]">
-                      {rounds[activeMobileRoundIdx].name}
-                    </h4>
-                    <p className="text-[10px] text-muted-foreground font-semibold">
-                      {rounds[activeMobileRoundIdx].matches.length} Matches
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {rounds[activeMobileRoundIdx].matches.map((m) => (
-                      <MatchCard
-                        key={m.id}
-                        match={m}
-                        tournamentId={tournamentId}
-                        roundNumber={rounds[activeMobileRoundIdx].round_number}
-                        onEditSlot={(match, slot) => {
-                          setEditingMatch(match);
-                          setEditingSlot(slot);
-                        }}
-                        onScoreMatch={(match) => setActiveScoreMatch(match)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <SymmetricalKnockoutBracket
+          bracket={overview}
+          isAdmin={true}
+          onScoreMatch={(m) => setActiveScoreMatch(m)}
+          onEditSlot={(m, slot) => {
+            setEditingMatch(m);
+            setEditingSlot(slot);
+          }}
+          onReopenCelebration={() => setShowCelebration(true)}
+        />
       )}
 
       {/* Regenerate Confirmation Modal */}
@@ -552,138 +470,5 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
         />
       )}
     </div>
-  );
-}
-
-/**
- * Reusable Match Card Component
- */
-function MatchCard({
-  match,
-  tournamentId,
-  onEditSlot,
-  onScoreMatch,
-}: {
-  match: FullMatchData;
-  tournamentId: string;
-  roundNumber?: number;
-  onEditSlot: (match: FullMatchData, slot: 'participant_a' | 'participant_b') => void;
-  onScoreMatch: (match: FullMatchData) => void;
-}) {
-  const playerA = match.participantAUser;
-  const playerB = match.participantBUser;
-
-  const isCompleted = match.status === 'completed' || match.status === 'walkover';
-  const isLive = match.status === 'live';
-  const isByeA = !playerA && (Boolean(match.notes?.includes('BYE')) || match.status === 'walkover');
-  const isByeB = !playerB && (Boolean(match.notes?.includes('BYE')) || match.status === 'walkover');
-
-  // Generic Knockout Score Edit Eligibility for ALL rounds (Round of 16, QF, SF, Final)
-  const isReadyToScore = Boolean(playerA && playerB) || isCompleted || isLive || match.status === 'ready';
-
-  return (
-    <Card className="border-border bg-white shadow-xs hover:border-primary/50 transition-all overflow-hidden text-xs">
-      <div className="bg-[#F4F8F5] px-3 py-1.5 border-b border-border flex items-center justify-between font-mono text-[10px] text-muted-foreground font-semibold">
-        <span>Match #{match.match_position}</span>
-        <Badge
-          variant={match.status === 'completed' ? 'default' : 'outline'}
-          className="text-[9px] px-1.5 py-0 capitalize"
-        >
-          {match.status}
-        </Badge>
-      </div>
-
-      <div className="p-3 space-y-2">
-        {/* Slot A */}
-        <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-secondary/20 hover:bg-secondary/40 transition-colors">
-          <div className="flex items-center gap-1.5 truncate">
-            {playerA?.seed_number ? (
-              <Badge variant="efootball" className="font-mono text-[10px] px-1.5 py-0">
-                #{playerA.seed_number}
-              </Badge>
-            ) : isByeA ? (
-              <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 border-amber-300 bg-amber-50 text-amber-800">
-                BYE
-              </Badge>
-            ) : null}
-
-            <span className={`font-semibold truncate ${playerA ? 'text-[#0B3323]' : 'text-muted-foreground/60'}`}>
-              {playerA ? playerA.username : isByeA ? 'BYE' : 'TBD'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <span className="font-mono font-bold text-muted-foreground">{match.score_a}</span>
-            {match.status === 'pending' && (
-              <button
-                onClick={() => onEditSlot(match, 'participant_a')}
-                title="Edit Slot A"
-                className="text-muted-foreground hover:text-primary p-1 rounded-md"
-              >
-                <Edit2 className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* VS Divider */}
-        <div className="text-[9px] font-mono text-center text-muted-foreground font-bold tracking-widest uppercase">
-          VS
-        </div>
-
-        {/* Slot B */}
-        <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-secondary/20 hover:bg-secondary/40 transition-colors">
-          <div className="flex items-center gap-1.5 truncate">
-            {playerB?.seed_number ? (
-              <Badge variant="efootball" className="font-mono text-[10px] px-1.5 py-0">
-                #{playerB.seed_number}
-              </Badge>
-            ) : isByeB ? (
-              <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 border-amber-300 bg-amber-50 text-amber-800">
-                BYE
-              </Badge>
-            ) : null}
-
-            <span className={`font-semibold truncate ${playerB ? 'text-[#0B3323]' : 'text-muted-foreground/60'}`}>
-              {playerB ? playerB.username : isByeB ? 'BYE' : 'TBD'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <span className="font-mono font-bold text-muted-foreground">{match.score_b}</span>
-            {match.status === 'pending' && (
-              <button
-                onClick={() => onEditSlot(match, 'participant_b')}
-                title="Edit Slot B"
-                className="text-muted-foreground hover:text-primary p-1 rounded-md"
-              >
-                <Edit2 className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Action Bar */}
-      <div className="px-3 py-2 bg-[#F4F8F5] border-t border-border flex items-center justify-between gap-1">
-        <Button asChild variant="ghost" size="sm" className="h-6 px-1.5 text-[10px] font-semibold text-primary">
-          <Link href={`/admin/tournaments/${tournamentId}/matches/${match.id}`}>
-            <Eye className="h-3 w-3 mr-1" />
-            <span>Details</span>
-          </Link>
-        </Button>
-
-        {isReadyToScore && (
-          <Button
-            size="sm"
-            onClick={() => onScoreMatch(match)}
-            className="h-6 px-2 text-[10px] font-bold gap-1 rounded-lg bg-primary text-white hover:bg-primary/90"
-          >
-            <Edit2 className="h-2.5 w-2.5" />
-            <span>{isCompleted ? 'Edit Score' : 'Score'}</span>
-          </Button>
-        )}
-      </div>
-    </Card>
   );
 }
