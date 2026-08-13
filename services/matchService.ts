@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Participant, MatchStatus, Tournament } from '@/types/database';
 import type { MatchResultInput } from '@/lib/validations';
+import { finalizeGroupStage, prepareKnockoutFromGroups, getGroupKnockoutTransitionPreview, getTournamentGroups } from '@/services/groupService';
 
 export interface FullMatchData extends Match {
   participantAUser?: Participant | null;
@@ -498,6 +499,22 @@ export async function submitMatchResult(
 
   if (updateErr) {
     throw new Error(`Failed to submit match result: ${formatSupabaseError(updateErr)}`);
+  }
+
+  // 1.5. AUTOMATIC GROUP-TO-KNOCKOUT SHIFT IF ALL GROUP MATCHES ARE FINISHED
+  if (match.group_id && tObj?.format === 'group_knockout' && !tObj?.is_group_stage_finalized) {
+    try {
+      const groupOverview = await getTournamentGroups(tournamentId);
+      if (groupOverview.isGroupStageComplete) {
+        await finalizeGroupStage(tournamentId);
+        const preview = await getGroupKnockoutTransitionPreview(tournamentId);
+        if (!preview.isKnockoutAlreadyGenerated && preview.qualifiers.length >= 2) {
+          await prepareKnockoutFromGroups(tournamentId);
+        }
+      }
+    } catch (autoErr) {
+      console.error('Auto group-to-knockout transition note:', autoErr);
+    }
   }
 
   // 2. AUTOMATIC WINNER ADVANCEMENT & KNOCKOUT ELIMINATION
