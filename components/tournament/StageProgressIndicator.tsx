@@ -3,9 +3,10 @@
 import React from 'react';
 import { CheckCircle2, Circle, Radio, Trophy } from 'lucide-react';
 import { TournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
+import { TournamentFormat } from '@/types/database';
 
 interface StageProgressIndicatorProps {
-  format: 'knockout' | 'league' | 'group_knockout';
+  format: TournamentFormat;
   subStage: TournamentSubStage;
 }
 
@@ -16,13 +17,13 @@ interface StepItem {
 
 export function StageProgressIndicator({ format, subStage }: StageProgressIndicatorProps) {
   const steps: StepItem[] =
-    format === 'group_knockout'
+    format === 'group_knockout' || format === 'single_league_knockout'
       ? [
           { id: 'registration', label: 'Registration' },
-          { id: 'group_stage', label: 'Group Stage' },
+          { id: 'group_stage', label: 'League Stage' },
           { id: 'group_stage_finalized', label: 'Qualification' },
-          { id: 'knockout', label: 'Knockout' },
-          { id: 'final', label: 'Final' },
+          { id: 'knockout', label: 'Playoffs' },
+          { id: 'final', label: 'Grand Final' },
           { id: 'completed', label: 'Completed' },
         ]
       : [

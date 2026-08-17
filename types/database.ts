@@ -1,4 +1,4 @@
-export type TournamentFormat = 'knockout' | 'league' | 'group_knockout';
+export type TournamentFormat = 'knockout' | 'league' | 'group_knockout' | 'single_league_knockout';
 export type TournamentStatus = 'draft' | 'registration' | 'ongoing' | 'completed';
 export type ParticipantStatus = 'active' | 'eliminated' | 'disqualified';
 export type MatchStatus = 'pending' | 'ready' | 'scheduled' | 'live' | 'completed' | 'walkover' | 'cancelled';

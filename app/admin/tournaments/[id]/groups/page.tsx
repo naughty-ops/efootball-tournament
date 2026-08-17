@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Users,
@@ -37,10 +38,13 @@ import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/modal';
 import { EditGroupParticipantsModal } from '@/components/group/EditGroupParticipantsModal';
 import { CustomGroupEditorModal } from '@/components/group/CustomGroupEditorModal';
-import { UserCog, SlidersHorizontal } from 'lucide-react';
+import { EditPointsTableModal } from '@/components/group/EditPointsTableModal';
+import { cn } from '@/lib/utils';
+import { UserCog, SlidersHorizontal, Edit3 } from 'lucide-react';
 
 export default function AdminGroupsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = use(params);
+  const router = useRouter();
 
   const [overview, setOverview] = useState<GroupStageOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,9 +58,10 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
   const [qualifiersInput, setQualifiersInput] = useState(2);
   const [roundsPerPairInput, setRoundsPerPairInput] = useState(1); // 1 Round vs 2 Rounds
 
-  // Edit Group Participants Modal
+  // Edit Group Participants & Points Table Modal
   const [editingGroupDetails, setEditingGroupDetails] = useState<GroupDetails | null>(null);
   const [isCustomEditorOpen, setIsCustomEditorOpen] = useState(false);
+  const [isEditPointsModalOpen, setIsEditPointsModalOpen] = useState(false);
 
   // Confirm Modals
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
@@ -179,9 +184,9 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
     setSuccessMsg(null);
     try {
       await finalizeGroupStage(tournamentId);
-      await fetchGroupData();
       setIsFinalizeModalOpen(false);
-      setSuccessMsg('Group Stage finalized! Qualified participants are ready for Knockout Bracket preparation.');
+      router.push(`/admin/tournaments/${tournamentId}/groups/transition`);
+      router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Finalization failed.';
       setError(msg);
@@ -291,7 +296,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
 
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
-              Group Stage Management
+              {groups.length === 1 ? 'Single League Table Management' : 'Group Stage Management'}
             </h1>
             <Badge
               variant={
@@ -325,25 +330,67 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchGroupData}
+              onClick={async () => {
+                setActionLoading(true);
+                try {
+                  await fetchGroupData();
+                  setSuccessMsg('Points table & standings recalculated and synced successfully!');
+                } catch {
+                  setError('Failed to sync standings.');
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
               disabled={actionLoading}
-              className="rounded-xl text-xs font-semibold border-border"
+              className="rounded-xl text-xs font-bold border-amber-600/40 text-amber-800 bg-amber-50/50 hover:bg-amber-100/60 gap-1.5"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Refresh</span>
+              <RefreshCw className={cn('h-3.5 w-3.5', actionLoading && 'animate-spin')} />
+              <span>Recalculate Standings</span>
             </Button>
 
-            {groups.length > 0 && !isFinalized && (
+            {groups.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsCustomEditorOpen(true)}
+                onClick={() => setIsEditPointsModalOpen(true)}
                 disabled={actionLoading}
-                className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary/10"
+                className="rounded-xl text-xs font-bold gap-1.5 border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
               >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                <span>Custom Group Manager</span>
+                <Edit3 className="h-3.5 w-3.5 text-emerald-700" />
+                <span>Edit Points Table</span>
               </Button>
+            )}
+
+            {groups.length > 0 && !isFinalized && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setGroupCountInput(groups.length);
+                    setQualifiersInput(qualifiersPerGroup);
+                    setRoundsPerPairInput(roundsPerPair);
+                    setIsSetupModalOpen(true);
+                  }}
+                  disabled={actionLoading}
+                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary/10"
+                  title="Re-configure group count, qualifiers per group, or 1 vs 2 round mode"
+                >
+                  <Grid className="h-3.5 w-3.5" />
+                  <span>Edit Group Setup</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCustomEditorOpen(true)}
+                  disabled={actionLoading}
+                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary/10"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>Custom Group Manager</span>
+                </Button>
+              </>
             )}
 
             {groups.length === 0 ? (
@@ -662,7 +709,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                 <Input
                   type="number"
                   min={1}
-                  max={4}
+                  max={32}
                   value={qualifiersInput}
                   onChange={(e) => setQualifiersInput(Number(e.target.value))}
                   required
@@ -742,6 +789,18 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
           onSave={handleSaveCustomAssignments}
           overview={overview}
           isLoading={actionLoading}
+        />
+      )}
+
+      {/* Edit Points Table / Standings Override Modal */}
+      {isEditPointsModalOpen && overview && (
+        <EditPointsTableModal
+          isOpen={isEditPointsModalOpen}
+          onClose={() => setIsEditPointsModalOpen(false)}
+          tournamentId={tournamentId}
+          rulesText={tournament.rules_text}
+          standings={overview.groups[0]?.standings || []}
+          onSaved={fetchGroupData}
         />
       )}
     </div>

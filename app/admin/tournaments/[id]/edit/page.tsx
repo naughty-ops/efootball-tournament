@@ -267,10 +267,15 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                         {...register('qualifiers_per_group', { valueAsNumber: true })}
                         className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
                       >
-                        <option value={1}>Top 1 per group</option>
-                        <option value={2}>Top 2 per group (Standard)</option>
-                        <option value={3}>Top 3 per group</option>
-                        <option value={4}>Top 4 per group</option>
+                        <option value={8}>Top 8 Qualify (Quarter-Finals - Standard)</option>
+                        <option value={16}>Top 16 Qualify (Round of 16)</option>
+                        <option value={32}>Top 32 Qualify (Round of 32)</option>
+                        <option value={24}>Top 24 Qualify</option>
+                        <option value={12}>Top 12 Qualify</option>
+                        <option value={6}>Top 6 Qualify (1st & 2nd Direct Semi-Finals, 3rd-6th Eliminators)</option>
+                        <option value={4}>Top 4 Qualify (Semi-Finals)</option>
+                        <option value={2}>Top 2 Qualify (Grand Final)</option>
+                        <option value={1}>Top 1 Qualify</option>
                       </select>
                       <p className="text-[11px] text-muted-foreground mt-1">
                         Top ranked players per group that advance to the Knockout Bracket.

@@ -9,6 +9,7 @@ import { ArrowLeft, Trophy, Loader2, AlertCircle } from 'lucide-react';
 import { tournamentSchema, TournamentInput } from '@/lib/validations';
 import { createTournament } from '@/services/tournamentService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -27,13 +28,15 @@ export default function CreateTournamentPage() {
     defaultValues: {
       name: '',
       description: '',
-      format: 'knockout',
+      format: 'single_league_knockout',
       status: 'draft',
       start_date: '',
       end_date: '',
       rules_text: '',
       banner_image: '',
       max_participants: 32,
+      qualifiers_per_group: 8,
+      rounds_per_pair: 1,
     },
   });
 
@@ -135,21 +138,22 @@ export default function CreateTournamentPage() {
                 <label className="text-xs font-bold text-[#0B3323] block mb-2">
                   Tournament Format *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
-                    { id: 'knockout', label: 'Knockout', desc: 'Single/Double elimination tree' },
+                    { id: 'single_league_knockout', label: 'League + Knockout', desc: 'Single league table season followed by knockout playoff tree' },
+                    { id: 'knockout', label: 'Knockout', desc: 'Single elimination playoff tree' },
                     { id: 'league', label: 'League', desc: 'Round-robin points leaderboard' },
-                    { id: 'group_knockout', label: 'Group + Knockout', desc: 'Group stage leading to knockout' },
+                    { id: 'group_knockout', label: 'Groups + Knockout', desc: 'Group stage leading to playoff tree' },
                   ].map((fmt) => {
                     const isSelected = selectedFormat === fmt.id;
                     return (
                       <button
                         type="button"
                         key={fmt.id}
-                        onClick={() => setValue('format', fmt.id as 'knockout' | 'league' | 'group_knockout')}
+                        onClick={() => setValue('format', fmt.id as 'knockout' | 'league' | 'group_knockout' | 'single_league_knockout')}
                         className={`p-3.5 rounded-xl border text-left transition-all ${
                           isSelected
-                            ? 'border-primary bg-secondary/80 shadow-xs'
+                            ? 'border-primary bg-secondary/80 shadow-xs ring-1 ring-primary/30'
                             : 'border-border bg-white hover:bg-secondary/40'
                         }`}
                       >
@@ -166,51 +170,125 @@ export default function CreateTournamentPage() {
                 )}
               </div>
 
-              {selectedFormat === 'group_knockout' && (
-                <div className="p-4 rounded-2xl bg-[#F4F8F5] border border-border space-y-4">
-                  <h4 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider">
-                    Group Stage Configuration
-                  </h4>
+              {(selectedFormat === 'group_knockout' || selectedFormat === 'single_league_knockout') && (() => {
+                const maxP = watch('max_participants') || 16;
+                const isSingleLeague = selectedFormat === 'single_league_knockout';
+                const rounds = watch('rounds_per_pair') || 1;
+                const qualPerGroup = watch('qualifiers_per_group') || (isSingleLeague ? 8 : 2);
+                const groupCount = isSingleLeague ? 1 : Math.max(2, Math.floor(maxP / 4));
+                const playersPerGroup = Math.ceil(maxP / groupCount);
+                const matchesPerGroup = Math.floor((playersPerGroup * (playersPerGroup - 1)) / 2) * rounds;
+                const totalLeagueMatches = matchesPerGroup * groupCount;
+                const totalQualifiers = isSingleLeague ? Math.min(qualPerGroup, maxP) : groupCount * qualPerGroup;
+                const koStage = isSingleLeague
+                  ? totalQualifiers === 6
+                    ? 'Top 2 Direct Semi-Finals + 3rd-6th Eliminators'
+                    : totalQualifiers <= 2 ? 'Grand Final' : totalQualifiers <= 4 ? 'Semi-Finals' : totalQualifiers <= 8 ? 'Quarter-Finals' : 'Round of 16'
+                  : totalQualifiers <= 2 ? 'Grand Final' : totalQualifiers <= 4 ? 'Semi-Finals' : totalQualifiers <= 8 ? 'Quarter-Finals' : totalQualifiers <= 16 ? 'Round of 16' : 'Round of 32';
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-bold text-[#0B3323] block mb-1">
-                        Matches Per Pair (Rounds)
-                      </label>
-                      <select
-                        {...register('rounds_per_pair', { valueAsNumber: true })}
-                        className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
-                      >
-                        <option value={1}>1 Round (Single Round-Robin)</option>
-                        <option value={2}>2 Rounds (Double Round-Robin / Two Legs)</option>
-                        <option value={3}>3 Rounds</option>
-                        <option value={4}>4 Rounds</option>
-                      </select>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Select how many times each pair plays against each other in the group stage.
-                      </p>
+                return (
+                  <div className="p-4.5 rounded-2xl bg-[#F4F8F5] border border-border space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider flex items-center gap-2">
+                        <span>{isSingleLeague ? 'Single League Season & Knockout Configuration' : 'Group + Knockout Configuration'}</span>
+                      </h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                        Live Season Preview
+                      </span>
                     </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-[#0B3323] block mb-1">
-                        Qualifiers Per Group
-                      </label>
-                      <select
-                        {...register('qualifiers_per_group', { valueAsNumber: true })}
-                        className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
-                      >
-                        <option value={1}>Top 1 per group</option>
-                        <option value={2}>Top 2 per group (Standard)</option>
-                        <option value={3}>Top 3 per group</option>
-                        <option value={4}>Top 4 per group</option>
-                      </select>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Top ranked players per group that advance to the Knockout Bracket.
-                      </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-[#0B3323] block mb-1">
+                          Matches Per Opponent Pair
+                        </label>
+                        <select
+                          {...register('rounds_per_pair', { valueAsNumber: true })}
+                          className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
+                        >
+                          <option value={1}>1 Round (Single Round-Robin - Face Each Player Once)</option>
+                          <option value={2}>2 Rounds (Double Round-Robin - Face Each Player Twice)</option>
+                          <option value={3}>3 Rounds</option>
+                          <option value={4}>4 Rounds</option>
+                        </select>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {isSingleLeague
+                            ? 'Every player faces every opponent in the single league table.'
+                            : 'Select how many times each pair plays against each other in the group stage.'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-[#0B3323] block mb-1">
+                          Knockout Qualification Count
+                        </label>
+                        <select
+                          {...register('qualifiers_per_group', { valueAsNumber: true })}
+                          className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
+                        >
+                          <option value={8}>Top 8 Qualify to Knockout (Quarter-Finals - Standard)</option>
+                          <option value={2}>Top 2 per Group (8 Total Qualifiers to Quarter-Finals)</option>
+                          <option value={16}>Top 16 Qualify to Knockout (Round of 16)</option>
+                          <option value={32}>Top 32 Qualify to Knockout (Round of 32)</option>
+                          <option value={24}>Top 24 Qualify to Knockout</option>
+                          <option value={12}>Top 12 Qualify to Knockout</option>
+                          <option value={6}>Top 6 Qualify (1st & 2nd Direct Semi-Finals, 3rd-6th Eliminators)</option>
+                          <option value={4}>Top 4 Qualify to Knockout (Semi-Finals)</option>
+                        </select>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Top ranked league performers advancing to the Knockout Playoff Tree.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Configurable Points System & Custom Tiebreakers Info */}
+                    <div className="p-3.5 rounded-xl bg-white border border-border/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-[#0B3323] uppercase text-[10px] tracking-wider block">
+                          ⚽ Default Points System & Custom Tiebreaker Hierarchy
+                        </span>
+                        <Badge variant="outline" className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border-emerald-300">
+                          Configurable Engine Active
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-muted-foreground font-semibold">
+                        <div>
+                          • <strong>Points System</strong>: Win = 3 PTS · Draw = 1 PTS · Loss = 0 PTS
+                        </div>
+                        <div>
+                          • <strong>Tiebreaker Priority</strong>: 1. Points → 2. GD → 3. GF → 4. Wins → 5. Head-to-Head
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live Configuration Summary Card */}
+                    <div className="p-3.5 rounded-xl bg-white border border-border/80 space-y-2 text-xs">
+                      <span className="font-extrabold text-[#0B3323] uppercase text-[10px] tracking-wider block flex items-center justify-between">
+                        <span>📊 Season Structure & Fixture Projection</span>
+                        {isSingleLeague && <span className="text-amber-600 font-black">🏆 1st Place = League Shield Winner</span>}
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                        <div className="bg-[#F4F8F5] p-2 rounded-lg border border-border/50">
+                          <span className="text-muted-foreground text-[10px] block">League Table</span>
+                          <span className="font-bold text-[#0B3323]">{isSingleLeague ? `1 Single League (${maxP} players)` : `${groupCount} Groups (${playersPerGroup} players/grp)`}</span>
+                        </div>
+                        <div className="bg-[#F4F8F5] p-2 rounded-lg border border-border/50">
+                          <span className="text-muted-foreground text-[10px] block">League Format</span>
+                          <span className="font-bold text-[#0B3323]">{rounds === 2 ? 'Double Round-Robin (2x)' : 'Single Round-Robin (1x)'}</span>
+                        </div>
+                        <div className="bg-[#F4F8F5] p-2 rounded-lg border border-border/50">
+                          <span className="text-muted-foreground text-[10px] block">Total Season Matches</span>
+                          <span className="font-bold text-[#0B3323]">{totalLeagueMatches} Fixtures</span>
+                        </div>
+                        <div className="bg-[#F4F8F5] p-2 rounded-lg border border-border/50">
+                          <span className="text-muted-foreground text-[10px] block">Playoff Format</span>
+                          <span className="font-bold text-primary truncate" title={koStage}>{koStage}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div>
                 <label className="text-xs font-bold text-[#0B3323] block mb-2">

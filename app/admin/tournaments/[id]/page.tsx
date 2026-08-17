@@ -30,6 +30,8 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/modal';
 import { StageProgressIndicator } from '@/components/tournament/StageProgressIndicator';
+import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
+import { SeasonStatsCards } from '@/components/tournament/SeasonStatsCards';
 import { TournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
 import {
   getFixtureStatus,
@@ -37,6 +39,20 @@ import {
   regenerateTournamentFixtures,
   FixtureStatusSummary,
 } from '@/services/fixtureService';
+
+function formatTournamentFormat(format: string) {
+  switch (format) {
+    case 'group_knockout':
+    case 'single_league_knockout':
+      return 'League + Knockout';
+    case 'knockout':
+      return 'Knockout';
+    case 'league':
+      return 'League';
+    default:
+      return format.replace(/_/g, ' ');
+  }
+}
 
 export default function TournamentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -225,6 +241,8 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     maxParticipants,
     groupMatchesTotal,
     groupMatchesCompleted,
+    isGroupStageComplete,
+    isGroupStageFinalized,
     knockoutMatchesTotal,
     knockoutMatchesCompleted,
     finalWinner,
@@ -344,6 +362,9 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                   {tournament.rules_text || 'Standard competitive eFootball tournament rules apply.'}
                 </div>
               </div>
+
+              {/* Season Stats & Honor Roll Cards */}
+              <SeasonStatsCards tournamentId={tournament.id} />
             </CardContent>
           </Card>
         </div>
@@ -357,7 +378,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
             <CardContent className="space-y-3 text-xs">
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Format</span>
-                <span className="font-bold text-[#0B3323] uppercase">{tournament.format.replace('_', ' + ')}</span>
+                <span className="font-bold text-[#0B3323]">{formatTournamentFormat(tournament.format)}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Participants</span>
@@ -378,7 +399,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
               </div>
               {isGroupKnockout && (
                 <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground">Group Progress</span>
+                  <span className="text-muted-foreground">League Stage Progress</span>
                   <span className="font-bold text-[#0B3323]">
                     {groupMatchesCompleted} / {groupMatchesTotal} Matches
                   </span>
@@ -465,31 +486,31 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                 </Button>
               )}
 
-              {/* Group Stage Mode */}
-              {subStage === 'group_stage' && (
+              {/* Group / League Stage Mode */}
+              {(subStage === 'group_stage' || subStage === 'group_stage_finalized' || isGroupKnockout) && (
                 <>
                   <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-primary text-primary hover:bg-primary hover:text-white font-bold transition-colors">
                     <Link href={`/admin/tournaments/${tournament.id}/groups`}>
-                      <Grid className="h-4 w-4" />
-                      <span>Manage Groups & Standings</span>
+                      <Trophy className="h-4 w-4 text-amber-500" />
+                      <span>View & Edit Points Table</span>
                     </Link>
                   </Button>
 
                   <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-primary text-primary hover:bg-primary hover:text-white font-bold transition-colors">
                     <Link href={`/admin/tournaments/${tournament.id}/groups/matches`}>
                       <Swords className="h-4 w-4" />
-                      <span>Manage Group Matches</span>
+                      <span>Manage League Fixtures & Scores</span>
                     </Link>
                   </Button>
                 </>
               )}
 
-              {/* Group Stage Finalized Mode */}
-              {subStage === 'group_stage_finalized' && (
-                <Button asChild className="w-full justify-center gap-2 text-xs h-9 font-bold bg-primary text-white shadow-sm">
+              {/* Start Knockout Stage Button (When League Complete or Finalized) */}
+              {isGroupKnockout && (isGroupStageComplete || isGroupStageFinalized || subStage === 'group_stage_finalized' || subStage === 'group_stage') && (
+                <Button asChild className="w-full justify-center gap-2 text-xs h-10 font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
                   <Link href={`/admin/tournaments/${tournament.id}/groups/transition`}>
                     <Zap className="h-4 w-4" />
-                    <span>Review Qualification & Prepare Knockout</span>
+                    <span>Start Knockout Stage → Review Top 8 & Create Bracket</span>
                   </Link>
                 </Button>
               )}

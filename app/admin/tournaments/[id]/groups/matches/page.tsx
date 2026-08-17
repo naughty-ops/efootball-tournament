@@ -16,7 +16,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { getTournamentGroups, GroupStageOverview } from '@/services/groupService';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -147,6 +147,62 @@ export default function AdminGroupMatchesPage({
           </Link>
         </Button>
       </div>
+
+      {/* Live Standings Card */}
+      {groups.length > 0 && (
+        <Card className="bg-white border-border shadow-2xs overflow-hidden">
+          <div className="p-4 bg-[#F4F8F5] border-b border-border flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-amber-500" />
+              <span>{groups.length === 1 ? 'Live League Standings Table' : 'Live Group Standings Summary'}</span>
+            </h3>
+            <Badge variant="outline" className="text-[10px] font-mono font-bold text-muted-foreground">
+              Realtime Standings
+            </Badge>
+          </div>
+          <div className="w-full overflow-x-auto no-scrollbar">
+            <table className="w-full min-w-[500px] text-xs">
+              <thead>
+                <tr className="border-b border-border bg-secondary/30">
+                  <th className="text-left py-2 px-3 font-bold text-[#0B3323]">Player</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">P</th>
+                  <th className="py-2 px-2 font-bold text-center text-emerald-600">W</th>
+                  <th className="py-2 px-2 font-bold text-center text-amber-600">D</th>
+                  <th className="py-2 px-2 font-bold text-center text-red-500">L</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GF</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GA</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GD</th>
+                  <th className="py-2 px-2 font-bold text-center text-[#0B3323]">PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(groups[0]?.standings || []).map((row, idx) => {
+                  const isTopQual = idx < (overview.qualifiersPerGroup || 8);
+                  return (
+                    <tr key={row.participant.id} className={cn('border-b border-border/40 last:border-0 hover:bg-[#F4F8F5]/60 transition-colors', isTopQual ? 'bg-emerald-50/40 font-semibold' : '')}>
+                      <td className="py-2 px-3 flex items-center gap-2">
+                        <span className={cn('flex h-4 w-4 items-center justify-center rounded text-[9px] font-black', isTopQual ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground')}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-[#0B3323] truncate max-w-[130px]">{row.participant.username}</span>
+                        {idx === 0 && <span className="text-[10px]">🏆</span>}
+                      </td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.played}</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-semibold">{row.wins}</td>
+                      <td className="py-2 px-2 text-center text-amber-600 font-semibold">{row.draws}</td>
+                      <td className="py-2 px-2 text-center text-red-500 font-semibold">{row.losses}</td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.goalsFor}</td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.goalsAgainst}</td>
+                      <td className="py-2 px-2 text-center font-bold">{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
+                      <td className="py-2 px-2 text-center font-black text-[#0B3323]">{row.points}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Search & Filters Bar */}
       <Card className="p-4 bg-white border-border shadow-xs space-y-3">

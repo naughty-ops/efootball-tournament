@@ -3,6 +3,8 @@ import type { Tournament, TournamentStatus, TournamentFormat, Participant, Group
 import type { TournamentInput } from '@/lib/validations';
 import { getTournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
 import { FullMatchData } from '@/services/matchService';
+import { generateKnockoutBracket, getTournamentBracket } from '@/services/bracketService';
+import { getTournamentGroups, setupTournamentGroups } from '@/services/groupService';
 
 export interface TournamentWithStats extends Tournament {
   participant_count: number;
@@ -17,10 +19,10 @@ export interface GetTournamentsParams {
 }
 
 export const ALLOWED_STATUS_TRANSITIONS: Record<TournamentStatus, TournamentStatus[]> = {
-  draft: ['registration'],
+  draft: ['registration', 'ongoing'],
   registration: ['ongoing', 'draft'],
-  ongoing: ['completed'],
-  completed: [],
+  ongoing: ['completed', 'draft', 'registration'],
+  completed: ['ongoing'],
 };
 
 interface SupabaseTournamentRow extends Tournament {
@@ -46,17 +48,15 @@ function formatSupabaseError(error: unknown): string {
   if (!error) return 'Unknown database error';
   if (typeof error === 'string') return error;
   if (typeof error === 'object' && error !== null) {
-    const errObj = error as { message?: string; details?: string; hint?: string; code?: string };
-    if (errObj.message) return errObj.message;
-    if (errObj.details) return errObj.details;
-    if (errObj.hint) return errObj.hint;
-    if (errObj.code) return `Database error code: ${errObj.code}`;
+    const errObj = error as Record<string, unknown>;
+    const msg = (errObj.message || errObj.details || errObj.hint || errObj.code || errObj.error_description) as string | undefined;
+    if (msg) return String(msg);
   }
   try {
-    const jsonStr = JSON.stringify(error);
-    return jsonStr !== '{}' ? jsonStr : 'Database request failed. Please check permissions or network connection.';
+    const jsonStr = JSON.stringify(error, Object.getOwnPropertyNames(error));
+    return jsonStr !== '{}' && jsonStr !== '[]' ? jsonStr : 'Database request failed. Please check table constraints or permissions.';
   } catch {
-    return 'Database query error';
+    return 'Database error occurred (unserializable)';
   }
 }
 
@@ -138,16 +138,21 @@ export async function getTournamentById(id: string): Promise<TournamentWithStats
 export async function createTournament(input: TournamentInput): Promise<Tournament> {
   const supabase = createClient();
 
+  const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
+  const defaultQualifiers = input.format === 'single_league_knockout' ? 8 : (input.qualifiers_per_group || 8);
+
   const insertPayload = {
     name: input.name,
     description: input.description || null,
-    format: input.format as TournamentFormat,
+    format: dbFormat,
     status: input.status as TournamentStatus,
     start_date: input.start_date ? new Date(input.start_date).toISOString() : null,
     end_date: input.end_date ? new Date(input.end_date).toISOString() : null,
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
+    rounds_per_pair: input.rounds_per_pair || 1,
+    qualifiers_per_group: input.qualifiers_per_group || defaultQualifiers,
   };
 
   const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
@@ -169,16 +174,21 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
 export async function updateTournament(id: string, input: TournamentInput): Promise<Tournament> {
   const supabase = createClient();
 
+  const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
+  const defaultQualifiers = input.format === 'single_league_knockout' ? 8 : (input.qualifiers_per_group || 8);
+
   const updatePayload = {
     name: input.name,
     description: input.description || null,
-    format: input.format as TournamentFormat,
+    format: dbFormat,
     status: input.status as TournamentStatus,
     start_date: input.start_date ? new Date(input.start_date).toISOString() : null,
     end_date: input.end_date ? new Date(input.end_date).toISOString() : null,
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
+    rounds_per_pair: input.rounds_per_pair || 1,
+    qualifiers_per_group: input.qualifiers_per_group || defaultQualifiers,
     updated_at: new Date().toISOString(),
   };
 
@@ -368,6 +378,20 @@ export async function startTournament(tournamentId: string): Promise<Tournament>
 
   if (info.participantsCount < 2) {
     throw new Error(`Cannot start tournament: At least 2 participants are required (currently ${info.participantsCount}).`);
+  }
+
+  // Automatic fixture generation depending on format & existing rounds
+  if (info.tournament.format === 'knockout') {
+    const bracket = await getTournamentBracket(tournamentId);
+    if (bracket.rounds.length === 0) {
+      await generateKnockoutBracket(tournamentId);
+    }
+  } else if (info.tournament.format === 'group_knockout') {
+    const groupOverview = await getTournamentGroups(tournamentId);
+    if (groupOverview.groups.length === 0) {
+      const groupCount = Math.max(2, Math.min(8, Math.floor(info.participantsCount / 4) || 2));
+      await setupTournamentGroups(tournamentId, groupCount, 2, 1);
+    }
   }
 
   return updateTournamentStatus(tournamentId, info.tournament.status, 'ongoing');

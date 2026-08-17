@@ -11,7 +11,7 @@ interface PublicGroupsTabProps {
   groupStage: GroupStageOverview | null;
 }
 
-function StandingsTable({ standings, qualifiersPerGroup }: { standings: GroupStandingRow[]; qualifiersPerGroup: number }) {
+function StandingsTable({ standings, qualifiersPerGroup, isComplete }: { standings: GroupStandingRow[]; qualifiersPerGroup: number; isComplete?: boolean }) {
   return (
     <div className="w-full overflow-x-auto no-scrollbar">
       <table className="w-full min-w-[480px] text-xs">
@@ -31,27 +31,62 @@ function StandingsTable({ standings, qualifiersPerGroup }: { standings: GroupSta
         <tbody>
           {standings.map((row, idx) => {
             const isQualified = idx < qualifiersPerGroup;
+            const isLeagueWinner = idx === 0 && Boolean(isComplete);
+            const isCurrentLeader = idx === 0 && !isComplete;
+            const isDirectSemi = qualifiersPerGroup === 6 && (idx === 0 || idx === 1);
+            const isEliminator = qualifiersPerGroup === 6 && (idx >= 2 && idx < 6);
+
             return (
               <tr
                 key={row.participant.id}
                 className={cn(
                   'border-b border-border/50 last:border-0 transition-colors',
-                  isQualified ? 'bg-emerald-50/60' : 'bg-white hover:bg-[#F4F8F5]/60'
+                  isLeagueWinner
+                    ? 'bg-amber-50/80 font-bold'
+                    : isCurrentLeader
+                    ? 'bg-emerald-50/70 font-semibold'
+                    : isDirectSemi
+                    ? 'bg-emerald-50/70 font-semibold'
+                    : isEliminator
+                    ? 'bg-sky-50/60 font-semibold'
+                    : 'bg-white hover:bg-[#F4F8F5]/60 text-muted-foreground'
                 )}
               >
                 <td className="py-2.5 px-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={cn(
                       'flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-black',
-                      isQualified ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground'
+                      isLeagueWinner ? 'bg-amber-500 text-white' : isQualified ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground'
                     )}>
                       {idx + 1}
                     </span>
-                    <span className={cn('font-semibold truncate max-w-[120px]', isQualified ? 'text-[#0B3323]' : 'text-muted-foreground')}>
+                    <span className={cn('font-bold truncate max-w-[130px]', isLeagueWinner ? 'text-amber-950 font-black' : isQualified ? 'text-[#0B3323]' : 'text-muted-foreground')}>
                       {row.participant.username}
                     </span>
-                    {isQualified && (
-                      <Badge className="text-[9px] py-0 px-1.5 bg-emerald-100 text-emerald-700 border-emerald-200 font-bold shrink-0">Q</Badge>
+                    {isLeagueWinner && (
+                      <Badge className="text-[9px] py-0 px-1.5 bg-amber-500 text-white font-extrabold shadow-2xs border-amber-600 shrink-0">
+                        🏆 League Winner
+                      </Badge>
+                    )}
+                    {isCurrentLeader && (
+                      <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
+                        🟢 Current Leader
+                      </Badge>
+                    )}
+                    {isDirectSemi && !isLeagueWinner && (
+                      <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
+                        🟢 Direct Semi
+                      </Badge>
+                    )}
+                    {isEliminator && (
+                      <Badge className="text-[9px] py-0 px-1.5 bg-sky-600 text-white font-bold shrink-0">
+                        🟡 Eliminator
+                      </Badge>
+                    )}
+                    {row.isAdminAdjustment && (
+                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0" title={row.auditLogMessage}>
+                        ⚙️ Admin Adjustment
+                      </Badge>
                     )}
                   </div>
                 </td>
@@ -192,7 +227,7 @@ function GroupCard({ group, qualifiersPerGroup }: { group: GroupDetails; qualifi
       )}
 
       {/* Standings table */}
-      <StandingsTable standings={group.standings} qualifiersPerGroup={qualifiersPerGroup} />
+      <StandingsTable standings={group.standings} qualifiersPerGroup={qualifiersPerGroup} isComplete={group.isComplete} />
 
       {/* Toggle matches */}
       {group.matches.length > 0 && (
@@ -222,27 +257,54 @@ export default function PublicGroupsTab({ groupStage }: PublicGroupsTabProps) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary mb-3">
           <Target className="h-6 w-6" />
         </div>
-        <h3 className="text-sm font-bold text-[#0B3323]">Groups have not been created yet</h3>
+        <h3 className="text-sm font-bold text-[#0B3323]">League Season has not started yet</h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Groups will appear here once the group stage is set up.
+          League fixtures and standings will appear here once started by the admin.
         </p>
       </div>
     );
   }
 
+  const isSingleLeague = groupStage.groups.length === 1;
+
+  const totalMatches = groupStage.totalGroupMatches || 0;
+  const completedMatches = groupStage.completedGroupMatches || 0;
+  const completionPct = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground font-semibold">
-          Top <span className="font-black text-[#0B3323]">{groupStage.qualifiersPerGroup}</span> from each group advance to the knockout stage.
-          Win = 3pts · Draw = 1pt · Loss = 0pts
-        </p>
+      {/* Live League Status Banner */}
+      <div className="p-4 rounded-2xl bg-white border border-border shadow-2xs space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <span className="text-xs font-black text-[#0B3323] uppercase tracking-wider block">
+              League Stage Status
+            </span>
+            <span className="text-xs text-muted-foreground font-semibold">
+              Top <strong className="text-[#0B3323]">{groupStage.qualifiersPerGroup} Players</strong> qualify for Knockout Playoffs
+            </span>
+          </div>
+          <Badge className="bg-primary text-white font-extrabold text-xs px-3 py-1">
+            League Progress: {completedMatches} / {totalMatches} matches completed ({completionPct}%)
+          </Badge>
+        </div>
+        {totalMatches > 0 && (
+          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-500 rounded-full" style={{ width: `${completionPct}%` }} />
+          </div>
+        )}
       </div>
 
       {groupStage.groups.map((group) => (
         <GroupCard
           key={group.group.id}
-          group={group}
+          group={{
+            ...group,
+            group: {
+              ...group.group,
+              name: isSingleLeague ? 'Official League Points Table' : group.group.name,
+            },
+          }}
           qualifiersPerGroup={groupStage.qualifiersPerGroup}
         />
       ))}

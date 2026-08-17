@@ -12,6 +12,10 @@ export interface GroupStandingRow {
   goalDifference: number;
   points: number;
   isQualified?: boolean;
+  qualificationLabel?: string;
+  isLeagueWinner?: boolean;
+  isAdminAdjustment?: boolean;
+  auditLogMessage?: string;
 }
 
 export interface RoundRobinPairing {
@@ -224,17 +228,31 @@ export function generateSingleRoundRobinPairings(
   return generateGroupPairings(participants, 1);
 }
 
+export interface PointsSystemConfig {
+  winPoints?: number;
+  drawPoints?: number;
+  lossPoints?: number;
+  tiebreakers?: string[];
+}
+
 /**
- * Calculate derived standings and apply deterministic tiebreaker ordering
+ * Calculate group / league standings for a set of matches and participants
  */
 export function calculateGroupStandings(
   groupMatches: Match[],
-  groupParticipants: Participant[],
-  qualifiersPerGroup: number = 2
+  participants: Participant[],
+  qualifiersPerGroup: number = 2,
+  config?: PointsSystemConfig
 ): GroupStandingRow[] {
+  const winPts = config?.winPoints ?? 3;
+  const drawPts = config?.drawPoints ?? 1;
+  const lossPts = config?.lossPoints ?? 0;
+  const tiebreakerOrder = config?.tiebreakers || ['points', 'gd', 'gf', 'wins', 'h2h'];
+
   const map = new Map<string, GroupStandingRow>();
 
-  for (const p of groupParticipants) {
+  // Initialize row for every participant
+  for (const p of participants) {
     map.set(p.id, {
       position: 0,
       participant: p,
@@ -266,12 +284,14 @@ export function calculateGroupStandings(
     if (m.status === 'walkover') {
       if (m.winner_id === rowA.participant.id) {
         rowA.wins += 1;
-        rowA.points += 3;
+        rowA.points += winPts;
         rowB.losses += 1;
+        rowB.points += lossPts;
       } else if (m.winner_id === rowB.participant.id) {
         rowB.wins += 1;
-        rowB.points += 3;
+        rowB.points += winPts;
         rowA.losses += 1;
+        rowA.points += lossPts;
       }
     } else {
       // Normal completed match
@@ -285,59 +305,81 @@ export function calculateGroupStandings(
 
       if (m.score_a > m.score_b) {
         rowA.wins += 1;
-        rowA.points += 3;
+        rowA.points += winPts;
         rowB.losses += 1;
+        rowB.points += lossPts;
       } else if (m.score_b > m.score_a) {
         rowB.wins += 1;
-        rowB.points += 3;
+        rowB.points += winPts;
         rowA.losses += 1;
+        rowA.points += lossPts;
       } else {
         // Draw
         rowA.draws += 1;
-        rowA.points += 1;
+        rowA.points += drawPts;
         rowB.draws += 1;
-        rowB.points += 1;
+        rowB.points += drawPts;
       }
     }
   }
 
   const standingsList = Array.from(map.values());
 
-  // Deterministic tiebreaker sort
+  // Deterministic configurable tiebreaker sort
   standingsList.sort((a, b) => {
-    // 1. Points
-    if (b.points !== a.points) return b.points - a.points;
-
-    // 2. Goal Difference
-    if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
-
-    // 3. Goals For
-    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-
-    // 4. Head-to-Head match result if two players tied
-    const h2hMatch = groupMatches.find(
-      (m) =>
-        (m.status === 'completed' || m.status === 'walkover') &&
-        ((m.participant_a === a.participant.id && m.participant_b === b.participant.id) ||
-          (m.participant_a === b.participant.id && m.participant_b === a.participant.id))
-    );
-
-    if (h2hMatch && h2hMatch.winner_id) {
-      if (h2hMatch.winner_id === a.participant.id) return -1;
-      if (h2hMatch.winner_id === b.participant.id) return 1;
+    for (const rule of tiebreakerOrder) {
+      switch (rule) {
+        case 'points':
+          if (b.points !== a.points) return b.points - a.points;
+          break;
+        case 'gd':
+        case 'goalDifference':
+          if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+          break;
+        case 'gf':
+        case 'goalsFor':
+          if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+          break;
+        case 'wins':
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          break;
+        case 'h2h':
+        case 'headToHead': {
+          const h2hMatch = groupMatches.find(
+            (m) =>
+              (m.status === 'completed' || m.status === 'walkover') &&
+              ((m.participant_a === a.participant.id && m.participant_b === b.participant.id) ||
+                (m.participant_a === b.participant.id && m.participant_b === a.participant.id))
+          );
+          if (h2hMatch && h2hMatch.winner_id) {
+            if (h2hMatch.winner_id === a.participant.id) return -1;
+            if (h2hMatch.winner_id === b.participant.id) return 1;
+          }
+          break;
+        }
+      }
     }
-
-    // 5. Alphabetical username
+    // Fallback: Alphabetical username
     return a.participant.username.localeCompare(b.participant.username);
   });
 
   // Assign positions and qualification status
   return standingsList.map((row, idx) => {
     const position = idx + 1;
+    const isQualified = position <= qualifiersPerGroup;
+    const isLeagueWinner = position === 1;
+
+    let qualificationLabel = isQualified ? 'Qualified for Knockout 🟢' : 'Outside Qualification ⚪';
+    if (position === 1) {
+      qualificationLabel = isQualified ? 'League Winner 🏆 (Qualified)' : 'League Winner 🏆';
+    }
+
     return {
       ...row,
       position,
-      isQualified: position <= qualifiersPerGroup,
+      isQualified,
+      isLeagueWinner,
+      qualificationLabel,
     };
   });
 }

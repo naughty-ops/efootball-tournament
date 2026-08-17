@@ -14,7 +14,7 @@ export const tournamentSchema = z
       .min(3, 'Tournament name must be at least 3 characters')
       .max(100, 'Tournament name must not exceed 100 characters'),
     description: z.string().optional().nullable(),
-    format: z.enum(['knockout', 'league', 'group_knockout'], {
+    format: z.enum(['knockout', 'league', 'group_knockout', 'single_league_knockout'], {
       message: 'Please select a valid tournament format',
     }),
     status: z.enum(['draft', 'registration', 'ongoing', 'completed'], {

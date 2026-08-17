@@ -51,7 +51,8 @@ type TabKey = 'overview' | 'participants' | 'groups' | 'matches' | 'bracket';
 function formatTournamentFormat(format: string) {
   switch (format) {
     case 'group_knockout':
-      return 'Group + Knockout';
+    case 'single_league_knockout':
+      return 'League + Knockout';
     case 'knockout':
       return 'Knockout';
     case 'league':
@@ -163,8 +164,8 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   const champion = tournament.championUser;
   const runnerUp = tournament.runnerUpUser;
 
-  const showGroups = tournament.format === 'group_knockout' || tournament.format === 'league';
-  const showBracket = tournament.format === 'knockout' || tournament.format === 'group_knockout';
+  const showGroups = tournament.format !== 'knockout' || (groupStage?.groups?.length || 0) > 0;
+  const showBracket = tournament.format === 'knockout' || tournament.format === 'group_knockout' || (tournament.format as string) === 'single_league_knockout' || (bracket?.rounds?.length || 0) > 0;
 
   return (
     <div className="min-h-screen bg-[#F4F8F5]/50 pb-16">
@@ -319,7 +320,7 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
               )}
             >
               <Target className="h-3.5 w-3.5" />
-              <span>Groups & Standings</span>
+              <span>{groupStage?.groups.length === 1 ? 'Points Table' : 'Groups & Standings'}</span>
             </button>
           )}
 

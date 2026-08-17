@@ -146,9 +146,10 @@ export async function getTournamentBracket(tournamentId: string): Promise<Bracke
     }
   }
 
-  const bracketSize = calculateBracketSize(participants.length);
-  const byesCount = calculateByes(bracketSize, participants.length);
-  const totalRounds = Math.log2(bracketSize);
+  const activeCount = filteredParticipants.length;
+  const bracketSize = calculateBracketSize(activeCount);
+  const byesCount = calculateByes(bracketSize, activeCount);
+  const totalRounds = activeCount >= 2 ? Math.log2(bracketSize) : 0;
 
   return {
     tournament,
@@ -196,8 +197,134 @@ export async function generateKnockoutBracket(tournamentId: string): Promise<voi
     const roundIds = overview.rounds.map((r) => r.id);
     if (roundIds.length > 0) {
       await (supabase.from('matches') as unknown as UnknownQuery).delete().in('round_id', roundIds);
-      await (supabase.from('rounds') as unknown as UnknownQuery).delete().eq('tournament_id', tournamentId);
+      await (supabase.from('rounds') as unknown as UnknownQuery).delete().in('id', roundIds);
     }
+  }
+
+  // SPECIAL HANDLING: 6-Player Playoff Eliminators Format (Top 6 Qualification)
+  if (participants.length === 6) {
+    const roundInserts = [
+      { tournament_id: tournamentId, round_number: 1, name: 'Playoff Eliminators' },
+      { tournament_id: tournamentId, round_number: 2, name: 'Semi-Finals' },
+      { tournament_id: tournamentId, round_number: 3, name: 'Grand Final' },
+    ];
+
+    const { data: createdRounds, error: rErr } = await (supabase.from('rounds') as unknown as UnknownQuery)
+      .insert(roundInserts)
+      .select('*');
+
+    if (rErr || !createdRounds) {
+      throw new Error(`Failed to create rounds for 6-player Playoff Eliminators: ${formatSupabaseError(rErr)}`);
+    }
+
+    const sortedRounds = (createdRounds as Round[]).sort((a, b) => a.round_number - b.round_number);
+    const r1 = sortedRounds[0]; // Eliminators
+    const r2 = sortedRounds[1]; // Semi-Finals
+    const r3 = sortedRounds[2]; // Grand Final
+
+    // 1. Create Grand Final Match
+    const { data: createdFinal, error: fErr } = await (supabase.from('matches') as unknown as UnknownQuery)
+      .insert({
+        round_id: r3.id,
+        match_position: 1,
+        status: 'pending',
+        score_a: 0,
+        score_b: 0,
+      })
+      .select('*')
+      .single();
+
+    if (fErr || !createdFinal) {
+      throw new Error(`Failed to create Grand Final match: ${formatSupabaseError(fErr)}`);
+    }
+    const finalMatchObj = createdFinal as Match;
+
+    // 2. Create Semi-Final Matches (1st Place & 2nd Place receive Direct Byes to SF1 & SF2)
+    const p1 = participants[0]; // 1st Place (League Winner)
+    const p2 = participants[1]; // 2nd Place
+    const p3 = participants[2]; // 3rd Place
+    const p4 = participants[3]; // 4th Place
+    const p5 = participants[4]; // 5th Place
+    const p6 = participants[5]; // 6th Place
+
+    const sfPayloads = [
+      {
+        round_id: r2.id,
+        match_position: 1,
+        next_match_id: finalMatchObj.id,
+        winner_slot: 'participant_a',
+        participant_a: p1 ? p1.id : null,
+        participant_b: null,
+        status: 'pending',
+        score_a: 0,
+        score_b: 0,
+        notes: '1st Place League Winner Direct Semi-Final Spot',
+      },
+      {
+        round_id: r2.id,
+        match_position: 2,
+        next_match_id: finalMatchObj.id,
+        winner_slot: 'participant_b',
+        participant_a: p2 ? p2.id : null,
+        participant_b: null,
+        status: 'pending',
+        score_a: 0,
+        score_b: 0,
+        notes: '2nd Place Direct Semi-Final Spot',
+      },
+    ];
+
+    const { data: createdSFs, error: sfErr } = await (supabase.from('matches') as unknown as UnknownQuery)
+      .insert(sfPayloads)
+      .select('*');
+
+    if (sfErr || !createdSFs) {
+      throw new Error(`Failed to create Semi-Final matches: ${formatSupabaseError(sfErr)}`);
+    }
+    const sfMatches = (createdSFs as Match[]).sort((a, b) => a.match_position - b.match_position);
+    const sf1 = sfMatches[0];
+    const sf2 = sfMatches[1];
+
+    // 3. Create Eliminator Matches
+    // Eliminator 1: 3rd Place vs 6th Place -> Winner to SF2 (participant_b)
+    // Eliminator 2: 4th Place vs 5th Place -> Winner to SF1 (participant_b)
+    const elimPayloads = [
+      {
+        round_id: r1.id,
+        match_position: 1,
+        next_match_id: sf2.id,
+        winner_slot: 'participant_b',
+        participant_a: p3 ? p3.id : null,
+        participant_b: p6 ? p6.id : null,
+        status: p3 && p6 ? 'ready' : 'pending',
+        score_a: 0,
+        score_b: 0,
+        notes: 'Eliminator 1: 3rd Place vs 6th Place',
+      },
+      {
+        round_id: r1.id,
+        match_position: 2,
+        next_match_id: sf1.id,
+        winner_slot: 'participant_b',
+        participant_a: p4 ? p4.id : null,
+        participant_b: p5 ? p5.id : null,
+        status: p4 && p5 ? 'ready' : 'pending',
+        score_a: 0,
+        score_b: 0,
+        notes: 'Eliminator 2: 4th Place vs 5th Place',
+      },
+    ];
+
+    const { error: elimErr } = await (supabase.from('matches') as unknown as UnknownQuery).insert(elimPayloads);
+    if (elimErr) {
+      throw new Error(`Failed to create Eliminator matches: ${formatSupabaseError(elimErr)}`);
+    }
+
+    await (supabase.from('tournaments') as unknown as UnknownQuery)
+      .update({ status: 'ongoing', updated_at: new Date().toISOString() })
+      .eq('id', tournamentId);
+
+    return;
   }
 
   // 3. Bracket Sizing & Calculations

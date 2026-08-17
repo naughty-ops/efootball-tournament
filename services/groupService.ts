@@ -13,6 +13,54 @@ import {
 import { generateSeedingOrder } from '@/lib/bracket/bracketEngine';
 import { FullMatchData } from '@/services/matchService';
 import { generateKnockoutBracket, getTournamentBracket } from '@/services/bracketService';
+import {
+  parseStandingOverrides,
+  applyStandingOverrides,
+  serializeStandingOverrides,
+  StandingOverride,
+} from '@/lib/group/standingOverrideEngine';
+
+export async function saveStandingOverride(
+  tournamentId: string,
+  override: StandingOverride
+): Promise<void> {
+  const supabase = createClient();
+  const tRes = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .select('rules_text')
+    .eq('id', tournamentId)
+    .single();
+
+  const currentRules = (tRes.data as { rules_text?: string })?.rules_text || '';
+  const currentMap = parseStandingOverrides(currentRules);
+  currentMap[override.participantId] = override;
+
+  const newRules = serializeStandingOverrides(currentRules, currentMap);
+
+  await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .update({ rules_text: newRules, updated_at: new Date().toISOString() })
+    .eq('id', tournamentId);
+}
+
+export async function clearStandingOverride(
+  tournamentId: string,
+  participantId: string
+): Promise<void> {
+  const supabase = createClient();
+  const tRes = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .select('rules_text')
+    .eq('id', tournamentId)
+    .single();
+
+  const currentRules = (tRes.data as { rules_text?: string })?.rules_text || '';
+  const currentMap = parseStandingOverrides(currentRules);
+  delete currentMap[participantId];
+
+  const newRules = serializeStandingOverrides(currentRules, currentMap);
+
+  await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .update({ rules_text: newRules, updated_at: new Date().toISOString() })
+    .eq('id', tournamentId);
+}
 
 export interface GroupDetails {
   group: Group;
@@ -95,17 +143,40 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
     .order('name', { ascending: true });
 
   const groups = (gRes.data || []) as Group[];
+  const qualifiersPerGroup = tournament.qualifiers_per_group || 8;
+  const roundsPerPair = tournament.rounds_per_pair || 1;
+
   if (groups.length === 0) {
+    const syntheticGroup: Group = {
+      id: 'synthetic-league-group',
+      tournament_id: tournamentId,
+      name: 'League Points Table',
+      created_at: new Date().toISOString(),
+    };
+    const rawStandings = calculateGroupStandings([], participants, qualifiersPerGroup);
+    const overridesMap = parseStandingOverrides(tournament.rules_text);
+    const standings = applyStandingOverrides(rawStandings, overridesMap, qualifiersPerGroup);
+
     return {
       tournament,
       participants,
-      groups: [],
+      groups: participants.length > 0 ? [
+        {
+          group: syntheticGroup,
+          participants,
+          matches: [],
+          standings,
+          totalMatchesCount: 0,
+          completedMatchesCount: 0,
+          isComplete: false,
+        },
+      ] : [],
       totalGroupMatches: 0,
       completedGroupMatches: 0,
       isGroupStageComplete: false,
       isFinalized: Boolean(tournament.is_group_stage_finalized),
-      qualifiersPerGroup: tournament.qualifiers_per_group || 2,
-      roundsPerPair: tournament.rounds_per_pair || 1,
+      qualifiersPerGroup,
+      roundsPerPair,
       qualifiedParticipants: [],
     };
   }
@@ -161,8 +232,6 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
   }
 
   // 6. Build Group Details & Standings
-  const qualifiersPerGroup = tournament.qualifiers_per_group || 2;
-  const roundsPerPair = tournament.rounds_per_pair || 1;
   const groupDetailsList: GroupDetails[] = [];
   const qualifiedParticipants: Participant[] = [];
 
@@ -170,7 +239,10 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
     const gParticipants = groupParticipantMap.get(g.id) || [];
     const gMatchesFull = matchMap.get(g.id) || [];
 
-    const standings = calculateGroupStandings(gMatchesFull, gParticipants, qualifiersPerGroup);
+    const rawStandings = calculateGroupStandings(gMatchesFull, gParticipants, qualifiersPerGroup);
+    const overridesMap = parseStandingOverrides(tournament.rules_text);
+    const standings = applyStandingOverrides(rawStandings, overridesMap, qualifiersPerGroup);
+
     const completedCount = gMatchesFull.filter(
       (m) => m.status === 'completed' || m.status === 'walkover'
     ).length;
@@ -517,9 +589,7 @@ export async function getGroupKnockoutTransitionPreview(
 
   let validationError: string | null = null;
   if (!overview.isGroupStageComplete) {
-    validationError = `Group stage is incomplete (${overview.completedGroupMatches}/${overview.totalGroupMatches} matches completed). Complete and finalize the group stage first.`;
-  } else if (!overview.isFinalized) {
-    validationError = 'Group stage has not been finalized yet. Finalize the group stage first.';
+    validationError = `League stage is incomplete (${overview.completedGroupMatches}/${overview.totalGroupMatches} matches completed). Complete all league matches to generate knockout stage.`;
   } else if (qualifiers.length < 2) {
     validationError = 'Minimum 2 qualified participants required to generate knockout stage.';
   }
@@ -543,6 +613,13 @@ export async function getGroupKnockoutTransitionPreview(
  */
 export async function prepareKnockoutFromGroups(tournamentId: string): Promise<void> {
   const supabase = createClient();
+
+  // If group stage is complete but not finalized, auto-finalize it now
+  const overview = await getTournamentGroups(tournamentId);
+  if (overview.isGroupStageComplete && !overview.isFinalized) {
+    await finalizeGroupStage(tournamentId);
+  }
+
   const preview = await getGroupKnockoutTransitionPreview(tournamentId);
 
   if (preview.validationError) {

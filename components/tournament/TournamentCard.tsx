@@ -23,7 +23,8 @@ export function formatTournamentFormat(format: string): string {
     case 'league':
       return 'League';
     case 'group_knockout':
-      return 'Group + Knockout';
+    case 'single_league_knockout':
+      return 'League + Knockout';
     default:
       return format;
   }

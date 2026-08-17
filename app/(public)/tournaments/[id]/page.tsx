@@ -36,7 +36,8 @@ type TabKey = 'overview' | 'participants' | 'groups' | 'matches' | 'bracket';
 
 function formatTournamentFormat(format: string) {
   switch (format) {
-    case 'group_knockout': return 'Group + Knockout';
+    case 'group_knockout':
+    case 'single_league_knockout': return 'League + Knockout';
     case 'knockout': return 'Knockout';
     case 'league': return 'League';
     default: return format.replace(/_/g, ' ');
@@ -107,13 +108,13 @@ export default function PublicTournamentPage() {
       setSubStage(info.subStage);
 
       // Conditionally fetch group/bracket data
-      if (t.format === 'group_knockout' || t.format === 'league') {
+      if (t.format !== 'knockout') {
         try {
           const gs = await getPublicGroupStage(tournamentId);
           setGroupStage(gs);
         } catch { /* groups might not be set up yet */ }
       }
-      if (t.format === 'knockout' || t.format === 'group_knockout') {
+      if (t.format === 'knockout' || t.format === 'group_knockout' || (t.format as string) === 'single_league_knockout') {
         try {
           const br = await getPublicBracket(tournamentId);
           setBracket(br);
@@ -218,15 +219,16 @@ export default function PublicTournamentPage() {
   const { connectionStatus } = useRealtimeMatches(handleRealtimeUpdate, tournamentId);
 
   // Determine tabs to show based on format
-  const hasGroups = (tournament?.format === 'group_knockout' || tournament?.format === 'league');
-  const hasBracket = (tournament?.format === 'knockout' || tournament?.format === 'group_knockout');
+  const isSingleLeague = groupStage?.groups.length === 1 || (tournament?.format as string) === 'single_league_knockout';
+  const hasGroups = tournament?.format !== 'knockout' || (groupStage?.groups?.length || 0) > 0;
+  const hasBracket = tournament?.format === 'knockout' || tournament?.format === 'group_knockout' || (tournament?.format as string) === 'single_league_knockout' || (bracket?.rounds?.length || 0) > 0;
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: 'overview', label: 'Overview', icon: LayoutGrid },
     { key: 'participants', label: 'Participants', icon: Users },
-    ...(hasGroups ? [{ key: 'groups' as TabKey, label: 'Groups', icon: Target }] : []),
-    { key: 'matches', label: 'Matches', icon: Swords },
-    ...(hasBracket ? [{ key: 'bracket' as TabKey, label: 'Bracket', icon: GitBranch }] : []),
+    ...(hasGroups ? [{ key: 'groups' as TabKey, label: isSingleLeague ? 'Points Table' : 'Groups & Standings', icon: Target }] : []),
+    { key: 'matches', label: 'Matches & Fixtures', icon: Swords },
+    ...(hasBracket ? [{ key: 'bracket' as TabKey, label: 'Playoff Bracket', icon: GitBranch }] : []),
   ];
 
   if (loading) {

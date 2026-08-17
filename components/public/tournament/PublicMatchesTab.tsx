@@ -183,8 +183,65 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
     );
   }
 
+  const isSingleLeague = groupStage?.groups.length === 1;
+
   return (
     <div className="space-y-6">
+      {/* Live Standings Table inline with matches */}
+      {groupStage && groupStage.groups.length > 0 && (
+        <div className="rounded-2xl border border-border bg-white overflow-hidden shadow-xs space-y-2 p-4">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h3 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider flex items-center gap-1.5">
+              <span>{isSingleLeague ? '🏆 Live League Standings' : '🏆 Group Standings'}</span>
+            </h3>
+            <span className="text-[10px] text-muted-foreground font-semibold">
+              Top {groupStage.qualifiersPerGroup} advance to Knockout
+            </span>
+          </div>
+          <div className="w-full overflow-x-auto no-scrollbar pt-1">
+            <table className="w-full min-w-[480px] text-xs">
+              <thead>
+                <tr className="border-b border-border bg-[#F4F8F5]">
+                  <th className="text-left py-2 px-3 font-bold text-[#0B3323]">Player</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">P</th>
+                  <th className="py-2 px-2 font-bold text-center text-emerald-600">W</th>
+                  <th className="py-2 px-2 font-bold text-center text-amber-600">D</th>
+                  <th className="py-2 px-2 font-bold text-center text-red-500">L</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GF</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GA</th>
+                  <th className="py-2 px-2 font-bold text-center text-muted-foreground">GD</th>
+                  <th className="py-2 px-2 font-bold text-center text-[#0B3323]">PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(groupStage.groups[0]?.standings || []).map((row, idx) => {
+                  const isTopQual = idx < groupStage.qualifiersPerGroup;
+                  return (
+                    <tr key={row.participant.id} className={cn('border-b border-border/40 last:border-0 hover:bg-[#F4F8F5]/60 transition-colors', isTopQual ? 'bg-emerald-50/40 font-semibold' : '')}>
+                      <td className="py-2 px-3 flex items-center gap-2">
+                        <span className={cn('flex h-4 w-4 items-center justify-center rounded text-[9px] font-black', isTopQual ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground')}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-[#0B3323] truncate max-w-[120px]">{row.participant.username}</span>
+                        {idx === 0 && <span className="text-[10px]">🏆</span>}
+                      </td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.played}</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-semibold">{row.wins}</td>
+                      <td className="py-2 px-2 text-center text-amber-600 font-semibold">{row.draws}</td>
+                      <td className="py-2 px-2 text-center text-red-500 font-semibold">{row.losses}</td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.goalsFor}</td>
+                      <td className="py-2 px-2 text-center text-muted-foreground">{row.goalsAgainst}</td>
+                      <td className="py-2 px-2 text-center font-bold">{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
+                      <td className="py-2 px-2 text-center font-black text-[#0B3323]">{row.points}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {sections.map(({ label, isFinal, matches }) => (
         <div key={label} className="space-y-2.5">
           <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import type { GroupStageOverview } from '@/services/groupService';
 import type { BracketOverview } from '@/services/bracketService';
+import { SeasonStatsCards } from '@/components/tournament/SeasonStatsCards';
 
 interface PublicOverviewTabProps {
   tournament: TournamentWithStats;
@@ -185,6 +186,9 @@ export default function PublicOverviewTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Season Stats Cards */}
+      <SeasonStatsCards tournamentId={tournament.id} />
 
       {/* Bracket status */}
       {bracket && bracket.rounds.length > 0 && (
