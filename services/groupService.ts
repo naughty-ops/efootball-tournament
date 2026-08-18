@@ -523,17 +523,28 @@ export async function finalizeGroupStage(tournamentId: string): Promise<void> {
     );
   }
 
-  const qualifiedIds = new Set(overview.qualifiedParticipants.map((p) => p.id));
-
-  // Update participant status in DB
-  for (const p of overview.participants) {
-    const isQual = qualifiedIds.has(p.id);
-    await (supabase.from('participants') as unknown as UnknownQuery)
-      .update({
-        status: isQual ? 'active' : 'eliminated',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', p.id);
+  // In pure league format, ALL participants remain active!
+  if (overview.tournament.format === 'league') {
+    for (const p of overview.participants) {
+      await (supabase.from('participants') as unknown as UnknownQuery)
+        .update({
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', p.id);
+    }
+  } else {
+    const qualifiedIds = new Set(overview.qualifiedParticipants.map((p) => p.id));
+    // Update participant status in DB for group + knockout format
+    for (const p of overview.participants) {
+      const isQual = qualifiedIds.has(p.id);
+      await (supabase.from('participants') as unknown as UnknownQuery)
+        .update({
+          status: isQual ? 'active' : 'eliminated',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', p.id);
+    }
   }
 
   // Update Tournament Finalized Flag

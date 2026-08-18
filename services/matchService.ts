@@ -552,8 +552,8 @@ export async function submitMatchResult(
     }
   }
 
-  // Knockout match loser elimination & winner reinstatement (unless disqualified)
-  if (!match.group_id && input.result_type !== 'disqualification') {
+  // Knockout match loser elimination & winner reinstatement (unless disqualified or league format)
+  if (!match.group_id && tObj?.format !== 'league' && input.result_type !== 'disqualification') {
     const loserId = match.participant_a === winnerId ? match.participant_b : match.participant_a;
     if (loserId) {
       await (supabase.from('participants') as unknown as UnknownQuery)

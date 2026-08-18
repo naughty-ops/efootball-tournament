@@ -144,13 +144,19 @@ function GroupMatchesList({ group }: { group: GroupDetails }) {
     list.push(m);
     roundMap.set(roundId, list);
   }
-  const rounds = Array.from(roundMap.entries());
+
+  // Filter out completed matchdays AUTOMATICALLY (no buttons required)
+  const activeRounds = Array.from(roundMap.entries()).filter(([, matches]) =>
+    matches.some((m) => m.status !== 'completed' && m.status !== 'walkover')
+  );
+
+  const displayRounds = activeRounds.length > 0 ? activeRounds : Array.from(roundMap.entries());
 
   return (
     <div className="space-y-3 pt-1">
-      {rounds.map(([roundId, matches], roundIdx) => (
+      {displayRounds.map(([roundId, matches], roundIdx) => (
         <div key={roundId}>
-          {rounds.length > 1 && (
+          {displayRounds.length > 1 && (
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 px-1">
               Round {roundIdx + 1}
             </p>

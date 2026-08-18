@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Swords, ChevronDown, ChevronUp, CheckCircle2, Radio, Clock, Eye, EyeOff, Filter } from 'lucide-react';
+import { Swords, CheckCircle2, Radio, Clock, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RoundWithMatches } from '@/services/matchService';
 import type { GroupStageOverview } from '@/services/groupService';
 import type { FullMatchData } from '@/services/matchService';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface PublicMatchesTabProps {
@@ -117,8 +116,7 @@ function MatchCard({ match }: { match: FullMatchData }) {
 }
 
 export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTabProps) {
-  const [showCompleted, setShowCompleted] = useState<boolean>(false);
-  const [viewFilter, setViewFilter] = useState<'upcoming_live' | 'completed' | 'all'>('upcoming_live');
+  const [showFinishedMatchdays, setShowFinishedMatchdays] = useState<boolean>(false);
 
   if (rounds.length === 0 && (!groupStage || groupStage.groups.every((g) => g.matches.length === 0))) {
     return (
@@ -134,57 +132,66 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
     );
   }
 
-  // Collect all matches
-  const allMatchesList: FullMatchData[] = [];
-  if (groupStage) {
-    for (const g of groupStage.groups) {
-      allMatchesList.push(...g.matches);
-    }
-  }
-  for (const r of rounds) {
-    allMatchesList.push(...r.matches);
-  }
-
-  // Separate into completed vs upcoming/live
-  const completedMatches = allMatchesList.filter((m) => m.status === 'completed' || m.status === 'walkover');
-  const liveMatches = allMatchesList.filter((m) => m.status === 'live');
-  const upcomingMatches = allMatchesList.filter((m) => m.status === 'pending');
-
   const isSingleLeague = groupStage?.groups.length === 1;
 
-  // Build sections for upcoming/live
-  const upcomingLiveSections: { label: string; isFinal: boolean; matches: FullMatchData[] }[] = [];
-  const completedSections: { label: string; isFinal: boolean; matches: FullMatchData[] }[] = [];
+  // Build Matchday / Round Sections
+  interface MatchdaySection {
+    id: string;
+    label: string;
+    roundNumber: number;
+    isCompleted: boolean;
+    isFinal: boolean;
+    matches: FullMatchData[];
+  }
 
-  if (groupStage && groupStage.groups.some((g) => g.matches.length > 0)) {
-    for (const group of groupStage.groups) {
-      const active = group.matches.filter((m) => m.status !== 'completed' && m.status !== 'walkover');
-      const finished = group.matches.filter((m) => m.status === 'completed' || m.status === 'walkover');
+  const matchdaySections: MatchdaySection[] = [];
 
-      if (active.length > 0) {
-        upcomingLiveSections.push({ label: isSingleLeague ? 'League Fixtures' : group.group.name, isFinal: false, matches: active });
+  if (rounds.length > 0) {
+    for (const r of rounds) {
+      if (r.matches.length === 0) continue;
+      const isCompleted = r.matches.length > 0 && r.matches.every((m) => m.status === 'completed' || m.status === 'walkover');
+      const isFinal = r.name.toLowerCase().includes('final');
+
+      matchdaySections.push({
+        id: r.id,
+        label: r.name,
+        roundNumber: r.round_number || 1,
+        isCompleted,
+        isFinal,
+        matches: r.matches,
+      });
+    }
+  } else if (groupStage) {
+    for (const gDet of groupStage.groups) {
+      if (gDet.matches.length === 0) continue;
+
+      const roundMap = new Map<string, FullMatchData[]>();
+      for (const m of gDet.matches) {
+        const rKey = m.round_id || 'r1';
+        const list = roundMap.get(rKey) || [];
+        list.push(m);
+        roundMap.set(rKey, list);
       }
-      if (finished.length > 0) {
-        completedSections.push({ label: isSingleLeague ? 'Completed League Matches' : `${group.group.name} (Completed)`, isFinal: false, matches: finished });
+
+      let rNum = 1;
+      for (const [rId, mList] of roundMap) {
+        const isCompleted = mList.length > 0 && mList.every((m) => m.status === 'completed' || m.status === 'walkover');
+        matchdaySections.push({
+          id: rId,
+          label: isSingleLeague ? `Matchday ${rNum}` : `${gDet.group.name} — Round ${rNum}`,
+          roundNumber: rNum,
+          isCompleted,
+          isFinal: false,
+          matches: mList,
+        });
+        rNum++;
       }
     }
   }
 
-  for (const round of rounds) {
-    if (round.name.toLowerCase().includes('group stage')) continue;
-    if (round.matches.length === 0) continue;
-
-    const isFinal = round.name.toLowerCase().includes('final');
-    const active = round.matches.filter((m) => m.status !== 'completed' && m.status !== 'walkover');
-    const finished = round.matches.filter((m) => m.status === 'completed' || m.status === 'walkover');
-
-    if (active.length > 0) {
-      upcomingLiveSections.push({ label: round.name, isFinal, matches: active });
-    }
-    if (finished.length > 0) {
-      completedSections.push({ label: `${round.name} (Finished)`, isFinal, matches: finished });
-    }
-  }
+  // Filter out completed matchdays AUTOMATICALLY (No button required!)
+  const activeMatchdaySections = matchdaySections.filter((sec) => !sec.isCompleted);
+  const finishedMatchdaySections = matchdaySections.filter((sec) => sec.isCompleted);
 
   return (
     <div className="space-y-6">
@@ -243,118 +250,75 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
         </div>
       )}
 
-      {/* Filter / View Switcher Bar */}
-      <div className="flex items-center justify-between flex-wrap gap-2 p-3 rounded-2xl bg-white border border-border shadow-2xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setViewFilter('upcoming_live')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              viewFilter === 'upcoming_live'
-                ? 'bg-primary text-white shadow-2xs'
-                : 'bg-[#F4F8F5] text-slate-700 hover:bg-[#E4ECE7]'
-            }`}
-          >
-            <span>⚡ Live & Upcoming ({liveMatches.length + upcomingMatches.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewFilter('completed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              viewFilter === 'completed'
-                ? 'bg-primary text-white shadow-2xs'
-                : 'bg-[#F4F8F5] text-slate-700 hover:bg-[#E4ECE7]'
-            }`}
-          >
-            <span>✓ Completed ({completedMatches.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              viewFilter === 'all'
-                ? 'bg-primary text-white shadow-2xs'
-                : 'bg-[#F4F8F5] text-slate-700 hover:bg-[#E4ECE7]'
-            }`}
-          >
-            <span>All Fixtures ({allMatchesList.length})</span>
-          </button>
-        </div>
-
-        {completedMatches.length > 0 && viewFilter === 'upcoming_live' && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCompleted(!showCompleted)}
-            className="h-8 text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 gap-1 rounded-xl"
-          >
-            {showCompleted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            <span>{showCompleted ? 'Hide Completed Matches' : `Show Completed Matches (${completedMatches.length})`}</span>
-          </Button>
-        )}
-      </div>
-
-      {/* Completed Matches Collapsible Section (Hidden initially when viewFilter is 'upcoming_live') */}
-      {completedMatches.length > 0 && (viewFilter === 'completed' || (viewFilter === 'upcoming_live' && showCompleted) || viewFilter === 'all') && (
-        <div className="space-y-3 p-4 rounded-2xl border border-emerald-200 bg-emerald-50/30">
-          <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <span>Completed Match Results ({completedMatches.length} Played)</span>
-            </h4>
-            <Badge className="bg-emerald-600 text-white font-bold text-[10px]">
-              Final Results
-            </Badge>
-          </div>
-
-          <div className="space-y-4">
-            {completedSections.map(({ label, isFinal, matches }) => (
-              <div key={label} className="space-y-2">
-                <p className="text-[11px] font-bold uppercase text-emerald-900 tracking-wider">
+      {/* ACTIVE MATCHDAYS (Automatically displayed; completed matchdays hidden automatically!) */}
+      {activeMatchdaySections.length > 0 ? (
+        <div className="space-y-6">
+          {activeMatchdaySections.map(({ label, isFinal, matches }) => (
+            <div key={label} className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                {isFinal ? <span className="text-lg">🏆</span> : <Clock className="h-4 w-4 text-emerald-600" />}
+                <h3 className={cn(
+                  'text-sm font-black uppercase tracking-wide',
+                  isFinal ? 'text-amber-700' : 'text-[#0B3323]'
+                )}>
                   {label}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {matches.map((m) => <MatchCard key={m.id} match={m} />)}
-                </div>
+                </h3>
+                <Badge variant="outline" className="text-[10px] font-bold bg-[#F4F8F5] text-emerald-800 border-emerald-300">
+                  Active Matchday
+                </Badge>
+                <div className="flex-1 h-px bg-border/50" />
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {matches.map((m) => <MatchCard key={m.id} match={m} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* If all matchdays in the tournament are completed */
+        <div className="rounded-2xl border border-emerald-300 bg-emerald-50/50 p-6 text-center space-y-2">
+          <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+          <h3 className="text-base font-black text-emerald-950">🏆 All Matchdays Completed!</h3>
+          <p className="text-xs text-emerald-800">
+            All matchday fixtures have been played. Check the live Points Table above for final standings.
+          </p>
         </div>
       )}
 
-      {/* Live & Upcoming Matches Section */}
-      {(viewFilter === 'upcoming_live' || viewFilter === 'all') && (
-        <>
-          {upcomingLiveSections.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center space-y-2">
-              <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
-              <h4 className="text-sm font-bold text-[#0B3323]">All Scheduled Fixtures Completed!</h4>
-              <p className="text-xs text-muted-foreground">
-                All matches for this phase have been played. Expand completed matches above to view final results.
-              </p>
+      {/* Optional History Section for Finished Matchdays */}
+      {finishedMatchdaySections.length > 0 && (
+        <div className="pt-4 border-t border-border/60">
+          <button
+            type="button"
+            onClick={() => setShowFinishedMatchdays(!showFinishedMatchdays)}
+            className="flex items-center justify-between w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Finished Matchdays History ({finishedMatchdaySections.length} Matchdays Completed)</span>
+            </span>
+            {showFinishedMatchdays ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+
+          {showFinishedMatchdays && (
+            <div className="space-y-6 pt-4">
+              {finishedMatchdaySections.map(({ label, isFinal, matches }) => (
+                <div key={label} className="space-y-2 opacity-80">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    <h4 className="text-xs font-extrabold uppercase text-slate-600">
+                      {label} (Completed)
+                    </h4>
+                    <div className="flex-1 h-px bg-slate-200" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {matches.map((m) => <MatchCard key={m.id} match={m} />)}
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            upcomingLiveSections.map(({ label, isFinal, matches }) => (
-              <div key={label} className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  {isFinal && <span className="text-lg">🏆</span>}
-                  <h3 className={cn(
-                    'text-sm font-bold uppercase tracking-wide',
-                    isFinal ? 'text-amber-700' : 'text-[#0B3323]'
-                  )}>
-                    {label}
-                  </h3>
-                  <div className="flex-1 h-px bg-border/50" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {matches.map((m) => <MatchCard key={m.id} match={m} />)}
-                </div>
-              </div>
-            ))
           )}
-        </>
+        </div>
       )}
     </div>
   );
