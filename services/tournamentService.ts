@@ -139,7 +139,6 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
   const supabase = createClient();
 
   const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
-  const defaultQualifiers = input.format === 'single_league_knockout' ? 8 : (input.qualifiers_per_group || 8);
 
   const insertPayload = {
     name: input.name,
@@ -151,8 +150,6 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
-    rounds_per_pair: input.rounds_per_pair || 1,
-    qualifiers_per_group: input.qualifiers_per_group || defaultQualifiers,
   };
 
   const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
@@ -175,7 +172,6 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
   const supabase = createClient();
 
   const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
-  const defaultQualifiers = input.format === 'single_league_knockout' ? 8 : (input.qualifiers_per_group || 8);
 
   const updatePayload = {
     name: input.name,
@@ -187,8 +183,6 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
-    rounds_per_pair: input.rounds_per_pair || 1,
-    qualifiers_per_group: input.qualifiers_per_group || defaultQualifiers,
     updated_at: new Date().toISOString(),
   };
 

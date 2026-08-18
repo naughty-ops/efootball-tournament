@@ -39,8 +39,9 @@ import { ConfirmModal } from '@/components/ui/modal';
 import { EditGroupParticipantsModal } from '@/components/group/EditGroupParticipantsModal';
 import { CustomGroupEditorModal } from '@/components/group/CustomGroupEditorModal';
 import { EditPointsTableModal } from '@/components/group/EditPointsTableModal';
+import { LeagueQualificationModal } from '@/components/group/LeagueQualificationModal';
 import { cn } from '@/lib/utils';
-import { UserCog, SlidersHorizontal, Edit3 } from 'lucide-react';
+import { UserCog, SlidersHorizontal, Edit3, ShieldCheck } from 'lucide-react';
 
 export default function AdminGroupsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tournamentId } = use(params);
@@ -62,6 +63,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
   const [editingGroupDetails, setEditingGroupDetails] = useState<GroupDetails | null>(null);
   const [isCustomEditorOpen, setIsCustomEditorOpen] = useState(false);
   const [isEditPointsModalOpen, setIsEditPointsModalOpen] = useState(false);
+  const [isQualificationModalOpen, setIsQualificationModalOpen] = useState(false);
 
   // Confirm Modals
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
@@ -349,16 +351,29 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
             </Button>
 
             {groups.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditPointsModalOpen(true)}
-                disabled={actionLoading}
-                className="rounded-xl text-xs font-bold gap-1.5 border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
-              >
-                <Edit3 className="h-3.5 w-3.5 text-emerald-700" />
-                <span>Edit Points Table</span>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditPointsModalOpen(true)}
+                  disabled={actionLoading}
+                  className="rounded-xl text-xs font-bold gap-1.5 border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
+                >
+                  <Edit3 className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>Edit Points Table</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsQualificationModalOpen(true)}
+                  disabled={actionLoading}
+                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary bg-primary/5 hover:bg-primary/10"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  <span>Qualification Admin Controls</span>
+                </Button>
+              </>
             )}
 
             {groups.length > 0 && !isFinalized && (
@@ -709,7 +724,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                 <Input
                   type="number"
                   min={1}
-                  max={32}
+                  max={4}
                   value={qualifiersInput}
                   onChange={(e) => setQualifiersInput(Number(e.target.value))}
                   required
@@ -800,6 +815,19 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
           tournamentId={tournamentId}
           rulesText={tournament.rules_text}
           standings={overview.groups[0]?.standings || []}
+          onSaved={fetchGroupData}
+        />
+      )}
+
+      {/* League Qualification Admin Controls Modal */}
+      {isQualificationModalOpen && overview && (
+        <LeagueQualificationModal
+          isOpen={isQualificationModalOpen}
+          onClose={() => setIsQualificationModalOpen(false)}
+          tournamentId={tournamentId}
+          standings={overview.groups[0]?.standings || []}
+          currentQualifiersCount={overview.qualifiersPerGroup}
+          isLocked={overview.isFinalized}
           onSaved={fetchGroupData}
         />
       )}

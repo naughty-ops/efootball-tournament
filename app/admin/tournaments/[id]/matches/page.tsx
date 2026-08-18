@@ -335,6 +335,7 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
           currentScoreB={activeScoreMatch.score_b}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
+          allowDraw={Boolean(activeScoreMatch.group_id) || Boolean(activeScoreMatch.round_id)}
           isLoading={actionLoading}
         />
       )}

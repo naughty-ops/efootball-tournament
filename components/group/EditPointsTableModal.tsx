@@ -30,7 +30,6 @@ export function EditPointsTableModal({
   const currentOverrides = parseStandingOverrides(rulesText);
 
   const [selectedRow, setSelectedRow] = useState<GroupStandingRow | null>(null);
-  const [positionOverride, setPositionOverride] = useState<number | null>(null);
   const [played, setPlayed] = useState<number>(0);
   const [wins, setWins] = useState<number>(0);
   const [draws, setDraws] = useState<number>(0);
@@ -47,7 +46,6 @@ export function EditPointsTableModal({
   const handleSelectRow = (row: GroupStandingRow) => {
     setSelectedRow(row);
     const existing = currentOverrides[row.participant.id];
-    setPositionOverride(existing?.positionOverride ?? row.position);
     setPlayed(existing?.played ?? row.played);
     setWins(existing?.wins ?? row.wins);
     setDraws(existing?.draws ?? row.draws);
@@ -67,7 +65,6 @@ export function EditPointsTableModal({
     try {
       const override: StandingOverride = {
         participantId: selectedRow.participant.id,
-        positionOverride: positionOverride ? Number(positionOverride) : null,
         played: Number(played),
         wins: Number(wins),
         draws: Number(draws),
@@ -192,36 +189,6 @@ export function EditPointsTableModal({
           </div>
         </div>
 
-        {/* Audit Log Entries */}
-        {Object.keys(currentOverrides).length > 0 && (
-          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5 text-xs">
-            <span className="font-extrabold text-amber-900 uppercase text-[10px] tracking-wider block">
-              📜 Active Administrative Audit Trail ({Object.keys(currentOverrides).length} Adjustment{Object.keys(currentOverrides).length > 1 ? 's' : ''})
-            </span>
-            <div className="space-y-1 max-h-24 overflow-y-auto no-scrollbar">
-              {Object.entries(currentOverrides).map(([pId, ov]) => {
-                const playerRow = standings.find((s) => s.participant.id === pId);
-                return (
-                  <div key={pId} className="flex items-center justify-between text-[11px] bg-white/80 p-1.5 rounded border border-amber-200/60">
-                    <span className="font-semibold text-[#0B3323]">
-                      Admin adjusted <strong>{playerRow?.participant.username || pId}</strong> to <strong>{ov.points ?? playerRow?.points} PTS</strong> ({ov.played ?? playerRow?.played} P, {ov.wins ?? playerRow?.wins} W, {ov.draws ?? playerRow?.draws} D, {ov.losses ?? playerRow?.losses} L).
-                      {ov.reason && <span className="text-amber-800 italic font-normal ml-1">— &quot;{ov.reason}&quot;</span>}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleReset(pId)}
-                      className="h-5 px-1.5 text-[9px] text-rose-600 hover:bg-rose-50 font-bold"
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Selected Row Editor Form */}
         {selectedRow && (
           <div className="p-4 rounded-xl border border-primary/30 bg-[#F4F8F5] space-y-3">
@@ -243,20 +210,9 @@ export function EditPointsTableModal({
               )}
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-9 gap-2 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
-                <label className="font-bold text-amber-700 block mb-1 text-[11px]">Rank #</label>
-                <Input
-                  type="number"
-                  placeholder="Auto"
-                  value={positionOverride ?? ''}
-                  onChange={(e) => setPositionOverride(e.target.value ? Number(e.target.value) : null)}
-                  className="h-8 text-xs font-black text-amber-800 bg-amber-50/50"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-muted-foreground block mb-1 text-[11px]">Played (P)</label>
+                <label className="font-bold text-muted-foreground block mb-1">Played (P)</label>
                 <Input
                   type="number"
                   value={played}

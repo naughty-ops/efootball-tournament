@@ -11,11 +11,10 @@ export interface GroupStandingRow {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  form?: ('W' | 'D' | 'L')[];
   isQualified?: boolean;
   qualificationLabel?: string;
   isLeagueWinner?: boolean;
-  isAdminAdjustment?: boolean;
-  auditLogMessage?: string;
 }
 
 export interface RoundRobinPairing {
@@ -228,31 +227,17 @@ export function generateSingleRoundRobinPairings(
   return generateGroupPairings(participants, 1);
 }
 
-export interface PointsSystemConfig {
-  winPoints?: number;
-  drawPoints?: number;
-  lossPoints?: number;
-  tiebreakers?: string[];
-}
-
 /**
- * Calculate group / league standings for a set of matches and participants
+ * Calculate derived standings and apply deterministic tiebreaker ordering
  */
 export function calculateGroupStandings(
   groupMatches: Match[],
-  participants: Participant[],
-  qualifiersPerGroup: number = 2,
-  config?: PointsSystemConfig
+  groupParticipants: Participant[],
+  qualifiersPerGroup: number = 2
 ): GroupStandingRow[] {
-  const winPts = config?.winPoints ?? 3;
-  const drawPts = config?.drawPoints ?? 1;
-  const lossPts = config?.lossPoints ?? 0;
-  const tiebreakerOrder = config?.tiebreakers || ['points', 'gd', 'gf', 'wins', 'h2h'];
-
   const map = new Map<string, GroupStandingRow>();
 
-  // Initialize row for every participant
-  for (const p of participants) {
+  for (const p of groupParticipants) {
     map.set(p.id, {
       position: 0,
       participant: p,
@@ -284,14 +269,12 @@ export function calculateGroupStandings(
     if (m.status === 'walkover') {
       if (m.winner_id === rowA.participant.id) {
         rowA.wins += 1;
-        rowA.points += winPts;
+        rowA.points += 3;
         rowB.losses += 1;
-        rowB.points += lossPts;
       } else if (m.winner_id === rowB.participant.id) {
         rowB.wins += 1;
-        rowB.points += winPts;
+        rowB.points += 3;
         rowA.losses += 1;
-        rowA.points += lossPts;
       }
     } else {
       // Normal completed match
@@ -305,78 +288,89 @@ export function calculateGroupStandings(
 
       if (m.score_a > m.score_b) {
         rowA.wins += 1;
-        rowA.points += winPts;
+        rowA.points += 3;
         rowB.losses += 1;
-        rowB.points += lossPts;
       } else if (m.score_b > m.score_a) {
         rowB.wins += 1;
-        rowB.points += winPts;
+        rowB.points += 3;
         rowA.losses += 1;
-        rowA.points += lossPts;
       } else {
         // Draw
         rowA.draws += 1;
-        rowA.points += drawPts;
+        rowA.points += 1;
         rowB.draws += 1;
-        rowB.points += drawPts;
+        rowB.points += 1;
       }
     }
   }
 
   const standingsList = Array.from(map.values());
 
-  // Deterministic configurable tiebreaker sort
+  // Deterministic tiebreaker sort
   standingsList.sort((a, b) => {
-    for (const rule of tiebreakerOrder) {
-      switch (rule) {
-        case 'points':
-          if (b.points !== a.points) return b.points - a.points;
-          break;
-        case 'gd':
-        case 'goalDifference':
-          if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
-          break;
-        case 'gf':
-        case 'goalsFor':
-          if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-          break;
-        case 'wins':
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          break;
-        case 'h2h':
-        case 'headToHead': {
-          const h2hMatch = groupMatches.find(
-            (m) =>
-              (m.status === 'completed' || m.status === 'walkover') &&
-              ((m.participant_a === a.participant.id && m.participant_b === b.participant.id) ||
-                (m.participant_a === b.participant.id && m.participant_b === a.participant.id))
-          );
-          if (h2hMatch && h2hMatch.winner_id) {
-            if (h2hMatch.winner_id === a.participant.id) return -1;
-            if (h2hMatch.winner_id === b.participant.id) return 1;
-          }
-          break;
-        }
-      }
+    // 1. Points
+    if (b.points !== a.points) return b.points - a.points;
+
+    // 2. Goal Difference
+    if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+
+    // 3. Goals For
+    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+
+    // 4. Head-to-Head match result if two players tied
+    const h2hMatch = groupMatches.find(
+      (m) =>
+        (m.status === 'completed' || m.status === 'walkover') &&
+        ((m.participant_a === a.participant.id && m.participant_b === b.participant.id) ||
+          (m.participant_a === b.participant.id && m.participant_b === a.participant.id))
+    );
+
+    if (h2hMatch && h2hMatch.winner_id) {
+      if (h2hMatch.winner_id === a.participant.id) return -1;
+      if (h2hMatch.winner_id === b.participant.id) return 1;
     }
-    // Fallback: Alphabetical username
+
+    // 5. Alphabetical username
     return a.participant.username.localeCompare(b.participant.username);
   });
 
-  // Assign positions and qualification status
+  // Assign positions, qualification status, and form
   return standingsList.map((row, idx) => {
     const position = idx + 1;
     const isQualified = position <= qualifiersPerGroup;
     const isLeagueWinner = position === 1;
 
-    let qualificationLabel = isQualified ? 'Qualified for Knockout 🟢' : 'Outside Qualification ⚪';
+    let qualificationLabel = isQualified ? 'Qualified 🟢' : 'Eliminated 🔴';
     if (position === 1) {
-      qualificationLabel = isQualified ? 'League Winner 🏆 (Qualified)' : 'League Winner 🏆';
+      qualificationLabel = 'League Winner 🏆';
     }
+
+    // Compute recent match form (last 5 completed matches)
+    const pId = row.participant.id;
+    const completedPlayerMatches = groupMatches.filter(
+      (m) =>
+        (m.status === 'completed' || m.status === 'walkover') &&
+        (m.participant_a === pId || m.participant_b === pId)
+    );
+
+    const form: ('W' | 'D' | 'L')[] = completedPlayerMatches.slice(-5).map((m) => {
+      const isA = m.participant_a === pId;
+      const myScore = isA ? m.score_a : m.score_b;
+      const oppScore = isA ? m.score_b : m.score_a;
+
+      if (m.status === 'walkover') {
+        return m.winner_id === pId ? 'W' : 'L';
+      }
+
+      if (myScore > oppScore) return 'W';
+      if (myScore < oppScore) return 'L';
+      return 'D';
+    });
 
     return {
       ...row,
       position,
+      form,
       isQualified,
       isLeagueWinner,
       qualificationLabel,

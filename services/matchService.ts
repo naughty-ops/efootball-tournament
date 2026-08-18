@@ -417,16 +417,18 @@ export async function updateLiveScore(
  */
 export function determineWinner(
   match: Match,
-  input: MatchResultInput
-): { winnerId: string; status: MatchStatus } {
+  input: MatchResultInput,
+  tournamentFormat?: string
+): { winnerId: string | null; status: MatchStatus } {
   if (input.result_type === 'normal') {
     if (!match.participant_a || !match.participant_b) {
       throw new Error('Both participants must be assigned before entering match scores.');
     }
     if (input.score_a === input.score_b) {
-      if (match.group_id) {
-        // Group matches allow draws!
-        return { winnerId: null as unknown as string, status: 'completed' };
+      const isLeagueOrGroup = Boolean(match.group_id) || tournamentFormat === 'league' || tournamentFormat === 'single_league_knockout';
+      if (isLeagueOrGroup) {
+        // League & Group matches allow draws!
+        return { winnerId: null, status: 'completed' };
       }
       throw new Error('Knockout matches require a winner. Scores cannot be equal.');
     }
@@ -471,7 +473,7 @@ export async function submitMatchResult(
     throw new Error('Cannot submit result: Group stage is finalized and locked.');
   }
 
-  const { winnerId, status: newStatus } = determineWinner(match, input);
+  const { winnerId, status: newStatus } = determineWinner(match, input, tObj?.format);
 
   // If Disqualification, update loser participant status to 'disqualified'
   if (input.result_type === 'disqualification') {
@@ -565,8 +567,31 @@ export async function submitMatchResult(
     }
   }
 
-  // 3. AUTOMATIC TOURNAMENT COMPLETION IF FINAL MATCH
-  if (!match.group_id && !match.next_match_id && winnerId) {
+  // 3. AUTOMATIC TOURNAMENT COMPLETION
+  if (tObj?.format === 'league') {
+    try {
+      const groupOverview = await getTournamentGroups(tournamentId);
+      if (groupOverview.isGroupStageComplete && groupOverview.groups.length > 0) {
+        const standings = groupOverview.groups[0].standings;
+        if (standings.length >= 1) {
+          const champId = standings[0].participant.id;
+          const runnerUpId = standings[1]?.participant.id || null;
+
+          await (supabase.from('tournaments') as unknown as UnknownQuery)
+            .update({
+              status: 'completed',
+              champion_id: champId,
+              runner_up_id: runnerUpId,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', tournamentId);
+        }
+      }
+    } catch (leagueCompErr) {
+      console.error('Error during auto league completion:', leagueCompErr);
+    }
+  } else if (!match.group_id && !match.next_match_id && winnerId) {
     const runnerUpId = match.participant_a === winnerId ? match.participant_b : match.participant_a;
     await (supabase.from('tournaments') as unknown as UnknownQuery)
       .update({
@@ -604,7 +629,7 @@ export async function editMatchResult(
     throw new Error('Cannot edit result: Group stage is finalized and locked.');
   }
 
-  const { winnerId: newWinnerId } = determineWinner(match, input);
+  const { winnerId: newWinnerId } = determineWinner(match, input, tObj?.format);
   const oldWinnerId = match.winner_id;
 
   // Downstream Protection Check if winner has changed

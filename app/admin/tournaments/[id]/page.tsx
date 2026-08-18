@@ -16,7 +16,9 @@ import {
   Trophy,
   Zap,
   Trash2,
+  RotateCcw,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import {
   getTournamentStageInfo,
   startTournament,
@@ -39,20 +41,6 @@ import {
   regenerateTournamentFixtures,
   FixtureStatusSummary,
 } from '@/services/fixtureService';
-
-function formatTournamentFormat(format: string) {
-  switch (format) {
-    case 'group_knockout':
-    case 'single_league_knockout':
-      return 'League + Knockout';
-    case 'knockout':
-      return 'Knockout';
-    case 'league':
-      return 'League';
-    default:
-      return format.replace(/_/g, ' ');
-  }
-}
 
 export default function TournamentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -241,8 +229,6 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
     maxParticipants,
     groupMatchesTotal,
     groupMatchesCompleted,
-    isGroupStageComplete,
-    isGroupStageFinalized,
     knockoutMatchesTotal,
     knockoutMatchesCompleted,
     finalWinner,
@@ -378,7 +364,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
             <CardContent className="space-y-3 text-xs">
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Format</span>
-                <span className="font-bold text-[#0B3323]">{formatTournamentFormat(tournament.format)}</span>
+                <span className="font-bold text-[#0B3323] uppercase">{tournament.format.replace('_', ' + ')}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Participants</span>
@@ -399,7 +385,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
               </div>
               {isGroupKnockout && (
                 <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground">League Stage Progress</span>
+                  <span className="text-muted-foreground">Group Progress</span>
                   <span className="font-bold text-[#0B3323]">
                     {groupMatchesCompleted} / {groupMatchesTotal} Matches
                   </span>
@@ -505,12 +491,12 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                 </>
               )}
 
-              {/* Start Knockout Stage Button (When League Complete or Finalized) */}
-              {isGroupKnockout && (isGroupStageComplete || isGroupStageFinalized || subStage === 'group_stage_finalized' || subStage === 'group_stage') && (
-                <Button asChild className="w-full justify-center gap-2 text-xs h-10 font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+              {/* Group Stage Finalized Mode (Group + Knockout only) */}
+              {subStage === 'group_stage_finalized' && tournament.format === 'group_knockout' && (
+                <Button asChild className="w-full justify-center gap-2 text-xs h-9 font-bold bg-primary text-white shadow-sm">
                   <Link href={`/admin/tournaments/${tournament.id}/groups/transition`}>
                     <Zap className="h-4 w-4" />
-                    <span>Start Knockout Stage → Review Top 8 & Create Bracket</span>
+                    <span>Review Qualification & Prepare Knockout</span>
                   </Link>
                 </Button>
               )}
@@ -547,20 +533,52 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
               {/* Completed Mode */}
               {subStage === 'completed' && (
                 <div className="space-y-2">
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-border font-bold">
-                    <Link href={`/admin/tournaments/${tournament.id}/bracket`}>
-                      <GitBranch className="h-4 w-4" />
-                      <span>View Final Bracket</span>
-                    </Link>
-                  </Button>
-                  {isGroupKnockout && (
+                  {tournament.format !== 'knockout' && (
                     <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-border font-bold">
                       <Link href={`/admin/tournaments/${tournament.id}/groups`}>
-                        <Grid className="h-4 w-4" />
-                        <span>View Final Standings</span>
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        <span>View Final Standings & Points Table</span>
                       </Link>
                     </Button>
                   )}
+                  {tournament.format !== 'league' && (
+                    <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-border font-bold">
+                      <Link href={`/admin/tournaments/${tournament.id}/bracket`}>
+                        <GitBranch className="h-4 w-4" />
+                        <span>View Final Bracket</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        const supabase = createClient();
+                        await (supabase.from('tournaments') as any)
+                          .update({
+                            status: 'ongoing',
+                            champion_id: null,
+                            runner_up_id: null,
+                            completed_at: null,
+                            is_group_stage_finalized: false,
+                            updated_at: new Date().toISOString(),
+                          })
+                          .eq('id', tournament.id);
+                        await loadStageData();
+                        setError(null);
+                      } catch {
+                        setError('Failed to reopen tournament.');
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading}
+                    className="w-full justify-center gap-2 text-xs h-9 font-bold border-amber-600/50 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                  >
+                    <RotateCcw className="h-4 w-4 text-amber-700" />
+                    <span>Reopen Tournament / Continue Season</span>
+                  </Button>
                 </div>
               )}
             </CardContent>

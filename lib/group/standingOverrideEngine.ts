@@ -2,7 +2,6 @@ import type { GroupStandingRow } from './groupEngine';
 
 export interface StandingOverride {
   participantId: string;
-  positionOverride?: number | null;
   played?: number | null;
   wins?: number | null;
   draws?: number | null;
@@ -80,7 +79,6 @@ export function applyStandingOverrides(
     const goalsAgainst = override.goalsAgainst ?? row.goalsAgainst;
     const goalDifference = override.goalDifference ?? (goalsFor - goalsAgainst);
     const points = override.points ?? row.points;
-    const auditLogMessage = `Admin Adjustment: Player ${row.participant.username} adjusted to ${points} PTS (${played} P, ${wins} W, ${draws} D, ${losses} L, ${goalsFor} GF, ${goalsAgainst} GA). Reason: ${override.reason || 'Administrative decision'}`;
 
     return {
       ...row,
@@ -92,20 +90,11 @@ export function applyStandingOverrides(
       goalsAgainst,
       goalDifference,
       points,
-      isAdminAdjustment: true,
-      auditLogMessage,
     };
   });
 
-  // Re-sort deterministically: 1. Position Override, 2. Points, 3. GD, 4. GF, 5. Username
+  // Re-sort deterministically: 1. Points, 2. GD, 3. GF, 4. Username
   updatedRows.sort((a, b) => {
-    const ovA = overridesMap[a.participant.id]?.positionOverride;
-    const ovB = overridesMap[b.participant.id]?.positionOverride;
-
-    if (ovA != null && ovB != null) return ovA - ovB;
-    if (ovA != null) return -1;
-    if (ovB != null) return 1;
-
     if (b.points !== a.points) return b.points - a.points;
     if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
     if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;

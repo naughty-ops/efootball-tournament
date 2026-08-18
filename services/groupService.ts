@@ -147,13 +147,40 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
   const roundsPerPair = tournament.rounds_per_pair || 1;
 
   if (groups.length === 0) {
+    // Fetch all rounds & matches for pure league / single-table format
+    const rRes = await (supabase.from('rounds') as unknown as UnknownQuery)
+      .select('id')
+      .eq('tournament_id', tournamentId);
+    const roundIds = ((rRes.data || []) as { id: string }[]).map((r) => r.id);
+
+    let allLeagueMatches: Match[] = [];
+    if (roundIds.length > 0) {
+      const mRes = await (supabase.from('matches') as unknown as UnknownQuery)
+        .select('*')
+        .in('round_id', roundIds)
+        .order('match_position', { ascending: true });
+      allLeagueMatches = (mRes.data || []) as Match[];
+    }
+
+    const fullMatchesList: FullMatchData[] = allLeagueMatches.map((m) => ({
+      ...m,
+      participantAUser: m.participant_a ? participantMap.get(m.participant_a) || null : null,
+      participantBUser: m.participant_b ? participantMap.get(m.participant_b) || null : null,
+      winnerUser: m.winner_id ? participantMap.get(m.winner_id) || null : null,
+    }));
+
+    const completedMatchesCount = fullMatchesList.filter(
+      (m) => m.status === 'completed' || m.status === 'walkover'
+    ).length;
+    const isGroupStageComplete = fullMatchesList.length > 0 && completedMatchesCount === fullMatchesList.length;
+
     const syntheticGroup: Group = {
       id: 'synthetic-league-group',
       tournament_id: tournamentId,
       name: 'League Points Table',
       created_at: new Date().toISOString(),
     };
-    const rawStandings = calculateGroupStandings([], participants, qualifiersPerGroup);
+    const rawStandings = calculateGroupStandings(fullMatchesList, participants, qualifiersPerGroup);
     const overridesMap = parseStandingOverrides(tournament.rules_text);
     const standings = applyStandingOverrides(rawStandings, overridesMap, qualifiersPerGroup);
 
@@ -164,16 +191,16 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
         {
           group: syntheticGroup,
           participants,
-          matches: [],
+          matches: fullMatchesList,
           standings,
-          totalMatchesCount: 0,
-          completedMatchesCount: 0,
-          isComplete: false,
+          totalMatchesCount: fullMatchesList.length,
+          completedMatchesCount,
+          isComplete: isGroupStageComplete,
         },
       ] : [],
-      totalGroupMatches: 0,
-      completedGroupMatches: 0,
-      isGroupStageComplete: false,
+      totalGroupMatches: fullMatchesList.length,
+      completedGroupMatches: completedMatchesCount,
+      isGroupStageComplete,
       isFinalized: Boolean(tournament.is_group_stage_finalized),
       qualifiersPerGroup,
       roundsPerPair,
@@ -589,7 +616,9 @@ export async function getGroupKnockoutTransitionPreview(
 
   let validationError: string | null = null;
   if (!overview.isGroupStageComplete) {
-    validationError = `League stage is incomplete (${overview.completedGroupMatches}/${overview.totalGroupMatches} matches completed). Complete all league matches to generate knockout stage.`;
+    validationError = `Group stage is incomplete (${overview.completedGroupMatches}/${overview.totalGroupMatches} matches completed). Complete and finalize the group stage first.`;
+  } else if (!overview.isFinalized) {
+    validationError = 'Group stage has not been finalized yet. Finalize the group stage first.';
   } else if (qualifiers.length < 2) {
     validationError = 'Minimum 2 qualified participants required to generate knockout stage.';
   }
@@ -613,13 +642,6 @@ export async function getGroupKnockoutTransitionPreview(
  */
 export async function prepareKnockoutFromGroups(tournamentId: string): Promise<void> {
   const supabase = createClient();
-
-  // If group stage is complete but not finalized, auto-finalize it now
-  const overview = await getTournamentGroups(tournamentId);
-  if (overview.isGroupStageComplete && !overview.isFinalized) {
-    await finalizeGroupStage(tournamentId);
-  }
-
   const preview = await getGroupKnockoutTransitionPreview(tournamentId);
 
   if (preview.validationError) {

@@ -588,6 +588,7 @@ export default function AdminMatchCenterPage() {
           currentScoreB={activeScoreMatch.score_b}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
+          allowDraw={Boolean(activeScoreMatch.group_id) || activeScoreMatch.stageType.toLowerCase().includes('group') || activeScoreMatch.stageType.toLowerCase().includes('league')}
           isLoading={actionLoading}
         />
       )}

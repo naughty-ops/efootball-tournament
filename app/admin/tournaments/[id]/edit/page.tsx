@@ -234,10 +234,10 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
 
-              {selectedFormat === 'group_knockout' && (
+              {(selectedFormat === 'group_knockout' || selectedFormat === 'league') && (
                 <div className="p-4 rounded-2xl bg-[#F4F8F5] border border-border space-y-4">
                   <h4 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider">
-                    Group Stage Configuration
+                    {selectedFormat === 'league' ? 'League Season & Qualification Cutoff Setup' : 'Group Stage Configuration'}
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -249,36 +249,48 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                         {...register('rounds_per_pair', { valueAsNumber: true })}
                         className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
                       >
-                        <option value={1}>1 Round (Single Round-Robin)</option>
-                        <option value={2}>2 Rounds (Double Round-Robin / Two Legs)</option>
+                        <option value={1}>1 Round (Single Round-Robin - Face Each Player Once)</option>
+                        <option value={2}>2 Rounds (Double Round-Robin - Face Each Player Twice)</option>
                         <option value={3}>3 Rounds</option>
                         <option value={4}>4 Rounds</option>
                       </select>
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        Select how many times each pair plays against each other in the group stage.
+                        {selectedFormat === 'league'
+                          ? 'Select how many times each player faces every other opponent in the single league.'
+                          : 'Select how many times each pair plays against each other in the group stage.'}
                       </p>
                     </div>
 
                     <div>
                       <label className="text-xs font-bold text-[#0B3323] block mb-1">
-                        Qualifiers Per Group
+                        {selectedFormat === 'league' ? 'League Qualifiers Count / Cutoff Select' : 'Qualifiers Per Group'}
                       </label>
                       <select
                         {...register('qualifiers_per_group', { valueAsNumber: true })}
-                        className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
+                        className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-bold text-[#0B3323]"
                       >
-                        <option value={8}>Top 8 Qualify (Quarter-Finals - Standard)</option>
-                        <option value={16}>Top 16 Qualify (Round of 16)</option>
-                        <option value={32}>Top 32 Qualify (Round of 32)</option>
-                        <option value={24}>Top 24 Qualify</option>
-                        <option value={12}>Top 12 Qualify</option>
-                        <option value={6}>Top 6 Qualify (1st & 2nd Direct Semi-Finals, 3rd-6th Eliminators)</option>
-                        <option value={4}>Top 4 Qualify (Semi-Finals)</option>
-                        <option value={2}>Top 2 Qualify (Grand Final)</option>
-                        <option value={1}>Top 1 Qualify</option>
+                        {selectedFormat === 'league' ? (
+                          <>
+                            <option value={2}>Top 2 Qualifiers</option>
+                            <option value={4}>Top 4 Qualifiers</option>
+                            <option value={6}>Top 6 Qualifiers</option>
+                            <option value={8}>Top 8 Qualifiers (Standard)</option>
+                            <option value={12}>Top 12 Qualifiers</option>
+                            <option value={16}>Top 16 Qualifiers</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value={1}>Top 1 per group</option>
+                            <option value={2}>Top 2 per group (Standard)</option>
+                            <option value={3}>Top 3 per group</option>
+                            <option value={4}>Top 4 per group</option>
+                          </>
+                        )}
                       </select>
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        Top ranked players per group that advance to the Knockout Bracket.
+                        {selectedFormat === 'league'
+                          ? 'Number of top-ranked players highlighted on the live league points table.'
+                          : 'Top ranked players per group that advance to the Knockout Bracket.'}
                       </p>
                     </div>
                   </div>

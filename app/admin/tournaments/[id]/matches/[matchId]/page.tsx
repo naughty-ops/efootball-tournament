@@ -162,7 +162,7 @@ export default function MatchDetailsPage({
   const isCompleted = match.status === 'completed' || match.status === 'walkover';
   const isLive = match.status === 'live';
   const isPending = match.status === 'pending';
-  const isGroupMatch = Boolean(match.group_id);
+  const isGroupMatch = Boolean(match.group_id) || Boolean(round?.name?.toLowerCase().includes('matchday'));
   const isReadyToPlay = Boolean(playerA && playerB);
 
   // Toggle Start Match (Pending -> Live)

@@ -9,7 +9,6 @@ import { ArrowLeft, Trophy, Loader2, AlertCircle } from 'lucide-react';
 import { tournamentSchema, TournamentInput } from '@/lib/validations';
 import { createTournament } from '@/services/tournamentService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -28,15 +27,13 @@ export default function CreateTournamentPage() {
     defaultValues: {
       name: '',
       description: '',
-      format: 'single_league_knockout',
+      format: 'knockout',
       status: 'draft',
       start_date: '',
       end_date: '',
       rules_text: '',
       banner_image: '',
       max_participants: 32,
-      qualifiers_per_group: 8,
-      rounds_per_pair: 1,
     },
   });
 
@@ -140,10 +137,10 @@ export default function CreateTournamentPage() {
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
-                    { id: 'single_league_knockout', label: 'League + Knockout', desc: 'Single league table season followed by knockout playoff tree' },
                     { id: 'knockout', label: 'Knockout', desc: 'Single elimination playoff tree' },
                     { id: 'league', label: 'League', desc: 'Round-robin points leaderboard' },
                     { id: 'group_knockout', label: 'Groups + Knockout', desc: 'Group stage leading to playoff tree' },
+                    { id: 'single_league_knockout', label: 'Single League + Eliminators', desc: '1 League Table (Top 6 to Eliminators/Playoffs)' },
                   ].map((fmt) => {
                     const isSelected = selectedFormat === fmt.id;
                     return (
@@ -170,9 +167,10 @@ export default function CreateTournamentPage() {
                 )}
               </div>
 
-              {(selectedFormat === 'group_knockout' || selectedFormat === 'single_league_knockout') && (() => {
+              {(selectedFormat === 'group_knockout' || selectedFormat === 'single_league_knockout' || selectedFormat === 'league') && (() => {
                 const maxP = watch('max_participants') || 16;
-                const isSingleLeague = selectedFormat === 'single_league_knockout';
+                const isPureLeague = selectedFormat === 'league';
+                const isSingleLeague = selectedFormat === 'single_league_knockout' || isPureLeague;
                 const rounds = watch('rounds_per_pair') || 1;
                 const qualPerGroup = watch('qualifiers_per_group') || (isSingleLeague ? 8 : 2);
                 const groupCount = isSingleLeague ? 1 : Math.max(2, Math.floor(maxP / 4));
@@ -180,7 +178,9 @@ export default function CreateTournamentPage() {
                 const matchesPerGroup = Math.floor((playersPerGroup * (playersPerGroup - 1)) / 2) * rounds;
                 const totalLeagueMatches = matchesPerGroup * groupCount;
                 const totalQualifiers = isSingleLeague ? Math.min(qualPerGroup, maxP) : groupCount * qualPerGroup;
-                const koStage = isSingleLeague
+                const koStage = isPureLeague
+                  ? 'Pure League Season (No Playoff Bracket)'
+                  : isSingleLeague
                   ? totalQualifiers === 6
                     ? 'Top 2 Direct Semi-Finals + 3rd-6th Eliminators'
                     : totalQualifiers <= 2 ? 'Grand Final' : totalQualifiers <= 4 ? 'Semi-Finals' : totalQualifiers <= 8 ? 'Quarter-Finals' : 'Round of 16'
@@ -190,7 +190,7 @@ export default function CreateTournamentPage() {
                   <div className="p-4.5 rounded-2xl bg-[#F4F8F5] border border-border space-y-4 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-extrabold text-[#0B3323] uppercase tracking-wider flex items-center gap-2">
-                        <span>{isSingleLeague ? 'Single League Season & Knockout Configuration' : 'Group + Knockout Configuration'}</span>
+                        <span>{isPureLeague ? 'Pure League Season Configuration' : isSingleLeague ? 'Single League Season & Knockout Configuration' : 'Group + Knockout Configuration'}</span>
                       </h4>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                         Live Season Preview
@@ -220,44 +220,24 @@ export default function CreateTournamentPage() {
 
                       <div>
                         <label className="text-xs font-bold text-[#0B3323] block mb-1">
-                          Knockout Qualification Count
+                          {isPureLeague ? 'League Qualifiers Count / Cutoff Select' : 'Knockout Qualification Count'}
                         </label>
                         <select
                           {...register('qualifiers_per_group', { valueAsNumber: true })}
-                          className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
+                          className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-bold text-[#0B3323]"
                         >
-                          <option value={8}>Top 8 Qualify to Knockout (Quarter-Finals - Standard)</option>
-                          <option value={2}>Top 2 per Group (8 Total Qualifiers to Quarter-Finals)</option>
-                          <option value={16}>Top 16 Qualify to Knockout (Round of 16)</option>
-                          <option value={32}>Top 32 Qualify to Knockout (Round of 32)</option>
-                          <option value={24}>Top 24 Qualify to Knockout</option>
-                          <option value={12}>Top 12 Qualify to Knockout</option>
-                          <option value={6}>Top 6 Qualify (1st & 2nd Direct Semi-Finals, 3rd-6th Eliminators)</option>
-                          <option value={4}>Top 4 Qualify to Knockout (Semi-Finals)</option>
+                          <option value={8}>Top 8 Qualifiers (Standard)</option>
+                          <option value={4}>Top 4 Qualifiers</option>
+                          <option value={6}>Top 6 Qualifiers</option>
+                          <option value={12}>Top 12 Qualifiers</option>
+                          <option value={16}>Top 16 Qualifiers</option>
+                          <option value={2}>Top 2 Qualifiers</option>
                         </select>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          Top ranked league performers advancing to the Knockout Playoff Tree.
+                          {isPureLeague
+                            ? 'Select how many top-ranked players are highlighted on the live league points table.'
+                            : 'Top ranked league performers advancing to the Knockout Playoff Tree.'}
                         </p>
-                      </div>
-                    </div>
-
-                    {/* Configurable Points System & Custom Tiebreakers Info */}
-                    <div className="p-3.5 rounded-xl bg-white border border-border/80 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-[#0B3323] uppercase text-[10px] tracking-wider block">
-                          ⚽ Default Points System & Custom Tiebreaker Hierarchy
-                        </span>
-                        <Badge variant="outline" className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border-emerald-300">
-                          Configurable Engine Active
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-muted-foreground font-semibold">
-                        <div>
-                          • <strong>Points System</strong>: Win = 3 PTS · Draw = 1 PTS · Loss = 0 PTS
-                        </div>
-                        <div>
-                          • <strong>Tiebreaker Priority</strong>: 1. Points → 2. GD → 3. GF → 4. Wins → 5. Head-to-Head
-                        </div>
                       </div>
                     </div>
 

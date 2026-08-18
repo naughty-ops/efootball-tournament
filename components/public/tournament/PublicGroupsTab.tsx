@@ -11,10 +11,20 @@ interface PublicGroupsTabProps {
   groupStage: GroupStageOverview | null;
 }
 
-function StandingsTable({ standings, qualifiersPerGroup, isComplete }: { standings: GroupStandingRow[]; qualifiersPerGroup: number; isComplete?: boolean }) {
+function StandingsTable({
+  standings,
+  qualifiersPerGroup,
+  isCompleted = false,
+  isPureLeague = false,
+}: {
+  standings: GroupStandingRow[];
+  qualifiersPerGroup: number;
+  isCompleted?: boolean;
+  isPureLeague?: boolean;
+}) {
   return (
     <div className="w-full overflow-x-auto no-scrollbar">
-      <table className="w-full min-w-[480px] text-xs">
+      <table className="w-full min-w-[560px] text-xs">
         <thead>
           <tr className="border-b border-border bg-[#F4F8F5]">
             <th className="text-left py-2.5 px-3 font-bold text-[#0B3323] w-full">Player</th>
@@ -26,81 +36,97 @@ function StandingsTable({ standings, qualifiersPerGroup, isComplete }: { standin
             <th className="py-2.5 px-2 font-bold text-center text-muted-foreground">GA</th>
             <th className="py-2.5 px-2 font-bold text-center text-muted-foreground">GD</th>
             <th className="py-2.5 px-2 font-bold text-center text-primary">PTS</th>
+            <th className="py-2.5 px-2 font-bold text-center text-muted-foreground">Form</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((row, idx) => {
             const isQualified = idx < qualifiersPerGroup;
-            const isLeagueWinner = idx === 0 && Boolean(isComplete);
-            const isCurrentLeader = idx === 0 && !isComplete;
-            const isDirectSemi = qualifiersPerGroup === 6 && (idx === 0 || idx === 1);
-            const isEliminator = qualifiersPerGroup === 6 && (idx >= 2 && idx < 6);
+            const isLeagueWinner = isCompleted && idx === 0;
+            const isTopRank = !isCompleted && idx === 0;
+            const isCutoffBorder = idx === qualifiersPerGroup - 1 && idx < standings.length - 1;
 
             return (
-              <tr
-                key={row.participant.id}
-                className={cn(
-                  'border-b border-border/50 last:border-0 transition-colors',
-                  isLeagueWinner
-                    ? 'bg-amber-50/80 font-bold'
-                    : isCurrentLeader
-                    ? 'bg-emerald-50/70 font-semibold'
-                    : isDirectSemi
-                    ? 'bg-emerald-50/70 font-semibold'
-                    : isEliminator
-                    ? 'bg-sky-50/60 font-semibold'
-                    : 'bg-white hover:bg-[#F4F8F5]/60 text-muted-foreground'
+              <React.Fragment key={row.participant.id}>
+                <tr
+                  className={cn(
+                    'border-b border-border/50 transition-colors',
+                    isLeagueWinner
+                      ? 'bg-amber-50/80 font-bold'
+                      : isQualified
+                      ? 'bg-emerald-50/60 font-semibold'
+                      : 'bg-white hover:bg-[#F4F8F5]/60 text-muted-foreground'
+                  )}
+                >
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn(
+                        'flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-black',
+                        isLeagueWinner ? 'bg-amber-500 text-white' : isQualified ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground'
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <span className={cn('font-bold truncate max-w-[130px]', isLeagueWinner ? 'text-amber-950 font-black' : isQualified ? 'text-[#0B3323]' : 'text-muted-foreground')}>
+                        {row.participant.username}
+                      </span>
+                      {isLeagueWinner && (
+                        <Badge className="text-[9px] py-0 px-1.5 bg-amber-500 text-white font-extrabold shadow-2xs border-amber-600 shrink-0">
+                          🏆 Champion
+                        </Badge>
+                      )}
+                      {isTopRank && (
+                        <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
+                          🟢 1st Place
+                        </Badge>
+                      )}
+                      {isQualified && !isLeagueWinner && !isTopRank && (
+                        <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
+                          🟢 Qualified
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.played}</td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-emerald-600">{row.wins}</td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-amber-600">{row.draws}</td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-red-500">{row.losses}</td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.goalsFor}</td>
+                  <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.goalsAgainst}</td>
+                  <td className={cn('py-2.5 px-2 text-center font-bold', row.goalDifference >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+                    {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                  </td>
+                  <td className="py-2.5 px-2 text-center font-black text-[#0B3323]">{row.points}</td>
+                  <td className="py-2.5 px-2 text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      {(row.form && row.form.length > 0) ? (
+                        row.form.map((res, fIdx) => (
+                          <span
+                            key={fIdx}
+                            className={cn(
+                              'h-4 w-4 rounded text-[9px] font-black flex items-center justify-center text-white',
+                              res === 'W' ? 'bg-emerald-500' : res === 'D' ? 'bg-amber-500' : 'bg-rose-500'
+                            )}
+                            title={res === 'W' ? 'Win' : res === 'D' ? 'Draw' : 'Loss'}
+                          >
+                            {res}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground font-mono">-</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Qualification Cutoff Indicator Line */}
+                {isCutoffBorder && (
+                  <tr className="bg-emerald-500/10 border-y-2 border-dashed border-emerald-500/40">
+                    <td colSpan={10} className="py-1 px-3 text-[10px] font-extrabold text-emerald-800 text-center uppercase tracking-wider">
+                      --- Qualification Cutoff (Top {qualifiersPerGroup}) ---
+                    </td>
+                  </tr>
                 )}
-              >
-                <td className="py-2.5 px-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={cn(
-                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-black',
-                      isLeagueWinner ? 'bg-amber-500 text-white' : isQualified ? 'bg-emerald-500 text-white' : 'bg-secondary text-muted-foreground'
-                    )}>
-                      {idx + 1}
-                    </span>
-                    <span className={cn('font-bold truncate max-w-[130px]', isLeagueWinner ? 'text-amber-950 font-black' : isQualified ? 'text-[#0B3323]' : 'text-muted-foreground')}>
-                      {row.participant.username}
-                    </span>
-                    {isLeagueWinner && (
-                      <Badge className="text-[9px] py-0 px-1.5 bg-amber-500 text-white font-extrabold shadow-2xs border-amber-600 shrink-0">
-                        🏆 League Winner
-                      </Badge>
-                    )}
-                    {isCurrentLeader && (
-                      <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
-                        🟢 Current Leader
-                      </Badge>
-                    )}
-                    {isDirectSemi && !isLeagueWinner && (
-                      <Badge className="text-[9px] py-0 px-1.5 bg-emerald-600 text-white font-bold shrink-0">
-                        🟢 Direct Semi
-                      </Badge>
-                    )}
-                    {isEliminator && (
-                      <Badge className="text-[9px] py-0 px-1.5 bg-sky-600 text-white font-bold shrink-0">
-                        🟡 Eliminator
-                      </Badge>
-                    )}
-                    {row.isAdminAdjustment && (
-                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-amber-50 text-amber-800 border-amber-300 font-bold shrink-0" title={row.auditLogMessage}>
-                        ⚙️ Admin Adjustment
-                      </Badge>
-                    )}
-                  </div>
-                </td>
-                <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.played}</td>
-                <td className="py-2.5 px-2 text-center font-semibold text-emerald-600">{row.wins}</td>
-                <td className="py-2.5 px-2 text-center font-semibold text-amber-600">{row.draws}</td>
-                <td className="py-2.5 px-2 text-center font-semibold text-red-500">{row.losses}</td>
-                <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.goalsFor}</td>
-                <td className="py-2.5 px-2 text-center font-semibold text-muted-foreground">{row.goalsAgainst}</td>
-                <td className={cn('py-2.5 px-2 text-center font-bold', row.goalDifference >= 0 ? 'text-emerald-600' : 'text-red-500')}>
-                  {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
-                </td>
-                <td className="py-2.5 px-2 text-center font-black text-[#0B3323]">{row.points}</td>
-              </tr>
+              </React.Fragment>
             );
           })}
         </tbody>
@@ -195,7 +221,17 @@ function GroupMatchesList({ group }: { group: GroupDetails }) {
   );
 }
 
-function GroupCard({ group, qualifiersPerGroup }: { group: GroupDetails; qualifiersPerGroup: number }) {
+function GroupCard({
+  group,
+  qualifiersPerGroup,
+  isCompleted,
+  isPureLeague,
+}: {
+  group: GroupDetails;
+  qualifiersPerGroup: number;
+  isCompleted: boolean;
+  isPureLeague: boolean;
+}) {
   const [showMatches, setShowMatches] = useState(false);
   const completionPct = group.totalMatchesCount > 0
     ? Math.round((group.completedMatchesCount / group.totalMatchesCount) * 100)
@@ -227,7 +263,12 @@ function GroupCard({ group, qualifiersPerGroup }: { group: GroupDetails; qualifi
       )}
 
       {/* Standings table */}
-      <StandingsTable standings={group.standings} qualifiersPerGroup={qualifiersPerGroup} isComplete={group.isComplete} />
+      <StandingsTable
+        standings={group.standings}
+        qualifiersPerGroup={qualifiersPerGroup}
+        isCompleted={isCompleted}
+        isPureLeague={isPureLeague}
+      />
 
       {/* Toggle matches */}
       {group.matches.length > 0 && (
@@ -266,33 +307,27 @@ export default function PublicGroupsTab({ groupStage }: PublicGroupsTabProps) {
   }
 
   const isSingleLeague = groupStage.groups.length === 1;
-
-  const totalMatches = groupStage.totalGroupMatches || 0;
-  const completedMatches = groupStage.completedGroupMatches || 0;
-  const completionPct = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+  const isPureLeague = groupStage.tournament.format === 'league';
+  const isCompleted = groupStage.tournament.status === 'completed';
 
   return (
     <div className="space-y-5">
-      {/* Live League Status Banner */}
-      <div className="p-4 rounded-2xl bg-white border border-border shadow-2xs space-y-2">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <span className="text-xs font-black text-[#0B3323] uppercase tracking-wider block">
-              League Stage Status
-            </span>
-            <span className="text-xs text-muted-foreground font-semibold">
-              Top <strong className="text-[#0B3323]">{groupStage.qualifiersPerGroup} Players</strong> qualify for Knockout Playoffs
-            </span>
-          </div>
-          <Badge className="bg-primary text-white font-extrabold text-xs px-3 py-1">
-            League Progress: {completedMatches} / {totalMatches} matches completed ({completionPct}%)
-          </Badge>
-        </div>
-        {totalMatches > 0 && (
-          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-primary transition-all duration-500 rounded-full" style={{ width: `${completionPct}%` }} />
-          </div>
-        )}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground font-semibold">
+          {isPureLeague ? (
+            <>
+              Top <span className="font-black text-[#0B3323]">{groupStage.qualifiersPerGroup}</span> Qualification Cutoff. Win = 3pts · Draw = 1pt · Loss = 0pts
+            </>
+          ) : isSingleLeague ? (
+            <>
+              Top <span className="font-black text-[#0B3323]">{groupStage.qualifiersPerGroup}</span> advance to the Knockout Stage. Win = 3pts · Draw = 1pt · Loss = 0pts
+            </>
+          ) : (
+            <>
+              Top <span className="font-black text-[#0B3323]">{groupStage.qualifiersPerGroup}</span> from each group advance to the knockout stage. Win = 3pts · Draw = 1pt · Loss = 0pts
+            </>
+          )}
+        </p>
       </div>
 
       {groupStage.groups.map((group) => (
@@ -306,6 +341,8 @@ export default function PublicGroupsTab({ groupStage }: PublicGroupsTabProps) {
             },
           }}
           qualifiersPerGroup={groupStage.qualifiersPerGroup}
+          isCompleted={isCompleted}
+          isPureLeague={isPureLeague}
         />
       ))}
     </div>

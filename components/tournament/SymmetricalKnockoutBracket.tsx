@@ -364,16 +364,6 @@ function MatchCard({
   );
 }
 
-function formatRoundName(round: RoundWithMatches): string {
-  const matchCount = round.matches.length;
-  if (matchCount === 4) return 'QUARTER-FINALS';
-  if (matchCount === 2) return 'SEMI-FINALS';
-  if (matchCount === 1) return 'GRAND FINAL';
-  if (matchCount === 8) return 'ROUND OF 16';
-  if (matchCount === 16) return 'ROUND OF 32';
-  return round.name.toUpperCase();
-}
-
 /**
  * Main Symmetrical Knockout Bracket System Component
  */
@@ -510,7 +500,7 @@ export default function SymmetricalKnockoutBracket({
                   ) : isFinalStage ? (
                     <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   ) : null}
-                  <span>{formatRoundName(r)}</span>
+                  <span>{r.name.toUpperCase()}</span>
                 </div>
                 {idx < rounds.length - 1 && <span className="text-slate-300 font-bold shrink-0">→</span>}
               </React.Fragment>
@@ -635,7 +625,7 @@ export default function SymmetricalKnockoutBracket({
                     {/* Round Title */}
                     <div className="text-center py-1.5 px-4 bg-white/90 rounded-xl border border-slate-200 shadow-2xs w-full flex items-center justify-center gap-1.5">
                       <span className="text-[11px] font-black text-[#0B3323] uppercase tracking-wider">
-                        {formatRoundName(round)}
+                        {round.name}
                       </span>
                       {round.round_number === currentActiveRoundNumber && (
                         <Badge className="bg-emerald-600 text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>
@@ -736,7 +726,7 @@ export default function SymmetricalKnockoutBracket({
                     {/* Round Title */}
                     <div className="text-center py-1.5 px-4 bg-white/90 rounded-xl border border-slate-200 shadow-2xs w-full flex items-center justify-center gap-1.5">
                       <span className="text-[11px] font-black text-[#0B3323] uppercase tracking-wider">
-                        {formatRoundName(round)}
+                        {round.name}
                       </span>
                       {round.round_number === currentActiveRoundNumber && (
                         <Badge className="bg-emerald-600 text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>

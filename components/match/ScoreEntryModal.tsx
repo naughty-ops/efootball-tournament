@@ -18,6 +18,7 @@ interface ScoreEntryModalProps {
   currentScoreB: number;
   isLive?: boolean;
   isGroupMatch?: boolean;
+  allowDraw?: boolean;
   isLoading?: boolean;
 }
 
@@ -33,8 +34,10 @@ export function ScoreEntryModal({
   currentScoreB,
   isLive = false,
   isGroupMatch = false,
+  allowDraw = false,
   isLoading = false,
 }: ScoreEntryModalProps) {
+  const canDraw = isGroupMatch || allowDraw;
   const [scoreA, setScoreA] = useState(currentScoreA);
   const [scoreB, setScoreB] = useState(currentScoreB);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -71,7 +74,7 @@ export function ScoreEntryModal({
       setErrorMessage('Scores must be non-negative numbers.');
       return;
     }
-    if (!isGroupMatch && scoreA === scoreB) {
+    if (!canDraw && scoreA === scoreB) {
       setErrorMessage('Knockout matches require a winner. Scores cannot be equal.');
       return;
     }
@@ -88,7 +91,7 @@ export function ScoreEntryModal({
   let winnerPreview = 'TBD';
   if (scoreA > scoreB) winnerPreview = participantA;
   else if (scoreB > scoreA) winnerPreview = participantB;
-  else if (scoreA === scoreB && isGroupMatch) winnerPreview = 'Draw (1 Point Each)';
+  else if (scoreA === scoreB && canDraw) winnerPreview = 'Draw (1 Point Each)';
 
   return (
     <BaseModal
@@ -97,7 +100,7 @@ export function ScoreEntryModal({
       title={isLive ? '🔴 Live Match Score' : 'Record Match Score'}
       description={`Manage match between ${participantA} and ${participantB}`}
     >
-      <div className="space-y-4 pt-1">
+      <div className="space-[#0B3323] space-y-4 pt-1">
         {errorMessage && (
           <div className="p-3 text-xs bg-destructive/10 border border-destructive/20 text-destructive rounded-xl font-medium flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -160,9 +163,9 @@ export function ScoreEntryModal({
 
         {/* Draw Info */}
         {scoreA === scoreB && (
-          isGroupMatch ? (
+          canDraw ? (
             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold">
-              Group Match Draw — 1 point each upon completion.
+              League / Group Match Draw — 1 point each upon completion.
             </div>
           ) : (
             <div className="p-2.5 rounded-xl bg-destructive/10 text-destructive text-xs font-semibold">
@@ -178,54 +181,51 @@ export function ScoreEntryModal({
             <p>
               Final score: <strong className="text-[#0B3323]">{participantA} {scoreA} — {scoreB} {participantB}</strong>
             </p>
-            <p className="text-[11px] text-amber-700">
-              Result: <strong className="text-emerald-800">{winnerPreview}</strong>. Once completed, score updates are finalized and winner advances.
+            <p className="text-amber-800/80">
+              Outcome: <strong>{winnerPreview}</strong>
             </p>
+            <div className="flex gap-2 pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowConfirmComplete(false)}
+                disabled={isLoading}
+                className="text-xs font-bold bg-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmComplete}
+                disabled={isLoading}
+                className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
+              >
+                {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                <span>Confirm & Lock Final Result</span>
+              </Button>
+            </div>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-border">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-            Close
-          </Button>
-
-          {isLive ? (
-            showConfirmComplete ? (
+        {!showConfirmComplete && (
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <Button variant="outline" size="sm" onClick={onClose} className="font-bold text-xs">
+              Cancel
+            </Button>
+            <div className="flex items-center gap-2">
               <Button
-                type="button"
-                size="sm"
-                onClick={handleConfirmComplete}
-                disabled={isLoading || (!isGroupMatch && scoreA === scoreB)}
-                className="font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
-                Confirm & Complete Match
-              </Button>
-            ) : (
-              <Button
-                type="button"
                 size="sm"
                 onClick={() => setShowConfirmComplete(true)}
-                disabled={isLoading || (!isGroupMatch && scoreA === scoreB)}
-                className="font-bold bg-primary text-white gap-1.5"
+                disabled={isLoading || (!canDraw && scoreA === scoreB)}
+                className="font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
               >
-                <Trophy className="h-4 w-4" />
-                Complete Match
+                <Trophy className="h-3.5 w-3.5" />
+                <span>Complete Match</span>
               </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleConfirmComplete}
-              disabled={isLoading || (!isGroupMatch && scoreA === scoreB)}
-              className="font-bold bg-primary text-white gap-1.5"
-            >
-              {isLoading ? 'Saving...' : 'Submit Result'}
-            </Button>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </BaseModal>
   );
