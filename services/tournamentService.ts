@@ -201,6 +201,25 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
 }
 
 /**
+ * Update tournament cover / banner image separately
+ */
+export async function updateTournamentBannerImage(id: string, bannerUrl: string): Promise<Tournament> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .update({ banner_image: bannerUrl || null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating cover image:', error);
+    throw new Error(`Failed to update cover image: ${formatSupabaseError(error)}`);
+  }
+
+  return data as Tournament;
+}
+
+/**
  * Update tournament status with lifecycle validation rules
  */
 export async function updateTournamentStatus(
