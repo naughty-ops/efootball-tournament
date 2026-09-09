@@ -206,7 +206,7 @@ export default function DedicatedLiveMatchPage({
     const viewerIdentity = `viewer-${Math.random().toString(36).substring(2, 9)}`;
 
     try {
-      const tokenRes = await fetch('/api/live/token', {
+      let tokenRes = await fetch('/api/live/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -214,12 +214,30 @@ export default function DedicatedLiveMatchPage({
           identity: viewerIdentity,
           role: 'viewer',
         }),
-      });
+      }).catch(() => null);
+
+      if (!tokenRes || !tokenRes.ok) {
+        tokenRes = await fetch('/api/livekit/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room: roomName,
+            identity: viewerIdentity,
+            role: 'viewer',
+          }),
+        }).catch(() => null);
+      }
+
+      if (!tokenRes || !tokenRes.ok) {
+        throw new Error('Failed to acquire viewer token from server.');
+      }
 
       const tokenData = await tokenRes.json();
-      if (!tokenRes.ok || !tokenData.token) {
+      if (!tokenData.token) {
         throw new Error(tokenData.error || 'Failed to acquire viewer token.');
       }
+
+      const livekitUrl = tokenData.url || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
 
       const room = new Room({
         adaptiveStream: true,
@@ -274,7 +292,7 @@ export default function DedicatedLiveMatchPage({
         setConnectionState('OFFLINE');
       });
 
-      await room.connect(tokenData.url, tokenData.token);
+      await room.connect(livekitUrl, tokenData.token);
       updateParticipants();
 
       let foundVideo = false;
