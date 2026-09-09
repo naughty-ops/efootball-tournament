@@ -182,6 +182,7 @@ export interface Database {
           match_position: number;
           next_match_id: string | null;
           winner_slot: 'participant_a' | 'participant_b' | null;
+          live_room_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -200,6 +201,7 @@ export interface Database {
           match_position?: number;
           next_match_id?: string | null;
           winner_slot?: 'participant_a' | 'participant_b' | null;
+          live_room_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -218,6 +220,7 @@ export interface Database {
           match_position?: number;
           next_match_id?: string | null;
           winner_slot?: 'participant_a' | 'participant_b' | null;
+          live_room_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };

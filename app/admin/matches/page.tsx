@@ -21,6 +21,8 @@ import {
   getAllAdminMatches,
   getMatchDashboardStats,
   startMatch,
+  toggleMatchLiveStream,
+  updateMatchLiveRoom,
   updateLiveScore,
   submitMatchResult,
   editMatchResult,
@@ -167,6 +169,42 @@ export default function AdminMatchCenterPage() {
       alert(msg);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleToggleLiveStream = async (m: MatchWithDetails, enable: boolean) => {
+    setActionLoading(true);
+    try {
+      await toggleMatchLiveStream(m.id, m.tournamentId, enable);
+      fetchMatchCenterData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update live stream state';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveRoomId = async (m: MatchWithDetails, roomInput: string) => {
+    setActionLoading(true);
+    try {
+      await updateMatchLiveRoom(m.id, roomInput, true);
+      fetchMatchCenterData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save room ID';
+      alert(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCopyRoomName = async (matchId: string) => {
+    const roomName = `efootball-match-${matchId}`;
+    try {
+      await navigator.clipboard.writeText(roomName);
+      alert(`Copied stream room: ${roomName}`);
+    } catch {
+      alert(`Stream room name: ${roomName}`);
     }
   };
 
@@ -527,46 +565,83 @@ export default function AdminMatchCenterPage() {
                   )}
                 </CardContent>
 
-                {/* Action Buttons Footer (Compulsory Live and Edit Score options for all matches) */}
-                <div className="p-3 bg-[#F4F8F5] border-t border-border/50 flex items-center justify-between gap-2 flex-wrap">
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold">
-                    <Link href={`/admin/tournaments/${m.tournamentId}/matches/${m.id}`}>
-                      <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
-                      Details
-                    </Link>
-                  </Button>
+                {/* Action Buttons Footer */}
+                <div className="p-3 bg-[#F4F8F5] border-t border-border/50 space-y-2">
+                  {/* Live Stream Admin Controls Bar */}
+                  <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-border/40 text-[11px]">
+                    <span className="font-bold text-[#0B3323] flex items-center gap-1">
+                      <Radio className="h-3 w-3 text-red-500 animate-pulse" />
+                      Stream Room:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyRoomName(m.id)}
+                        className="h-6 px-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary"
+                        title="Copy Room ID for Broadcaster APK"
+                      >
+                        efootball-match-{m.id.substring(0, 6)}...
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] font-bold text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <Link href={`/live/${m.id}`}>
+                          View Live 🎥
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
 
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Live Action Option */}
-                    {isLive ? (
-                      <Badge className="bg-rose-600 text-white font-bold text-xs py-1 px-2.5 gap-1 animate-pulse">
-                        <Radio className="h-3 w-3" />
-                        <span>LIVE NOW</span>
-                      </Badge>
-                    ) : (
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs font-semibold">
+                      <Link href={`/admin/tournaments/${m.tournamentId}/matches/${m.id}`}>
+                        <Eye className="h-3.5 w-3.5 mr-1 text-primary" />
+                        Details
+                      </Link>
+                    </Button>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Live Stream Enable / Disable Option */}
+                      {isLive ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleToggleLiveStream(m, false)}
+                          disabled={actionLoading}
+                          className="h-8 px-2.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-1"
+                          title="Stop Live Stream"
+                        >
+                          <Radio className="h-3 w-3" />
+                          <span>Stop Stream</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleToggleLiveStream(m, true)}
+                          disabled={actionLoading || !m.participant_a || !m.participant_b || isCompleted}
+                          className="h-8 px-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1"
+                          title="Set match status to Live and enable stream"
+                        >
+                          <Radio className="h-3 w-3" />
+                          <span>Start Stream</span>
+                        </Button>
+                      )}
+
+                      {/* Edit Score Option */}
                       <Button
                         size="sm"
-                        onClick={() => handleStartMatch(m)}
-                        disabled={actionLoading || !m.participant_a || !m.participant_b || isCompleted}
-                        className="h-8 px-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1"
-                        title="Set match status to Live"
+                        onClick={() => setActiveScoreMatch(m)}
+                        disabled={actionLoading || (!m.participant_a && !m.participant_b && !isCompleted)}
+                        className="h-8 px-2.5 text-xs font-bold bg-primary hover:bg-primary/90 text-white gap-1"
+                        title="Edit or enter match score"
                       >
-                        <Radio className="h-3 w-3" />
-                        <span>Start Live</span>
+                        <Edit className="h-3.5 w-3.5" />
+                        <span>Edit Score</span>
                       </Button>
-                    )}
-
-                    {/* Edit Score Option (Compulsory on all match cards) */}
-                    <Button
-                      size="sm"
-                      onClick={() => setActiveScoreMatch(m)}
-                      disabled={actionLoading || (!m.participant_a && !m.participant_b && !isCompleted)}
-                      className="h-8 px-2.5 text-xs font-bold bg-primary hover:bg-primary/90 text-white gap-1"
-                      title="Edit or enter match score"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      <span>Edit Score</span>
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </Card>

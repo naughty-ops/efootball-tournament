@@ -366,7 +366,68 @@ export async function getMatchDashboardStats(tournamentId?: string): Promise<Mat
  * Start a scheduled match (Pending -> Live)
  */
 export async function startMatch(matchId: string, tournamentId: string): Promise<MatchDetailsOverview> {
-  return updateMatchStatus(matchId, tournamentId, 'live');
+  const supabase = createClient();
+  const roomName = `efootball-match-${matchId}`;
+  await (supabase.from('matches') as unknown as UnknownQuery)
+    .update({
+      status: 'live',
+      live_room_name: roomName,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', matchId);
+
+  return getMatchDetails(matchId, tournamentId);
+}
+
+/**
+ * Toggle Admin Live Stream & Room ID for a match
+ */
+export async function toggleMatchLiveStream(
+  matchId: string,
+  tournamentId: string,
+  enableLive: boolean,
+  customRoomId?: string
+): Promise<MatchDetailsOverview> {
+  const supabase = createClient();
+  const roomName = customRoomId?.trim() || `efootball-match-${matchId}`;
+
+  const { error } = await (supabase.from('matches') as unknown as UnknownQuery)
+    .update({
+      status: enableLive ? 'live' : 'pending',
+      live_room_name: enableLive ? roomName : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', matchId);
+
+  if (error) {
+    throw new Error(`Failed to update match live stream: ${formatSupabaseError(error)}`);
+  }
+
+  return getMatchDetails(matchId, tournamentId);
+}
+
+/**
+ * Save custom Room ID for a match
+ */
+export async function updateMatchLiveRoom(
+  matchId: string,
+  roomName: string | null,
+  setLive = true
+): Promise<void> {
+  const supabase = createClient();
+  const trimmed = roomName?.trim() || null;
+
+  const { error } = await (supabase.from('matches') as unknown as UnknownQuery)
+    .update({
+      live_room_name: trimmed,
+      status: trimmed && setLive ? 'live' : undefined,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', matchId);
+
+  if (error) {
+    throw new Error(`Failed to save room ID: ${formatSupabaseError(error)}`);
+  }
 }
 
 /**

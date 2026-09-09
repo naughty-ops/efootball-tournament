@@ -2,26 +2,25 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Zap, Loader2, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, RefreshCw, Tv, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 
 type LiveMatchEntry = Awaited<ReturnType<typeof getPublicLiveMatches>>[number];
 
 export default function LivePage() {
+  const router = useRouter();
   const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchLive = useCallback(async () => {
     try {
       const data = await getPublicLiveMatches();
       setLiveMatches(data);
-      setLastUpdated(new Date());
       setError(null);
     } catch {
       setError('Unable to load live matches. Please try again.');
@@ -36,7 +35,7 @@ export default function LivePage() {
     return () => { cancelled = true; };
   }, [fetchLive]);
 
-  // Realtime Handler — Updates React State INSTANTLY upon receiving database payload
+  // Realtime Handler
   const handleRealtimeUpdate = useCallback(
     (payload?: RealtimePayload) => {
       if (payload?.new && payload.new.id) {
@@ -54,6 +53,7 @@ export default function LivePage() {
                       score_a: updatedMatch.score_a ?? item.match.score_a,
                       score_b: updatedMatch.score_b ?? item.match.score_b,
                       status: updatedMatch.status ?? item.match.status,
+                      live_room_name: updatedMatch.live_room_name ?? item.match.live_room_name,
                     },
                   };
                 }
@@ -61,146 +61,128 @@ export default function LivePage() {
               });
             }
           } else {
-            // Remove completed or non-live match from Live page list
             return prev.filter((item) => item.match.id !== updatedMatch.id);
           }
           return prev;
         });
-        setLastUpdated(new Date());
       }
-      // Re-fetch in background for full relation consistency
       fetchLive();
     },
     [fetchLive]
   );
 
-  // Realtime subscription
   const { connectionStatus } = useRealtimeMatches(handleRealtimeUpdate);
 
   return (
-    <div className="space-y-8 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B3323] tracking-tight">
-              Live Matches
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Real-time scores and match updates.
-            {lastUpdated && (
-              <span className="ml-2 text-[11px] text-muted-foreground/70">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </span>
-            )}
-          </p>
+    <div className="space-y-4 pb-12 max-w-4xl mx-auto px-2 sm:px-4 font-sans">
+      {/* Premium Minimal Page Header */}
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+          </span>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0B3323] tracking-tight">
+            Live Matches
+          </h1>
         </div>
+
         <Button
           variant="outline"
           size="sm"
           onClick={fetchLive}
-          className="self-start sm:self-auto gap-2 text-xs"
+          className="gap-1.5 text-xs h-7 border-[#0B3323]/20 bg-white hover:bg-[#F4F8F5] text-[#0B3323] px-2.5 rounded-lg font-bold"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
+          <RefreshCw className="h-3 w-3 text-[#0B3323]" />
+          <span>Refresh</span>
         </Button>
       </div>
 
-      {/* Connection Reconnecting / Interrupted Banner */}
+      {/* Connection Reconnecting Alert */}
       {connectionStatus === 'reconnecting' && (
-        <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between animate-pulse">
-          <span>Live connection interrupted. Reconnecting...</span>
+        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-between animate-pulse shadow-xs">
+          <span>Reconnecting live updates...</span>
           <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
         </div>
       )}
 
-      {/* Content */}
+      {/* Content Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
-          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
-          <div className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="h-28 rounded-2xl bg-white animate-pulse border border-[#0B3323]/10" />
+          <div className="h-28 rounded-2xl bg-white animate-pulse border border-[#0B3323]/10" />
         </div>
       ) : error ? (
-        <Card className="p-12 text-center border-destructive/30 bg-destructive/5">
-          <p className="text-sm font-medium text-destructive mb-3">{error}</p>
+        <div className="p-6 text-center bg-destructive/10 rounded-2xl border border-destructive/20 space-y-2">
+          <p className="text-xs font-bold text-destructive">{error}</p>
           <Button variant="outline" size="sm" onClick={fetchLive}>Try Again</Button>
-        </Card>
+        </div>
       ) : liveMatches.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary mb-3">
-            <Zap className="h-7 w-7" />
+        <div className="p-8 text-center border border-[#0B3323]/15 rounded-2xl bg-white shadow-xs space-y-2.5">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0B3323]/10 text-[#0B3323]">
+            <Tv className="h-6 w-6 text-[#0B3323]" />
           </div>
-          <h3 className="text-base font-bold text-[#0B3323]">No matches are currently live</h3>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">
-            Check back when a tournament match is in progress.
+          <h3 className="text-sm font-black text-[#0B3323]">No matches currently live</h3>
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+            Broadcasting matches appear here as soon as a stream starts.
           </p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/tournaments">Browse Tournaments</Link>
-          </Button>
-        </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {liveMatches.map(({ match, round }) => (
-            <Card
+            <div
               key={match.id}
-              className="border-red-200 bg-white shadow-sm hover:border-red-300 transition-all"
+              onClick={() => router.push(`/live/${match.id}`)}
+              className="bg-white border border-[#0B3323]/15 hover:border-emerald-600/60 shadow-sm hover:shadow-md transition-all duration-200 rounded-2xl p-3.5 cursor-pointer select-none space-y-2.5 touch-target active:scale-[0.99]"
             >
-              <CardContent className="p-5 space-y-4">
-                {/* Live Badge + Round */}
-                <div className="flex items-center justify-between">
-                  <Badge className="bg-red-500 hover:bg-red-500 text-white border-0 gap-1.5 text-[11px] font-bold uppercase">
+              {/* Header Row: 🔴 LIVE Badge, Match #, Viewer Count */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-red-600 hover:bg-red-600 text-white font-black text-[9px] uppercase px-2 py-0.5 tracking-wider gap-1 shadow-2xs">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
                     </span>
                     LIVE
                   </Badge>
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    {round.name}
+
+                  <span className="text-[10px] font-extrabold text-muted-foreground uppercase">
+                    Match #{match.match_position}
                   </span>
                 </div>
 
-                {/* Tournament name */}
-                {match.tournamentName && (
-                  <p className="text-[11px] font-bold text-primary/70 uppercase tracking-wider truncate">
-                    {match.tournamentName}
-                  </p>
-                )}
+                <span className="text-[10px] font-extrabold text-[#0B3323] flex items-center gap-1 bg-[#0B3323]/10 px-2.5 py-0.5 rounded-lg border border-[#0B3323]/15">
+                  <Users className="h-3 w-3 text-[#0B3323]" />
+                  <span>LIVE</span>
+                </span>
+              </div>
 
-                {/* Scoreboard */}
-                <div className="flex items-center justify-between gap-3 py-3 px-4 rounded-2xl bg-[#F4F8F5]">
-                  <div className="flex-1 text-center">
-                    <p className="text-xs font-bold text-[#0B3323] truncate leading-tight mb-1">
-                      {match.participantAName ?? 'TBD'}
-                    </p>
-                    <p className="text-3xl font-black text-[#0B3323] tabular-nums">{match.score_a ?? 0}</p>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <span className="text-base font-black text-muted-foreground/60">—</span>
-                  </div>
-                  <div className="flex-1 text-center">
-                    <p className="text-xs font-bold text-[#0B3323] truncate leading-tight mb-1">
-                      {match.participantBName ?? 'TBD'}
-                    </p>
-                    <p className="text-3xl font-black text-[#0B3323] tabular-nums">{match.score_b ?? 0}</p>
-                  </div>
+              {/* Tournament & Round Subtitle */}
+              <p className="text-xs font-black text-[#0B3323] truncate leading-tight">
+                {match.tournamentName ? `${match.tournamentName} • ` : ''}{round.name}
+              </p>
+
+              {/* Premium Green & White Minimal Scoreboard Box */}
+              <div className="flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-[#F4F8F5] border border-[#0B3323]/10">
+                <p className="text-xs sm:text-sm font-black text-[#0B3323] truncate flex-1 text-left">
+                  {match.participantAName || 'Player 1'}
+                </p>
+
+                <div className="flex items-center gap-1.5 px-3 py-0.5 bg-white rounded-lg border border-[#0B3323]/20 shadow-2xs shrink-0 font-mono">
+                  <span className="text-base sm:text-lg font-black text-[#0B3323] tabular-nums">
+                    {match.score_a ?? 0}
+                  </span>
+                  <span className="text-xs font-extrabold text-muted-foreground">—</span>
+                  <span className="text-base sm:text-lg font-black text-[#0B3323] tabular-nums">
+                    {match.score_b ?? 0}
+                  </span>
                 </div>
 
-                {/* Link to tournament */}
-                <Link
-                  href={`/tournaments/${round.tournamentId}`}
-                  className="block text-center text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-                >
-                  View Tournament →
-                </Link>
-              </CardContent>
-            </Card>
+                <p className="text-xs sm:text-sm font-black text-[#0B3323] truncate flex-1 text-right">
+                  {match.participantBName || 'Player 2'}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
       )}
