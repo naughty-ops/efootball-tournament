@@ -55,7 +55,7 @@ export default function DedicatedLiveMatchPage({
 
   // LiveKit WebRTC State
   const [connectionState, setConnectionState] = useState<
-    'CONNECTING' | 'LIVE' | 'OFFLINE' | 'ENDED' | 'ERROR'
+    'CONNECTING' | 'WAITING' | 'LIVE' | 'RECONNECTING' | 'OFFLINE' | 'ENDED' | 'ERROR'
   >('CONNECTING');
   const [viewerCount, setViewerCount] = useState<number>(1);
   const [copied, setCopied] = useState(false);
@@ -276,32 +276,59 @@ export default function DedicatedLiveMatchPage({
         }
       };
 
-      room.on(
-        RoomEvent.TrackSubscribed,
-        (track: RemoteTrack) => {
-          attachTrack(track);
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack) => {
+        attachTrack(track);
+      });
+
+      room.on(RoomEvent.TrackPublished, (pub: RemoteTrackPublication) => {
+        if (!pub.isSubscribed) {
+          pub.setSubscribed(true);
         }
-      );
+      });
 
       room.on(
         RoomEvent.TrackUnsubscribed,
         (track: RemoteTrack, pub: RemoteTrackPublication, participant: RemoteParticipant) => {
           track.detach();
-          const videoTracks = Array.from(participant.videoTrackPublications.values()).filter(
-            (p) => p.isSubscribed
+          const activeVideoTracks = Array.from(room.remoteParticipants.values()).some((p) =>
+            Array.from(p.videoTrackPublications.values()).some((v) => v.isSubscribed)
           );
-          if (videoTracks.length === 0) {
-            setConnectionState('OFFLINE');
+          if (!activeVideoTracks) {
+            setConnectionState('WAITING');
           }
         }
       );
 
       const updateParticipants = () => {
         setViewerCount((room.remoteParticipants.size || 0) + 1);
+        for (const p of room.remoteParticipants.values()) {
+          for (const pub of p.trackPublications.values()) {
+            if (!pub.isSubscribed) {
+              pub.setSubscribed(true);
+            }
+            if (pub.track) {
+              attachTrack(pub.track);
+            }
+          }
+        }
       };
 
       room.on(RoomEvent.ParticipantConnected, updateParticipants);
-      room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
+      room.on(RoomEvent.ParticipantDisconnected, () => {
+        updateParticipants();
+        if (room.remoteParticipants.size === 0) {
+          setConnectionState('WAITING');
+        }
+      });
+
+      room.on(RoomEvent.Reconnecting, () => {
+        setConnectionState('RECONNECTING');
+      });
+
+      room.on(RoomEvent.Reconnected, () => {
+        updateParticipants();
+      });
+
       room.on(RoomEvent.Disconnected, () => {
         setConnectionState('OFFLINE');
       });
@@ -327,9 +354,10 @@ export default function DedicatedLiveMatchPage({
       if (foundVideo) {
         setConnectionState('LIVE');
       } else {
+        setConnectionState('WAITING');
         setTimeout(() => {
-          setConnectionState((curr) => (curr === 'CONNECTING' ? 'OFFLINE' : curr));
-        }, 8000);
+          setConnectionState((curr) => (curr === 'WAITING' ? 'OFFLINE' : curr));
+        }, 15000);
       }
     } catch (err: any) {
       console.error('Error connecting to stream:', err);
@@ -655,6 +683,30 @@ export default function DedicatedLiveMatchPage({
               <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
                 <h3 className="text-xs font-bold text-white">Connecting to live match...</h3>
+              </div>
+            )}
+
+            {/* WAITING FOR BROADCASTER Overlay */}
+            {connectionState === 'WAITING' && (
+              <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <div className="h-11 w-11 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-amber-400">
+                  <Radio className="h-5 w-5 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-white">📡 WAITING FOR BROADCASTER</h3>
+                  <p className="text-xs text-zinc-400 max-w-xs">
+                    The stream will begin as soon as the broadcaster connects.
+                  </p>
+                </div>
+                <Loader2 className="h-4 w-4 animate-spin text-emerald-400 mt-1" />
+              </div>
+            )}
+
+            {/* RECONNECTING Overlay */}
+            {connectionState === 'RECONNECTING' && (
+              <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+                <h3 className="text-xs font-bold text-white">Restoring stream connection...</h3>
               </div>
             )}
 
