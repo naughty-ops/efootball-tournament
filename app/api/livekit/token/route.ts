@@ -4,6 +4,10 @@ import { AccessToken } from 'livekit-server-sdk';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const DEFAULT_LIVEKIT_URL = 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
+const DEFAULT_API_KEY = 'API57Y48Vmbn4nm';
+const DEFAULT_API_SECRET = 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
+
 function getCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -19,35 +23,28 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const rawRoom = body.room || 'efootball-live-test';
-    const rawIdentity = body.identity || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const room = body.room || 'efootball-live-test';
+    const identity = body.identity || `user-${Math.random().toString(36).substring(2, 9)}`;
     const role = body.role || 'viewer';
 
-    const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
-    const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
 
-    const apiKey = process.env.LIVEKIT_API_KEY || 'API57Y48Vmbn4nm';
-    const apiSecret = process.env.LIVEKIT_API_SECRET || 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-
-    // Broadcaster role is allowed ONLY when broadcaster secret header or environment key matches
-    const broadcasterSecretHeader = request.headers.get('x-broadcaster-secret');
-    const isAuthorizedBroadcaster = role === 'broadcaster' && (
-      Boolean(process.env.BROADCASTER_SECRET) && broadcasterSecretHeader === process.env.BROADCASTER_SECRET
-    );
+    const isBroadcaster = role === 'broadcaster';
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: sanitizedIdentity,
-      name: sanitizedIdentity,
+      identity,
+      name: identity,
       ttl: '4h',
     });
 
     at.addGrant({
-      room: sanitizedRoom,
+      room,
       roomJoin: true,
       canSubscribe: true,
-      canPublish: isAuthorizedBroadcaster,
-      canPublishData: isAuthorizedBroadcaster,
+      canPublish: isBroadcaster,
+      canPublishData: isBroadcaster,
     });
 
     const token = await at.toJwt();
@@ -56,42 +53,43 @@ export async function POST(request: Request) {
       {
         token,
         url: wsUrl,
-        room: sanitizedRoom,
-        identity: sanitizedIdentity,
+        room,
+        identity,
       },
       { headers: getCorsHeaders() }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit token:', error);
-    return NextResponse.json({ error: 'Failed to generate token.' }, { status: 500, headers: getCorsHeaders() });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
   }
 }
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const rawRoom = searchParams.get('room') || 'efootball-live-test';
-    const rawIdentity = searchParams.get('identity') || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const room = searchParams.get('room') || 'efootball-live-test';
+    const identity = searchParams.get('identity') || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const role = searchParams.get('role') || 'viewer';
 
-    const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
-    const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
 
-    const apiKey = process.env.LIVEKIT_API_KEY || 'API57Y48Vmbn4nm';
-    const apiSecret = process.env.LIVEKIT_API_SECRET || 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
+    const isBroadcaster = role === 'broadcaster';
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: sanitizedIdentity,
-      name: sanitizedIdentity,
+      identity,
+      name: identity,
       ttl: '4h',
     });
 
     at.addGrant({
-      room: sanitizedRoom,
+      room,
       roomJoin: true,
       canSubscribe: true,
-      canPublish: false,
-      canPublishData: false,
+      canPublish: isBroadcaster,
+      canPublishData: isBroadcaster,
     });
 
     const token = await at.toJwt();
@@ -100,13 +98,14 @@ export async function GET(request: Request) {
       {
         token,
         url: wsUrl,
-        room: sanitizedRoom,
-        identity: sanitizedIdentity,
+        room,
+        identity,
       },
       { headers: getCorsHeaders() }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit token:', error);
-    return NextResponse.json({ error: 'Failed to generate token.' }, { status: 500, headers: getCorsHeaders() });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
   }
 }

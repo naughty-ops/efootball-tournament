@@ -30,8 +30,9 @@ END $$;
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-    IF auth.uid() IS NULL THEN
-        RETURN FALSE;
+    -- If no admin_users are seeded yet, allow bootstrap for initial authenticated users
+    IF NOT (SELECT EXISTS (SELECT 1 FROM public.admin_users)) THEN
+        RETURN (auth.uid() IS NOT NULL);
     END IF;
 
     -- Verify that the authenticated user's ID exists in public.admin_users
