@@ -380,27 +380,14 @@ export default function SymmetricalKnockoutBracket({
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [hoveredParticipantId, setHoveredParticipantId] = useState<string | null>(null);
 
-  if (!bracket || bracket.rounds.length === 0 || bracket.status === 'Not Generated') {
-    return (
-      <Card className="border-dashed border-2 border-slate-200 bg-white p-12 text-center rounded-3xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 mb-4 border border-emerald-200 shadow-2xs">
-          <Swords className="h-8 w-8" />
-        </div>
-        <h3 className="text-lg font-black text-[#0B3323]">Knockout bracket will appear once fixtures are generated</h3>
-        <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-          The playoff tree will automatically map Round of 16, Quarter-Finals, Semi-Finals, and Grand Final matches dynamically as participants qualify.
-        </p>
-      </Card>
-    );
-  }
+  const rounds = bracket?.rounds || [];
+  const tournament = bracket?.tournament;
+  const isCompleted = tournament?.status === 'completed';
+  const champion = tournament?.championUser;
+  const runnerUp = tournament?.runnerUpUser;
 
-  const { rounds, totalRounds, bracketSize, byesCount, tournament } = bracket;
-  const isCompleted = tournament.status === 'completed';
-  const champion = tournament.championUser;
-  const runnerUp = tournament.runnerUpUser;
-
-  const maxRoundNumber = Math.max(...rounds.map((r) => r.round_number));
-  const grandFinalRound = rounds.find((r) => r.round_number === maxRoundNumber);
+  const maxRoundNumber = useMemo(() => (rounds.length > 0 ? Math.max(...rounds.map((r) => r.round_number)) : 0), [rounds]);
+  const grandFinalRound = useMemo(() => rounds.find((r) => r.round_number === maxRoundNumber), [rounds, maxRoundNumber]);
   const grandFinalMatch = grandFinalRound?.matches[0];
 
   // Calculate Real Completion Metrics
@@ -437,6 +424,20 @@ export default function SymmetricalKnockoutBracket({
     () => rounds.filter((r) => r.round_number < maxRoundNumber).sort((a, b) => a.round_number - b.round_number),
     [rounds, maxRoundNumber]
   );
+
+  if (!bracket || !tournament || bracket.rounds.length === 0 || bracket.status === 'Not Generated') {
+    return (
+      <Card className="border-dashed border-2 border-slate-200 bg-white p-12 text-center rounded-3xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 mb-4 border border-emerald-200 shadow-2xs">
+          <Swords className="h-8 w-8" />
+        </div>
+        <h3 className="text-lg font-black text-[#0B3323]">Knockout bracket will appear once fixtures are generated</h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+          The playoff tree will automatically map Round of 16, Quarter-Finals, Semi-Finals, and Grand Final matches dynamically as participants qualify.
+        </p>
+      </Card>
+    );
+  }
 
   // Apply Filter to Match Collections
   const filterMatch = (m: FullMatchData, roundNum: number) => {
