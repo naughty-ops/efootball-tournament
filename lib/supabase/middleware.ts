@@ -12,8 +12,15 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     '';
 
-  // If environment variables are not set yet, skip redirection to prevent breaking build/dev
+  const pathname = request.nextUrl.pathname;
+
+  // If environment variables are not set yet, fail closed for admin routes
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-id')) {
+    if (pathname.startsWith('/admin')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
     return supabaseResponse;
   }
 
@@ -40,8 +47,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
 
   // 1. Guard /admin/* routes: redirect to /login if unauthenticated
   if (pathname.startsWith('/admin') && !user) {

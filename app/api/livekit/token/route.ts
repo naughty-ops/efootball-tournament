@@ -4,10 +4,6 @@ import { AccessToken } from 'livekit-server-sdk';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_LIVEKIT_URL = 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-const DEFAULT_API_KEY = 'API57Y48Vmbn4nm';
-const DEFAULT_API_SECRET = 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
-
 function getCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -23,28 +19,43 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const room = body.room || 'efootball-live-test';
-    const identity = body.identity || `user-${Math.random().toString(36).substring(2, 9)}`;
+    const rawRoom = body.room || 'efootball-live-test';
+    const rawIdentity = body.identity || `user-${Math.random().toString(36).substring(2, 9)}`;
     const role = body.role || 'viewer';
 
-    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
+    const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
+    const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
 
-    const isBroadcaster = role === 'broadcaster';
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
+
+    if (!apiKey || !apiSecret) {
+      console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing from server environment.');
+      return NextResponse.json(
+        { error: 'Live streaming service configuration error.' },
+        { status: 500, headers: getCorsHeaders() }
+      );
+    }
+
+    // Broadcaster role is allowed ONLY when broadcaster secret header or environment key matches
+    const broadcasterSecretHeader = request.headers.get('x-broadcaster-secret');
+    const isAuthorizedBroadcaster = role === 'broadcaster' && (
+      Boolean(process.env.BROADCASTER_SECRET) && broadcasterSecretHeader === process.env.BROADCASTER_SECRET
+    );
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity,
-      name: identity,
+      identity: sanitizedIdentity,
+      name: sanitizedIdentity,
       ttl: '4h',
     });
 
     at.addGrant({
-      room,
+      room: sanitizedRoom,
       roomJoin: true,
       canSubscribe: true,
-      canPublish: isBroadcaster,
-      canPublishData: isBroadcaster,
+      canPublish: isAuthorizedBroadcaster,
+      canPublishData: isAuthorizedBroadcaster,
     });
 
     const token = await at.toJwt();
@@ -53,43 +64,50 @@ export async function POST(request: Request) {
       {
         token,
         url: wsUrl,
-        room,
-        identity,
+        room: sanitizedRoom,
+        identity: sanitizedIdentity,
       },
       { headers: getCorsHeaders() }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit token:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
+    return NextResponse.json({ error: 'Failed to generate token.' }, { status: 500, headers: getCorsHeaders() });
   }
 }
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const room = searchParams.get('room') || 'efootball-live-test';
-    const identity = searchParams.get('identity') || `user-${Math.random().toString(36).substring(2, 9)}`;
-    const role = searchParams.get('role') || 'viewer';
+    const rawRoom = searchParams.get('room') || 'efootball-live-test';
+    const rawIdentity = searchParams.get('identity') || `user-${Math.random().toString(36).substring(2, 9)}`;
 
-    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
+    const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
+    const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
 
-    const isBroadcaster = role === 'broadcaster';
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
+
+    if (!apiKey || !apiSecret) {
+      console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing from server environment.');
+      return NextResponse.json(
+        { error: 'Live streaming service configuration error.' },
+        { status: 500, headers: getCorsHeaders() }
+      );
+    }
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity,
-      name: identity,
+      identity: sanitizedIdentity,
+      name: sanitizedIdentity,
       ttl: '4h',
     });
 
     at.addGrant({
-      room,
+      room: sanitizedRoom,
       roomJoin: true,
       canSubscribe: true,
-      canPublish: isBroadcaster,
-      canPublishData: isBroadcaster,
+      canPublish: false,
+      canPublishData: false,
     });
 
     const token = await at.toJwt();
@@ -98,14 +116,13 @@ export async function GET(request: Request) {
       {
         token,
         url: wsUrl,
-        room,
-        identity,
+        room: sanitizedRoom,
+        identity: sanitizedIdentity,
       },
       { headers: getCorsHeaders() }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit token:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
+    return NextResponse.json({ error: 'Failed to generate token.' }, { status: 500, headers: getCorsHeaders() });
   }
 }

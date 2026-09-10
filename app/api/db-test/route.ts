@@ -5,8 +5,8 @@ export async function GET() {
   const testResult = await testSupabaseConnection();
   
   if (!testResult.success) {
-    return NextResponse.json(testResult, { status: 500 });
+    return NextResponse.json({ status: 'error' }, { status: 500 });
   }
 
-  return NextResponse.json(testResult, { status: 200 });
+  return NextResponse.json({ status: 'ok' }, { status: 200 });
 }
