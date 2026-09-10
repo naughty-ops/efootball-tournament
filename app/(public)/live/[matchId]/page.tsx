@@ -76,6 +76,7 @@ export default function DedicatedLiveMatchPage({
 
   const roomRef = useRef<Room | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hudTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -245,7 +246,7 @@ export default function DedicatedLiveMatchPage({
       });
       roomRef.current = room;
 
-      const attachVideoTrack = (track: Track | RemoteTrack) => {
+      const attachTrack = (track: Track | RemoteTrack) => {
         if (track.kind === Track.Kind.Video && videoRef.current) {
           track.attach(videoRef.current);
           if (videoRef.current) {
@@ -259,13 +260,26 @@ export default function DedicatedLiveMatchPage({
             });
           }
           setConnectionState('LIVE');
+        } else if (track.kind === Track.Kind.Audio && audioRef.current) {
+          track.attach(audioRef.current);
+          if (audioRef.current) {
+            audioRef.current.muted = isMuted;
+            audioRef.current.volume = volume;
+            audioRef.current.play().catch(() => {
+              if (audioRef.current) {
+                audioRef.current.muted = true;
+                setIsMuted(true);
+                audioRef.current.play().catch(() => {});
+              }
+            });
+          }
         }
       };
 
       room.on(
         RoomEvent.TrackSubscribed,
         (track: RemoteTrack) => {
-          attachVideoTrack(track);
+          attachTrack(track);
         }
       );
 
@@ -297,11 +311,15 @@ export default function DedicatedLiveMatchPage({
 
       let foundVideo = false;
       for (const p of room.remoteParticipants.values()) {
-        for (const pub of p.videoTrackPublications.values()) {
+        for (const pub of p.trackPublications.values()) {
+          if (!pub.isSubscribed) {
+            pub.setSubscribed(true);
+          }
           if (pub.track) {
-            attachVideoTrack(pub.track);
-            foundVideo = true;
-            break;
+            attachTrack(pub.track);
+            if (pub.kind === Track.Kind.Video) {
+              foundVideo = true;
+            }
           }
         }
       }
@@ -350,16 +368,18 @@ export default function DedicatedLiveMatchPage({
   // Player Controls
   const toggleMute = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
     if (videoRef.current) {
-      const nextMuted = !isMuted;
       videoRef.current.muted = nextMuted;
-      setIsMuted(nextMuted);
-      if (nextMuted) {
-        videoRef.current.volume = 0;
-      } else {
-        videoRef.current.volume = volume > 0 ? volume : 1;
-        setVolume(videoRef.current.volume);
-      }
+      if (!nextMuted) videoRef.current.volume = volume > 0 ? volume : 1;
+    }
+    if (audioRef.current) {
+      audioRef.current.muted = nextMuted;
+      if (!nextMuted) audioRef.current.volume = volume > 0 ? volume : 1;
+    }
+    if (!nextMuted && volume === 0) {
+      setVolume(1);
     }
   };
 
@@ -454,8 +474,12 @@ export default function DedicatedLiveMatchPage({
       if (videoRef.current) {
         videoRef.current.volume = volFraction;
         videoRef.current.muted = volFraction === 0;
-        setIsMuted(volFraction === 0);
       }
+      if (audioRef.current) {
+        audioRef.current.volume = volFraction;
+        audioRef.current.muted = volFraction === 0;
+      }
+      setIsMuted(volFraction === 0);
       setGestureHUD({ type: 'volume', value: nextVolPercent });
     }
 
@@ -580,13 +604,20 @@ export default function DedicatedLiveMatchPage({
             className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-[#0B3323]/20 shadow-inner flex items-center justify-center select-none group touch-none"
             style={{ filter: `brightness(${brightness}%)` }}
           >
-            {/* HTML5 Video Element (ALWAYS MOUNTED IN DOM FOR WEBRTC) */}
+            {/* HTML5 Video & Audio Elements (ALWAYS MOUNTED IN DOM FOR WEBRTC) */}
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted={isMuted}
               className="w-full h-full object-contain bg-black"
+            />
+            <audio
+              ref={audioRef}
+              autoPlay
+              playsInline
+              muted={isMuted}
+              className="hidden"
             />
 
             {/* VLC/MX Gesture HUD Floating Overlay (Brightness / Volume vertical indicator) */}
