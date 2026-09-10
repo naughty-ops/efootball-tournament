@@ -26,17 +26,9 @@ export async function POST(request: Request) {
     const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
     const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const apiKey = process.env.LIVEKIT_API_KEY || 'API57Y48Vmbn4nm';
+    const apiSecret = process.env.LIVEKIT_API_SECRET || 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
     const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-
-    if (!apiKey || !apiSecret) {
-      console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing from server environment.');
-      return NextResponse.json(
-        { error: 'Live streaming service configuration error.' },
-        { status: 500, headers: getCorsHeaders() }
-      );
-    }
 
     // Broadcaster role is allowed ONLY when broadcaster secret header or environment key matches
     const broadcasterSecretHeader = request.headers.get('x-broadcaster-secret');
@@ -84,17 +76,9 @@ export async function GET(request: Request) {
     const sanitizedRoom = String(rawRoom).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || 'efootball-live-test';
     const sanitizedIdentity = String(rawIdentity).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64) || `user-${Math.random().toString(36).substring(2, 9)}`;
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const apiKey = process.env.LIVEKIT_API_KEY || 'API57Y48Vmbn4nm';
+    const apiSecret = process.env.LIVEKIT_API_SECRET || 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
     const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-
-    if (!apiKey || !apiSecret) {
-      console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing from server environment.');
-      return NextResponse.json(
-        { error: 'Live streaming service configuration error.' },
-        { status: 500, headers: getCorsHeaders() }
-      );
-    }
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: sanitizedIdentity,
