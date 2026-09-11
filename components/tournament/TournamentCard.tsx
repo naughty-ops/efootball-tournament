@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Trophy, Medal, Users, Calendar, ChevronRight, Edit, Trash2, Share2, Check, Image as ImageIcon } from 'lucide-react';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import { formatDate } from '@/lib/utils';
@@ -31,6 +32,7 @@ export function formatTournamentFormat(format: string): string {
 }
 
 export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: TournamentCardProps) {
+  const router = useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
   const [currentBanner, setCurrentBanner] = useState<string>(t.banner_image || '/images/banner1.jpg');
@@ -41,6 +43,14 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
   const runnerUp = t.runnerUpUser;
 
   const detailUrl = isAdmin ? `/admin/tournaments/${t.id}` : `/tournaments/${t.id}`;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    router.push(detailUrl);
+  };
 
   const handleOneTapCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,7 +69,8 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
   return (
     <>
       <Card
-        className="relative overflow-hidden group transition-all duration-300 hover:shadow-2xl border border-white/20 hover:border-emerald-400/60 min-h-[340px] flex flex-col justify-between"
+        onClick={handleCardClick}
+        className="relative overflow-hidden group transition-all duration-300 hover:shadow-2xl border border-white/20 hover:border-emerald-400/60 min-h-[340px] flex flex-col justify-between cursor-pointer"
       >
         {/* Full Card Cover Background Image */}
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-950">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -137,11 +138,13 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
       <div className="relative w-full aspect-[21/9] min-h-[240px] max-h-[440px] sm:min-h-[320px] md:min-h-[380px] overflow-hidden">
         {slides.map((slide, idx) => {
           const isActive = idx === activeIndex;
+          const targetHref = slide.actionHref || '/tournaments';
           return (
-            <div
+            <Link
               key={slide.id || idx}
+              href={targetHref}
               className={cn(
-                'absolute inset-0 transition-opacity duration-700 ease-in-out',
+                'absolute inset-0 transition-opacity duration-700 ease-in-out cursor-pointer group',
                 isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
               )}
             >
@@ -152,7 +155,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
                 fill
                 priority={idx === 0}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
-                className="object-cover object-center"
+                className="object-cover object-center group-hover:scale-103 transition-transform duration-700"
                 unoptimized={slide.image?.startsWith('http')}
               />
 
@@ -169,7 +172,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
                   </Badge>
                 )}
 
-                <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-snug drop-shadow-sm">
+                <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-snug drop-shadow-sm group-hover:text-emerald-300 transition-colors">
                   {slide.title}
                 </h2>
 
@@ -181,16 +184,14 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
 
                 {slide.actionText && (
                   <div className="pt-1.5">
-                    <Button asChild size="sm" className="bg-[#00E676] text-[#0B3323] hover:bg-white font-bold gap-2 shadow-lg shadow-emerald-500/20 text-xs sm:text-sm h-9 px-4">
-                      <a href={slide.actionHref || '/tournaments'}>
-                        <span>{slide.actionText}</span>
-                        <Play className="h-3.5 w-3.5 fill-current" />
-                      </a>
-                    </Button>
+                    <div className="inline-flex items-center justify-center rounded-xl bg-[#00E676] text-[#0B3323] group-hover:bg-white font-bold gap-2 shadow-lg shadow-emerald-500/20 text-xs sm:text-sm h-9 px-4 transition-colors">
+                      <span>{slide.actionText}</span>
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -199,7 +200,11 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
       {slides.length > 1 && (
         <>
           <button
-            onClick={prevSlide}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              prevSlide();
+            }}
             aria-label="Previous Slide"
             className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-[#00C853] hover:text-white transition-all border border-white/20 touch-target"
           >
@@ -207,7 +212,11 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
           </button>
 
           <button
-            onClick={nextSlide}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              nextSlide();
+            }}
             aria-label="Next Slide"
             className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-[#00C853] hover:text-white transition-all border border-white/20 touch-target"
           >
@@ -219,7 +228,11 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
             {slides.map((_, idx) => (
               <button
                 key={idx}
-                onClick={() => setCurrentIndex(idx)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setCurrentIndex(idx);
+                }}
                 aria-label={`Go to slide ${idx + 1}`}
                 className={cn(
                   'h-2 rounded-full transition-all duration-300',
