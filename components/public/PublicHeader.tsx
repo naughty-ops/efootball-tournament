@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Trophy } from 'lucide-react';
+import Image from 'next/image';
 import PublicNav from './PublicNav';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,19 +12,18 @@ export default function PublicHeader() {
       {/* Primary Header Row */}
       <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Left: Brand / Logo */}
+        {/* Left: Official Brand Logo */}
         <div className="flex items-center">
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
-              <Trophy className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base sm:text-lg tracking-tight text-[#0B3323] leading-none">
-                eFootball
-              </span>
-              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider text-primary uppercase mt-0.5">
-                Tournaments
-              </span>
+          <Link href="/" className="flex items-center group py-1">
+            <div className="relative h-9 sm:h-11 w-auto max-w-[200px] flex items-center group-hover:scale-102 transition-transform">
+              <Image
+                src="/logos/logo-header-light.png"
+                alt="eFootball Tournament Logo"
+                width={220}
+                height={55}
+                className="h-full w-auto object-contain"
+                priority
+              />
             </div>
           </Link>
         </div>

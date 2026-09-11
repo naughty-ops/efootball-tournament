@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Shield, ArrowLeft, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { loginSchema, LoginInput } from '@/lib/validations';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -99,8 +100,15 @@ export default function LoginPage() {
         {/* Login Card */}
         <Card className="border-border shadow-xl shadow-primary/5">
           <CardHeader className="text-center space-y-3 pb-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B3323] text-primary shadow-md">
-              <Shield className="h-7 w-7" />
+            <div className="relative mx-auto h-14 w-14 rounded-2xl overflow-hidden bg-[#0B3323] p-1 flex items-center justify-center shadow-md border border-[#0B3323]/20">
+              <Image
+                src="/logos/logo-mark-transparent.png"
+                alt="eFootball Logo Mark"
+                width={56}
+                height={56}
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
             <div>
               <CardTitle className="text-2xl font-extrabold text-[#0B3323]">Admin Portal</CardTitle>

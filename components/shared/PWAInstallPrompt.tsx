@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Download, X, Trophy } from 'lucide-react';
+import Image from 'next/image';
+import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -95,8 +96,14 @@ export default function PWAInstallPrompt() {
     <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-sm z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="bg-[#0B3323] text-white p-3.5 rounded-2xl shadow-2xl border border-emerald-500/30 flex items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
-            <Trophy className="h-5 w-5 text-amber-400" />
+          <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-emerald-500/20 border border-emerald-400/30 p-0.5 flex items-center justify-center shrink-0">
+            <Image
+              src="/logos/logo-mark-transparent.png"
+              alt="eFootball PWA Mark"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="min-w-0 space-y-0.5">
             <h4 className="text-xs font-black truncate text-white">eFootball App</h4>

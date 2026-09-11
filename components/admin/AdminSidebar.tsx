@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   Swords,
   Settings,
   LogOut,
-  Shield,
   X,
   GitBranch,
 } from 'lucide-react';
@@ -69,15 +69,21 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
         )}
       >
         <div className="p-5 flex flex-col gap-6">
-          {/* Admin Brand */}
-          <div className="flex items-center justify-between px-2">
-            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0B3323] text-primary shadow-md">
-                <Shield className="h-5 w-5" />
+          {/* Admin Brand Header */}
+          <div className="flex items-center justify-between px-1">
+            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center gap-2.5">
+              <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-[#0B3323] p-0.5 flex items-center justify-center shrink-0 shadow-sm border border-[#0B3323]/20">
+                <Image
+                  src="/logos/logo-mark-transparent.png"
+                  alt="eFootball Admin Mark"
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-contain"
+                />
               </div>
               <div>
                 <h2 className="text-base font-extrabold text-[#0B3323] leading-none">Admin Panel</h2>
-                <span className="text-[11px] text-muted-foreground">Tournament Control</span>
+                <span className="text-[10px] text-muted-foreground font-semibold">Tournament Control</span>
               </div>
             </Link>
 
