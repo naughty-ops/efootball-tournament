@@ -3,7 +3,6 @@ import './globals.css';
 import QueryProvider from '@/components/shared/QueryProvider';
 import PWAInstaller from '@/components/shared/PWAInstaller';
 import PWAInstallPrompt from '@/components/shared/PWAInstallPrompt';
-import PWASplashTransition from '@/components/shared/PWASplashTransition';
 
 export const viewport: Viewport = {
   themeColor: '#0B3323',
@@ -24,11 +23,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'eFootball',
-    startupImage: [
-      { url: '/splash/splash-4k.png', media: '(device-width: 1024px) and (device-height: 1366px)' },
-      { url: '/splash/splash-portrait.png', media: '(device-width: 768px) and (device-height: 1024px)' },
-      { url: '/splash/splash-mobile.png', media: '(device-width: 390px) and (device-height: 844px)' },
-    ],
   },
   formatDetection: {
     telephone: false,
@@ -53,7 +47,6 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <QueryProvider>
-          <PWASplashTransition />
           <PWAInstaller />
           {children}
           <PWAInstallPrompt />
