@@ -15,12 +15,12 @@ export default function PublicHeader() {
         {/* Left: Official Brand Logo */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center group py-1">
-            <div className="relative h-9 sm:h-11 w-auto max-w-[200px] flex items-center group-hover:scale-102 transition-transform">
+            <div className="relative h-10 sm:h-[52px] w-auto max-w-[240px] flex items-center group-hover:scale-102 transition-transform">
               <Image
                 src="/logos/logo-header-light.png"
                 alt="eFootball Tournament Logo"
-                width={220}
-                height={55}
+                width={250}
+                height={65}
                 className="h-full w-auto object-contain"
                 priority
               />
