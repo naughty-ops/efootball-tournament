@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -100,14 +99,8 @@ export default function LoginPage() {
         {/* Login Card */}
         <Card className="border-border shadow-xl shadow-primary/5">
           <CardHeader className="text-center space-y-3 pb-6">
-            <div className="relative mx-auto h-14 w-14 rounded-2xl overflow-hidden bg-[#0B3323] border border-[#0B3323]/20 shadow-md p-1 flex items-center justify-center">
-              <Image
-                src="/logos/logo.png"
-                alt="eFootball Logo"
-                width={56}
-                height={56}
-                className="h-full w-full object-contain"
-              />
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B3323] text-primary shadow-md">
+              <Shield className="h-7 w-7" />
             </div>
             <div>
               <CardTitle className="text-2xl font-extrabold text-[#0B3323]">Admin Portal</CardTitle>

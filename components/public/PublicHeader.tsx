@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Trophy } from 'lucide-react';
 import PublicNav from './PublicNav';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,24 +12,17 @@ export default function PublicHeader() {
       {/* Primary Header Row */}
       <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Left: Official Brand Logo */}
+        {/* Left: Brand / Logo */}
         <div className="flex items-center">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl overflow-hidden shadow-md shadow-[#0B3323]/20 border border-[#0B3323]/10 bg-[#0B3323] flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform">
-              <Image
-                src="/logos/logo.png"
-                alt="eFootball Tournament Logo"
-                width={40}
-                height={40}
-                className="h-full w-full object-contain"
-                priority
-              />
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
+              <Trophy className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-base sm:text-lg tracking-tight text-[#0B3323] leading-none">
+              <span className="font-extrabold text-base sm:text-lg tracking-tight text-[#0B3323] leading-none">
                 eFootball
               </span>
-              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider text-emerald-700 uppercase mt-0.5">
+              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider text-primary uppercase mt-0.5">
                 Tournaments
               </span>
             </div>
