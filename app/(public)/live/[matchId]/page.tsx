@@ -9,6 +9,9 @@ import {
   RemoteParticipant,
   Track,
   RemoteTrack,
+  VideoQuality,
+  ConnectionQuality,
+  TrackEvent,
 } from 'livekit-client';
 import {
   ArrowLeft,
@@ -28,6 +31,8 @@ import {
   RefreshCw,
   Sun,
   PictureInPicture2,
+  Settings,
+  Activity,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Tournament, Participant } from '@/types/database';
@@ -53,12 +58,26 @@ export default function DedicatedLiveMatchPage({
   const [loadingMatch, setLoadingMatch] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
 
-  // LiveKit WebRTC State
+  // LiveKit WebRTC Connection & Network State
   const [connectionState, setConnectionState] = useState<
-    'CONNECTING' | 'LIVE' | 'OFFLINE' | 'ENDED' | 'ERROR'
+    'CONNECTING' | 'LIVE' | 'RECONNECTING' | 'OFFLINE' | 'ENDED' | 'ERROR'
   >('CONNECTING');
+  const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(1);
   const [copied, setCopied] = useState(false);
+
+  // Video Quality & Layer Selector States
+  const [selectedQuality, setSelectedQuality] = useState<
+    'auto' | '1080p' | '725p' | '720p' | '480p' | '360p'
+  >('auto');
+  const [activeQualityLabel, setActiveQualityLabel] = useState<string>('Auto');
+  const [availableQualities, setAvailableQualities] = useState<
+    Array<{ label: string; width: number; height: number; quality: VideoQuality }>
+  >([]);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [activeVideoPub, setActiveVideoPub] = useState<RemoteTrackPublication | null>(null);
+  const [trackDimensions, setTrackDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [showDebugHUD, setShowDebugHUD] = useState(false);
 
   // Video Controls State
   const [isMuted, setIsMuted] = useState(true);
@@ -88,6 +107,109 @@ export default function DedicatedLiveMatchPage({
     initialVal: number;
     side: 'left' | 'right';
   } | null>(null);
+
+  // Toggle Debug HUD via query param ?debug=1 or development environment
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('debug') === '1' || process.env.NODE_ENV === 'development') {
+        setShowDebugHUD(true);
+      }
+    }
+  }, []);
+
+  // Parse available LiveKit video quality layers dynamically
+  const parseAvailableQualities = useCallback(
+    (pub: RemoteTrackPublication, track?: RemoteTrack) => {
+      setActiveVideoPub(pub);
+      const layers: Array<{ label: string; width: number; height: number; quality: VideoQuality }> = [];
+
+      if (pub.trackInfo?.layers && pub.trackInfo.layers.length > 0) {
+        pub.trackInfo.layers.forEach((l) => {
+          let label = '360p';
+          let q = VideoQuality.LOW;
+          if (l.height >= 900 || l.width >= 1600) {
+            label = '1080p';
+            q = VideoQuality.HIGH;
+          } else if (l.height >= 600 || l.width >= 1000) {
+            label = '720p';
+            q = VideoQuality.MEDIUM;
+          } else if (l.height >= 400 || l.width >= 700) {
+            label = '480p';
+            q = VideoQuality.LOW;
+          } else {
+            label = '360p';
+            q = VideoQuality.LOW;
+          }
+
+          if (!layers.some((existing) => existing.label === label)) {
+            layers.push({ label, width: l.width || 0, height: l.height || 0, quality: q });
+          }
+        });
+      }
+
+      if (layers.length === 0) {
+        const videoTrackAny = (track || pub.track) as any;
+        const w = (pub as any).dimensions?.width || videoTrackAny?.dimensions?.width || 1280;
+        const h = (pub as any).dimensions?.height || videoTrackAny?.dimensions?.height || 720;
+
+        let topLabel = '720p';
+        if (h >= 900 || w >= 1600) topLabel = '1080p';
+        else if (h >= 600 || w >= 1000) topLabel = '720p';
+        else if (h >= 400 || w >= 700) topLabel = '480p';
+        else topLabel = '360p';
+
+        layers.push({ label: topLabel, width: w, height: h, quality: VideoQuality.HIGH });
+
+        // Add standard scaling options supported by LiveKit SFU downscaling
+        if (h >= 900 || w >= 1600) {
+          if (!layers.some((l) => l.label === '720p'))
+            layers.push({ label: '720p', width: 1280, height: 720, quality: VideoQuality.MEDIUM });
+          if (!layers.some((l) => l.label === '480p'))
+            layers.push({ label: '480p', width: 854, height: 480, quality: VideoQuality.LOW });
+          if (!layers.some((l) => l.label === '360p'))
+            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
+        } else if (h >= 600 || w >= 1000) {
+          if (!layers.some((l) => l.label === '480p'))
+            layers.push({ label: '480p', width: 854, height: 480, quality: VideoQuality.MEDIUM });
+          if (!layers.some((l) => l.label === '360p'))
+            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
+        } else if (h >= 400 || w >= 700) {
+          if (!layers.some((l) => l.label === '360p'))
+            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
+        }
+      }
+
+      layers.sort((a, b) => b.height - a.height);
+      setAvailableQualities(layers);
+    },
+    []
+  );
+
+  // Change Video Quality Layer dynamically
+  const handleSelectQuality = (qualityLabel: 'auto' | '1080p' | '720p' | '480p' | '360p') => {
+    setSelectedQuality(qualityLabel);
+    setShowQualityMenu(false);
+
+    if (!activeVideoPub) return;
+
+    if (qualityLabel === 'auto') {
+      activeVideoPub.setVideoQuality(VideoQuality.HIGH);
+      setActiveQualityLabel('Auto');
+    } else {
+      const targetLayer = availableQualities.find((q) => q.label === qualityLabel);
+      if (targetLayer) {
+        activeVideoPub.setVideoQuality(targetLayer.quality);
+        if (targetLayer.width > 0 && targetLayer.height > 0) {
+          activeVideoPub.setVideoDimensions({
+            width: targetLayer.width,
+            height: targetLayer.height,
+          });
+        }
+        setActiveQualityLabel(qualityLabel);
+      }
+    }
+  };
 
   // 1. Fetch Match Data
   const fetchMatchInfo = async () => {
@@ -249,6 +371,15 @@ export default function DedicatedLiveMatchPage({
       const attachTrack = (track: Track | RemoteTrack) => {
         if (track.kind === Track.Kind.Video && videoRef.current) {
           track.attach(videoRef.current);
+
+          const trackAny = track as any;
+          if (trackAny.dimensions) {
+            setTrackDimensions(trackAny.dimensions);
+          }
+          track.on(TrackEvent.VideoDimensionsChanged, (dims: { width: number; height: number }) => {
+            setTrackDimensions(dims);
+          });
+
           if (videoRef.current) {
             videoRef.current.muted = isMuted;
             videoRef.current.play().catch(() => {
@@ -278,8 +409,11 @@ export default function DedicatedLiveMatchPage({
 
       room.on(
         RoomEvent.TrackSubscribed,
-        (track: RemoteTrack) => {
+        (track: RemoteTrack, pub: RemoteTrackPublication) => {
           attachTrack(track);
+          if (track.kind === Track.Kind.Video) {
+            parseAvailableQualities(pub, track);
+          }
         }
       );
 
@@ -295,6 +429,21 @@ export default function DedicatedLiveMatchPage({
           }
         }
       );
+
+      // Connection Resilience & Network Quality Listeners
+      room.on(RoomEvent.ConnectionQualityChanged, (q, participant) => {
+        if (!participant || participant.identity === room.localParticipant.identity) {
+          setConnectionQuality(q);
+        }
+      });
+
+      room.on(RoomEvent.Reconnecting, () => {
+        setConnectionState('RECONNECTING');
+      });
+
+      room.on(RoomEvent.Reconnected, () => {
+        setConnectionState('LIVE');
+      });
 
       const updateParticipants = () => {
         setViewerCount((room.remoteParticipants.size || 0) + 1);
@@ -319,6 +468,7 @@ export default function DedicatedLiveMatchPage({
             attachTrack(pub.track);
             if (pub.kind === Track.Kind.Video) {
               foundVideo = true;
+              parseAvailableQualities(pub, pub.track);
             }
           }
         }
@@ -354,12 +504,14 @@ export default function DedicatedLiveMatchPage({
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
-    }, 3000);
+      setShowQualityMenu(false);
+    }, 4000);
   }, []);
 
   const handlePlayerTap = () => {
     if (showControls) {
       setShowControls(false);
+      setShowQualityMenu(false);
     } else {
       resetControlsTimeout();
     }
@@ -604,6 +756,17 @@ export default function DedicatedLiveMatchPage({
             className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-[#0B3323]/20 shadow-inner flex items-center justify-center select-none group touch-none"
             style={{ filter: `brightness(${brightness}%)` }}
           >
+            {/* Development Diagnostic HUD */}
+            {showDebugHUD && connectionState === 'LIVE' && (
+              <div className="absolute top-3 left-3 z-30 bg-black/80 backdrop-blur-sm border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-lg">
+                <Activity className="h-3 w-3 text-emerald-400 animate-pulse" />
+                <span>
+                  {trackDimensions ? `${trackDimensions.width}x${trackDimensions.height}` : 'Video'} |{' '}
+                  {selectedQuality.toUpperCase()} | {connectionQuality !== null ? (ConnectionQuality as any)[connectionQuality] || 'OK' : 'OK'}
+                </span>
+              </div>
+            )}
+
             {/* HTML5 Video & Audio Elements (ALWAYS MOUNTED IN DOM FOR WEBRTC) */}
             <video
               ref={videoRef}
@@ -655,6 +818,15 @@ export default function DedicatedLiveMatchPage({
               <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
                 <h3 className="text-xs font-bold text-white">Connecting to live match...</h3>
+              </div>
+            )}
+
+            {/* RECONNECTING Overlay */}
+            {connectionState === 'RECONNECTING' && (
+              <div className="absolute inset-0 bg-black/85 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+                <h3 className="text-xs font-bold text-white">Reconnecting stream...</h3>
+                <p className="text-[10px] text-zinc-400">Restoring network connection</p>
               </div>
             )}
 
@@ -729,8 +901,63 @@ export default function DedicatedLiveMatchPage({
                   </Button>
                 </div>
 
-                {/* Right Controls: PiP & Fullscreen */}
+                {/* Right Controls: Quality Selector, PiP & Fullscreen */}
                 <div className="flex items-center gap-2">
+                  {/* Compact Video Quality Menu */}
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowQualityMenu((prev) => !prev);
+                      }}
+                      className="h-8 px-2 text-white hover:bg-white/20 rounded-xl gap-1 text-xs font-bold"
+                      title="Video Quality"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span className="text-[10px] bg-emerald-600/80 px-1.5 py-0.5 rounded font-mono">
+                        {selectedQuality === 'auto' ? 'Auto' : selectedQuality}
+                      </span>
+                    </Button>
+
+                    {showQualityMenu && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute bottom-10 right-0 w-36 py-1 bg-[#0B3323]/95 backdrop-blur-md border border-emerald-500/30 rounded-xl shadow-2xl z-40 text-xs text-white"
+                      >
+                        <div className="px-3 py-1 text-[10px] font-bold text-emerald-300 uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
+                          <span>⚙ Quality</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectQuality('auto')}
+                          className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors ${
+                            selectedQuality === 'auto' ? 'text-amber-300 font-bold bg-white/5' : 'text-slate-200'
+                          }`}
+                        >
+                          <span>Auto</span>
+                          {selectedQuality === 'auto' && <Check className="h-3.5 w-3.5 text-amber-300" />}
+                        </button>
+
+                        {availableQualities.map((q) => (
+                          <button
+                            key={q.label}
+                            type="button"
+                            onClick={() => handleSelectQuality(q.label as any)}
+                            className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors ${
+                              selectedQuality === q.label ? 'text-amber-300 font-bold bg-white/5' : 'text-slate-200'
+                            }`}
+                          >
+                            <span>{q.label}</span>
+                            {selectedQuality === q.label && <Check className="h-3.5 w-3.5 text-amber-300" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {pipSupported && (
                     <Button
                       variant="ghost"
