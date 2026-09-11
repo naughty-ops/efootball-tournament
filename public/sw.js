@@ -1,9 +1,11 @@
-const CACHE_NAME = 'efootball-pwa-v1';
+const CACHE_NAME = 'efootball-pwa-v2';
 
 // Static App Shell assets to precache
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
+  '/manifest.webmanifest',
+  '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon-maskable.png',
@@ -87,16 +89,18 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) return cachedResponse;
           const appShell = await caches.match('/');
           if (appShell) return appShell;
-          return new Response('Offline', { status: 533, statusText: 'Offline' });
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
         })
     );
     return;
   }
 
-  // 5. Static Assets (CSS, JS, Fonts, Images) -> Stale-while-revalidate / Cache First
+  // 5. Static Assets (CSS, JS, Fonts, Images, Manifest) -> Stale-while-revalidate / Cache First
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/manifest.json' ||
     /\.(png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|css|js)$/i.test(url.pathname)
   ) {
     event.respondWith(

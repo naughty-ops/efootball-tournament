@@ -19,7 +19,6 @@ export const metadata: Metadata = {
     template: '%s | eFootball Tournament Platform',
   },
   description: 'Official portal for eFootball tournaments, fixtures, brackets, standings, and live streaming.',
-  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

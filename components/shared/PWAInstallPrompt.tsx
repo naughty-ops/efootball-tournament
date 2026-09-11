@@ -9,12 +9,20 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+declare global {
+  interface Window {
+    __deferredPWAInstallPrompt?: BeforeInstallPromptEvent | null;
+  }
+}
+
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window === 'undefined') return;
 
     // Check if running in standalone PWA mode
@@ -29,14 +37,22 @@ export default function PWAInstallPrompt() {
       return;
     }
 
+    // Pick up globally captured prompt if event fired before mount
+    if (window.__deferredPWAInstallPrompt) {
+      setDeferredPrompt(window.__deferredPWAInstallPrompt);
+    }
+
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const installEvent = e as BeforeInstallPromptEvent;
+      window.__deferredPWAInstallPrompt = installEvent;
+      setDeferredPrompt(installEvent);
     };
 
     // Listen for appinstalled event
     const handleAppInstalled = () => {
+      window.__deferredPWAInstallPrompt = null;
       setDeferredPrompt(null);
       setIsStandalone(true);
     };
@@ -51,12 +67,16 @@ export default function PWAInstallPrompt() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    const promptEvent = deferredPrompt || (typeof window !== 'undefined' ? window.__deferredPWAInstallPrompt : null);
+    if (!promptEvent) return;
 
     try {
-      await deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
+      await promptEvent.prompt();
+      const choiceResult = await promptEvent.userChoice;
       if (choiceResult.outcome === 'accepted') {
+        if (typeof window !== 'undefined') {
+          window.__deferredPWAInstallPrompt = null;
+        }
         setDeferredPrompt(null);
       }
     } catch (err) {
@@ -64,8 +84,10 @@ export default function PWAInstallPrompt() {
     }
   };
 
-  // Hide if already in standalone mode, dismissed, or installation not available
-  if (isStandalone || isDismissed || !deferredPrompt) {
+  // Hide if not mounted on client, already in standalone mode, dismissed, or installation not available
+  const hasPrompt = deferredPrompt || (typeof window !== 'undefined' && Boolean(window.__deferredPWAInstallPrompt));
+
+  if (!isMounted || isStandalone || isDismissed || !hasPrompt) {
     return null;
   }
 

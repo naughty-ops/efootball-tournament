@@ -2,15 +2,19 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'eFootball Tournament',
     short_name: 'eFootball',
     description: 'Official portal for eFootball tournaments, fixtures, brackets, and live streaming.',
     start_url: '/',
+    scope: '/',
     display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
     background_color: '#F4F8F5',
     theme_color: '#0B3323',
     orientation: 'portrait',
-    scope: '/',
+    categories: ['sports', 'entertainment', 'games'],
+    prefer_related_applications: false,
     icons: [
       {
         src: '/icons/icon-192x192.png',
