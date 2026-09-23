@@ -111,6 +111,26 @@ function formatSupabaseError(error: unknown): string {
 }
 
 /**
+ * Explicitly identify League / Matchday rounds.
+ * Strictly excludes Quarter-Finals, Semi-Finals, Grand Final, or Playoff rounds.
+ */
+export function isLeagueRoundName(name: string): boolean {
+  if (!name) return true;
+  const n = name.toLowerCase().trim();
+  if (
+    n.includes('quarter') ||
+    n.includes('semi') ||
+    n.includes('final') ||
+    n.includes('playoff') ||
+    n.includes('eliminator') ||
+    n.includes('round of')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Fetch full group stage overview for a tournament
  */
 export async function getTournamentGroups(tournamentId: string): Promise<GroupStageOverview> {
@@ -152,7 +172,7 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
       .select('id, name')
       .eq('tournament_id', tournamentId);
     const roundIds = ((rRes.data || []) as { id: string; name: string }[])
-      .filter((r) => !r.name.toLowerCase().includes('quarter') && !r.name.toLowerCase().includes('semi') && !r.name.toLowerCase().includes('final'))
+      .filter((r) => isLeagueRoundName(r.name))
       .map((r) => r.id);
 
     let allLeagueMatches: Match[] = [];

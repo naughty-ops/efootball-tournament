@@ -57,6 +57,29 @@ function formatSupabaseError(error: unknown): string {
 }
 
 /**
+ * Explicitly identify Knockout Playoff rounds.
+ * Strictly excludes Matchday 1..N, Group Stage, or League rounds.
+ */
+export function isKnockoutRoundName(name: string): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase().trim();
+  if (n.includes('matchday') || n.includes('league') || n.includes('group stage')) {
+    return false;
+  }
+  return (
+    n.includes('quarter') ||
+    n.includes('semi') ||
+    n.includes('final') ||
+    n.includes('playoff') ||
+    n.includes('eliminator') ||
+    n.includes('round of') ||
+    n.includes('bracket') ||
+    n.startsWith('qf') ||
+    n.startsWith('sf')
+  );
+}
+
+/**
  * Fetch full bracket data for a tournament
  */
 export async function getTournamentBracket(tournamentId: string): Promise<BracketOverview> {
@@ -76,16 +99,15 @@ export async function getTournamentBracket(tournamentId: string): Promise<Bracke
 
   const participants = (pRes.data || []) as Participant[];
 
-  // 3. Fetch Rounds (Exclude Group Stage Rounds)
+  // 3. Fetch Rounds (ONLY Knockout Rounds - strictly exclude Matchday 1..N and Group Stage)
   const rRes = await (supabase.from('rounds') as unknown as UnknownQuery)
     .select('*')
     .eq('tournament_id', tournamentId)
     .gt('round_number', 0)
     .order('round_number', { ascending: true });
 
-  const rounds = ((rRes.data || []) as Round[]).filter(
-    (r) => !r.name.toLowerCase().includes('group stage') && !r.name.toLowerCase().includes('matchday')
-  );
+  const allRounds = (rRes.data || []) as Round[];
+  const rounds = allRounds.filter((r) => isKnockoutRoundName(r.name));
 
   // For group_knockout / single_league_knockout tournaments, active participants are the qualified ones
   const filteredParticipants =
