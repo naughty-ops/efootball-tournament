@@ -355,7 +355,12 @@ export async function getTournamentStageInfo(tournamentId: string) {
 
     if (knockoutRounds.length > 0) {
       const maxRoundNum = Math.max(...knockoutRounds.map((r) => r.round_number));
-      const finalRound = knockoutRounds.find((r) => r.round_number === maxRoundNum || r.name.toLowerCase().includes('final'));
+      const finalRound =
+        knockoutRounds.find((r) => r.round_number === maxRoundNum) ||
+        knockoutRounds.find((r) => {
+          const n = r.name.toLowerCase().trim();
+          return n === 'grand final' || n === 'final' || n === 'finals';
+        });
       if (finalRound) {
         finalMatch = knockoutMatches.find((m) => m.round_id === finalRound.id) || null;
         if (finalMatch?.status === 'completed' || finalMatch?.status === 'walkover') {

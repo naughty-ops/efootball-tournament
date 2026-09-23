@@ -150,7 +150,7 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
     for (const r of rounds) {
       if (r.matches.length === 0) continue;
       const isCompleted = r.matches.length > 0 && r.matches.every((m) => m.status === 'completed' || m.status === 'walkover');
-      const isFinal = r.name.toLowerCase().includes('final');
+      const isFinal = r.name.toLowerCase().includes('grand final') || r.name.toLowerCase() === 'final';
 
       matchdaySections.push({
         id: r.id,

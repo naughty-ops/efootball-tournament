@@ -451,7 +451,12 @@ export default function SymmetricalKnockoutBracket({
   const runnerUp = tournament.runnerUpUser;
 
   const maxRoundNumber = Math.max(...rounds.map((r) => r.round_number));
-  const grandFinalRound = rounds.find((r) => r.round_number === maxRoundNumber || r.name.toLowerCase().includes('final'));
+  const grandFinalRound =
+    rounds.find((r) => r.round_number === maxRoundNumber) ||
+    rounds.find((r) => {
+      const n = r.name.toLowerCase().trim();
+      return n === 'grand final' || n === 'final' || n === 'finals';
+    });
   const grandFinalMatch = grandFinalRound?.matches[0];
 
   // Calculate Real Completion Metrics
