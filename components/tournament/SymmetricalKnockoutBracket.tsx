@@ -43,9 +43,22 @@ type FilterStatus = 'all' | 'live' | 'upcoming' | 'completed' | 'current';
 /**
  * Helper to compute smart placeholder for TBD slots (e.g. "WINNER OF M01")
  */
-function getSmartPlaceholder(match: FullMatchData, isSlotA: boolean): string {
+function getSmartPlaceholder(match: FullMatchData, isSlotA: boolean, roundName?: string): string {
   if (match.notes && match.notes.includes('BYE')) return 'BYE (Auto-Advance)';
-  // Derive parent match number based on match_position
+
+  const rName = (roundName || '').toLowerCase();
+  if (rName.includes('grand final') || rName === 'final') {
+    return isSlotA ? 'WINNER OF SF1' : 'WINNER OF SF2';
+  }
+  if (rName.includes('semi')) {
+    if (match.match_position === 1) {
+      return isSlotA ? 'WINNER OF QF1' : 'WINNER OF QF2';
+    }
+    if (match.match_position === 2) {
+      return isSlotA ? 'WINNER OF QF3' : 'WINNER OF QF4';
+    }
+  }
+
   const parentMatchNumber = isSlotA
     ? match.match_position * 2 - 1
     : match.match_position * 2;
@@ -65,6 +78,7 @@ function PlayerSlot({
   isLive,
   isSlotA,
   match,
+  roundName,
   hoveredParticipantId,
   onHoverParticipant,
   onClickSlot,
@@ -79,6 +93,7 @@ function PlayerSlot({
   isLive: boolean;
   isSlotA: boolean;
   match: FullMatchData;
+  roundName?: string;
   hoveredParticipantId: string | null;
   onHoverParticipant: (id: string | null) => void;
   onClickSlot?: () => void;
@@ -93,7 +108,7 @@ function PlayerSlot({
     return name.slice(0, 2).toUpperCase();
   };
 
-  const placeholderText = getSmartPlaceholder(match, isSlotA);
+  const placeholderText = getSmartPlaceholder(match, isSlotA, roundName);
 
   return (
     <div
@@ -196,6 +211,7 @@ function PlayerSlot({
  */
 function MatchCard({
   match,
+  roundName,
   isFinalMatch = false,
   isAdmin = false,
   hoveredParticipantId,
@@ -205,6 +221,7 @@ function MatchCard({
   onMatchClick,
 }: {
   match: FullMatchData;
+  roundName?: string;
   isFinalMatch?: boolean;
   isAdmin?: boolean;
   hoveredParticipantId: string | null;
@@ -302,6 +319,7 @@ function MatchCard({
           isLive={isLive}
           isSlotA={true}
           match={match}
+          roundName={roundName}
           hoveredParticipantId={hoveredParticipantId}
           onHoverParticipant={onHoverParticipant}
           onClickSlot={isAdmin && onEditSlot ? () => onEditSlot(match, 'participant_a') : undefined}
@@ -318,6 +336,7 @@ function MatchCard({
           isLive={isLive}
           isSlotA={false}
           match={match}
+          roundName={roundName}
           hoveredParticipantId={hoveredParticipantId}
           onHoverParticipant={onHoverParticipant}
           onClickSlot={isAdmin && onEditSlot ? () => onEditSlot(match, 'participant_b') : undefined}
@@ -670,6 +689,7 @@ export default function SymmetricalKnockoutBracket({
                         <MatchCard
                           key={m.id}
                           match={m}
+                          roundName={round.name}
                           isAdmin={isAdmin}
                           hoveredParticipantId={hoveredParticipantId}
                           onHoverParticipant={setHoveredParticipantId}
@@ -734,6 +754,7 @@ export default function SymmetricalKnockoutBracket({
 
                   <MatchCard
                     match={grandFinalMatch}
+                    roundName={grandFinalRound?.name}
                     isFinalMatch={true}
                     isAdmin={isAdmin}
                     hoveredParticipantId={hoveredParticipantId}
@@ -771,6 +792,7 @@ export default function SymmetricalKnockoutBracket({
                         <MatchCard
                           key={m.id}
                           match={m}
+                          roundName={round.name}
                           isAdmin={isAdmin}
                           hoveredParticipantId={hoveredParticipantId}
                           onHoverParticipant={setHoveredParticipantId}
@@ -823,6 +845,7 @@ export default function SymmetricalKnockoutBracket({
                   <MatchCard
                     key={m.id}
                     match={m}
+                    roundName={rounds[activeMobileRoundIdx].name}
                     isFinalMatch={m.round_id === grandFinalRound?.id}
                     isAdmin={isAdmin}
                     hoveredParticipantId={hoveredParticipantId}

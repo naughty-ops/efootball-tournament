@@ -28,6 +28,25 @@ export interface StageInfo {
   allowedActions: string[];
 }
 
+export function isKnockoutRoundName(name: string): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase().trim();
+  if (n.includes('matchday') || n.includes('league') || n.includes('group stage') || n.startsWith('md')) {
+    return false;
+  }
+  return (
+    n.includes('quarter') ||
+    n.includes('semi') ||
+    n.includes('final') ||
+    n.includes('playoff') ||
+    n.includes('eliminator') ||
+    n.includes('round of') ||
+    n.includes('bracket') ||
+    n.startsWith('qf') ||
+    n.startsWith('sf')
+  );
+}
+
 /**
  * Determine exact tournament sub-stage from tournament data, matches, rounds, and groups
  */
@@ -40,10 +59,16 @@ export function getTournamentSubStage(
   if (tournament.status === 'draft') return 'draft';
   if (tournament.status === 'registration') return 'registration';
 
-  // Ongoing status handling
-  const knockoutMatches = matches.filter((m) => (m.group_id === null || m.group_id === undefined) && m.round_id !== null && m.round_id !== undefined);
+  const roundMap = new Map<string, Round>(rounds.map((r) => [r.id, r]));
 
-  if (tournament.format === 'group_knockout') {
+  // Ongoing status handling: ONLY consider matches belonging to explicit Knockout rounds
+  const knockoutMatches = matches.filter((m) => {
+    if (!m.round_id) return false;
+    const r = roundMap.get(m.round_id);
+    return r ? isKnockoutRoundName(r.name) : false;
+  });
+
+  if (tournament.format === 'group_knockout' || (tournament.format as string) === 'single_league_knockout') {
     if (knockoutMatches.length === 0) {
       if (!tournament.is_group_stage_finalized) {
         return 'group_stage';
@@ -55,11 +80,11 @@ export function getTournamentSubStage(
   // Knockout phase
   if (knockoutMatches.length > 0) {
     const knockoutRoundIds = new Set(knockoutMatches.map((m) => m.round_id).filter(Boolean));
-    const knockoutRounds = rounds.filter((r) => knockoutRoundIds.has(r.id));
+    const knockoutRounds = rounds.filter((r) => knockoutRoundIds.has(r.id) && isKnockoutRoundName(r.name));
 
     if (knockoutRounds.length > 0) {
       const maxRoundNum = Math.max(...knockoutRounds.map((r) => r.round_number));
-      const finalRound = knockoutRounds.find((r) => r.round_number === maxRoundNum);
+      const finalRound = knockoutRounds.find((r) => r.round_number === maxRoundNum || r.name.toLowerCase().includes('final'));
       const finalMatch = finalRound ? knockoutMatches.find((m) => m.round_id === finalRound.id) : null;
 
       if (finalMatch && (finalMatch.status === 'completed' || finalMatch.status === 'walkover')) {

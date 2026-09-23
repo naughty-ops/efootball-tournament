@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Tournament, TournamentStatus, TournamentFormat, Participant, Group, Round, Match } from '@/types/database';
 import type { TournamentInput } from '@/lib/validations';
-import { getTournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
+import { getTournamentSubStage, isKnockoutRoundName } from '@/lib/lifecycle/lifecycleEngine';
 import { FullMatchData } from '@/services/matchService';
 import { generateKnockoutBracket, getTournamentBracket } from '@/services/bracketService';
 import { getTournamentGroups, setupTournamentGroups } from '@/services/groupService';
@@ -320,8 +320,20 @@ export async function getTournamentStageInfo(tournamentId: string) {
 
   const subStage = getTournamentSubStage(t, mList, rList);
 
-  const groupMatches = mList.filter((m) => m.group_id !== null && m.group_id !== undefined);
-  const knockoutMatches = mList.filter((m) => (m.group_id === null || m.group_id === undefined) && m.round_id !== null && m.round_id !== undefined);
+  const roundMap = new Map<string, Round>(rList.map((r) => [r.id, r]));
+
+  const groupMatches = mList.filter((m) => {
+    if (m.group_id) return true;
+    if (!m.round_id) return false;
+    const r = roundMap.get(m.round_id);
+    return r ? !isKnockoutRoundName(r.name) : true;
+  });
+
+  const knockoutMatches = mList.filter((m) => {
+    if (!m.round_id) return false;
+    const r = roundMap.get(m.round_id);
+    return r ? isKnockoutRoundName(r.name) : false;
+  });
 
   const groupMatchesTotal = groupMatches.length;
   const groupMatchesCompleted = groupMatches.filter(
@@ -339,17 +351,19 @@ export async function getTournamentStageInfo(tournamentId: string) {
 
   if (knockoutMatches.length > 0) {
     const knockoutRoundIds = new Set(knockoutMatches.map((m) => m.round_id).filter(Boolean));
-    const knockoutRounds = rList.filter((r) => knockoutRoundIds.has(r.id));
+    const knockoutRounds = rList.filter((r) => knockoutRoundIds.has(r.id) && isKnockoutRoundName(r.name));
 
     if (knockoutRounds.length > 0) {
       const maxRoundNum = Math.max(...knockoutRounds.map((r) => r.round_number));
-      const finalRound = knockoutRounds.find((r) => r.round_number === maxRoundNum);
+      const finalRound = knockoutRounds.find((r) => r.round_number === maxRoundNum || r.name.toLowerCase().includes('final'));
       if (finalRound) {
         finalMatch = knockoutMatches.find((m) => m.round_id === finalRound.id) || null;
-        if (finalMatch?.winnerUser) {
-          finalWinner = finalMatch.winnerUser;
-        } else if (finalMatch?.winner_id) {
-          finalWinner = participantMap.get(finalMatch.winner_id) || null;
+        if (finalMatch?.status === 'completed' || finalMatch?.status === 'walkover') {
+          if (finalMatch?.winnerUser) {
+            finalWinner = finalMatch.winnerUser;
+          } else if (finalMatch?.winner_id) {
+            finalWinner = participantMap.get(finalMatch.winner_id) || null;
+          }
         }
       }
     }
