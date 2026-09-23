@@ -149,9 +149,11 @@ export async function getTournamentGroups(tournamentId: string): Promise<GroupSt
   if (groups.length === 0) {
     // Fetch all rounds & matches for pure league / single-table format
     const rRes = await (supabase.from('rounds') as unknown as UnknownQuery)
-      .select('id')
+      .select('id, name')
       .eq('tournament_id', tournamentId);
-    const roundIds = ((rRes.data || []) as { id: string }[]).map((r) => r.id);
+    const roundIds = ((rRes.data || []) as { id: string; name: string }[])
+      .filter((r) => !r.name.toLowerCase().includes('quarter') && !r.name.toLowerCase().includes('semi') && !r.name.toLowerCase().includes('final'))
+      .map((r) => r.id);
 
     let allLeagueMatches: Match[] = [];
     if (roundIds.length > 0) {

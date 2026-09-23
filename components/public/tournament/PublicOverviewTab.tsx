@@ -17,7 +17,8 @@ interface PublicOverviewTabProps {
 
 function formatTournamentFormat(format: string) {
   switch (format) {
-    case 'group_knockout': return 'Group Stage → Knockout';
+    case 'group_knockout':
+    case 'single_league_knockout': return 'League + Knockout';
     case 'knockout': return 'Single Elimination Knockout';
     case 'league': return 'League / Round Robin';
     default: return format.replace(/_/g, ' ');

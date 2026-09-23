@@ -84,12 +84,12 @@ export async function getTournamentBracket(tournamentId: string): Promise<Bracke
     .order('round_number', { ascending: true });
 
   const rounds = ((rRes.data || []) as Round[]).filter(
-    (r) => !r.name.toLowerCase().includes('group stage')
+    (r) => !r.name.toLowerCase().includes('group stage') && !r.name.toLowerCase().includes('matchday')
   );
 
-  // For group_knockout tournaments, active participants are the qualified ones
+  // For group_knockout / single_league_knockout tournaments, active participants are the qualified ones
   const filteredParticipants =
-    tournament.format === 'group_knockout'
+    tournament.format === 'group_knockout' || (tournament.format as string) === 'single_league_knockout'
       ? participants.filter((p) => p.status === 'active')
       : participants;
 

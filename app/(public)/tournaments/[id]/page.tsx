@@ -36,7 +36,8 @@ type TabKey = 'overview' | 'participants' | 'groups' | 'matches' | 'bracket';
 
 function formatTournamentFormat(format: string) {
   switch (format) {
-    case 'group_knockout': return 'Group + Knockout';
+    case 'group_knockout':
+    case 'single_league_knockout': return 'League + Knockout';
     case 'knockout': return 'Knockout';
     case 'league': return 'League';
     default: return format.replace(/_/g, ' ');
