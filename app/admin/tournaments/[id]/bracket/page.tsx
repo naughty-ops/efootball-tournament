@@ -253,55 +253,60 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Action Controls */}
-        {isKnockout && (
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <Button asChild className="rounded-xl text-xs font-black gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md hover:from-emerald-700 hover:to-teal-800">
+            <Link href={`/admin/tournaments/${tournament.id}/bracket/customize`}>
+              <Zap className="h-3.5 w-3.5" />
+              <span>⚡ Open Knockout Customizer</span>
+            </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchBracketData}
+            disabled={actionLoading}
+            className="rounded-xl text-xs gap-1.5 font-semibold border-border"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Refresh</span>
+          </Button>
+
+          {rounds.length === 0 ? (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchBracketData}
-              disabled={actionLoading}
-              className="rounded-xl text-xs gap-1.5 font-semibold border-border"
+              onClick={handleGenerate}
+              disabled={actionLoading || participants.length < 2}
+              className="rounded-xl text-xs font-bold gap-2 shadow-md"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Refresh</span>
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+              <span>Generate Bracket</span>
             </Button>
-
-            {rounds.length === 0 ? (
+          ) : (
+            <>
               <Button
-                onClick={handleGenerate}
-                disabled={actionLoading || participants.length < 2}
-                className="rounded-xl text-xs font-bold gap-2 shadow-md"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRegenerateModalOpen(true)}
+                disabled={actionLoading}
+                className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary hover:text-white"
               >
-                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                <span>Generate Bracket</span>
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Regenerate</span>
               </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsRegenerateModalOpen(true)}
-                  disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Regenerate</span>
-                </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsResetModalOpen(true)}
-                  disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-destructive text-destructive hover:bg-destructive/10"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Reset</span>
-                </Button>
-              </>
-            )}
-          </div>
-        )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsResetModalOpen(true)}
+                disabled={actionLoading}
+                className="rounded-xl text-xs font-bold gap-1.5 border-destructive text-destructive hover:bg-destructive/10"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Format Guard Warning if not Knockout */}
