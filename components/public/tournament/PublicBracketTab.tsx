@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { BracketOverview, FullMatchData } from '@/services/bracketService';
-import SymmetricalKnockoutBracket from '@/components/tournament/SymmetricalKnockoutBracket';
+import SymmetricalKnockoutBracket, { isKnockoutRoundName } from '@/components/tournament/SymmetricalKnockoutBracket';
 import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 
 interface PublicBracketTabProps {
@@ -13,10 +13,20 @@ export default function PublicBracketTab({ bracket }: PublicBracketTabProps) {
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<FullMatchData | null>(null);
 
+  const sanitizedBracket = React.useMemo(() => {
+    if (!bracket || !bracket.rounds) return bracket;
+    const knockoutRounds = bracket.rounds.filter((r) => isKnockoutRoundName(r.name));
+    return {
+      ...bracket,
+      rounds: knockoutRounds,
+      totalRounds: knockoutRounds.length,
+    };
+  }, [bracket]);
+
   return (
     <div className="space-y-6">
       <SymmetricalKnockoutBracket
-        bracket={bracket}
+        bracket={sanitizedBracket}
         isAdmin={false}
         onMatchClick={(m) => setSelectedMatch(m)}
         onReopenCelebration={() => setShowCelebration(true)}

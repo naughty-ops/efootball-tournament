@@ -367,6 +367,29 @@ function MatchCard({
 /**
  * Main Symmetrical Knockout Bracket System Component
  */
+/**
+ * Explicitly identify Knockout Playoff rounds.
+ * Strictly excludes Matchday 1..N, Group Stage, or League rounds.
+ */
+export function isKnockoutRoundName(name: string): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase().trim();
+  if (n.includes('matchday') || n.includes('league') || n.includes('group stage') || n.startsWith('md')) {
+    return false;
+  }
+  return (
+    n.includes('quarter') ||
+    n.includes('semi') ||
+    n.includes('final') ||
+    n.includes('playoff') ||
+    n.includes('eliminator') ||
+    n.includes('round of') ||
+    n.includes('bracket') ||
+    n.startsWith('qf') ||
+    n.startsWith('sf')
+  );
+}
+
 export default function SymmetricalKnockoutBracket({
   bracket,
   isAdmin = false,
@@ -380,7 +403,16 @@ export default function SymmetricalKnockoutBracket({
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [hoveredParticipantId, setHoveredParticipantId] = useState<string | null>(null);
 
-  if (!bracket || bracket.rounds.length === 0 || bracket.status === 'Not Generated') {
+  // Defense-in-Depth Filtering: Ensure SymmetricalKnockoutBracket ONLY operates on Knockout Playoff rounds.
+  // Strictly excludes Matchday 1..N, Group Stage, and League rounds.
+  const rounds = useMemo(() => {
+    if (!bracket || !bracket.rounds) return [];
+    return bracket.rounds
+      .filter((r) => isKnockoutRoundName(r.name))
+      .sort((a, b) => a.round_number - b.round_number);
+  }, [bracket]);
+
+  if (!bracket || rounds.length === 0 || bracket.status === 'Not Generated') {
     return (
       <Card className="border-dashed border-2 border-slate-200 bg-white p-12 text-center rounded-3xl">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 mb-4 border border-emerald-200 shadow-2xs">
@@ -394,13 +426,13 @@ export default function SymmetricalKnockoutBracket({
     );
   }
 
-  const { rounds, totalRounds, bracketSize, byesCount, tournament } = bracket;
+  const { tournament } = bracket;
   const isCompleted = tournament.status === 'completed';
   const champion = tournament.championUser;
   const runnerUp = tournament.runnerUpUser;
 
   const maxRoundNumber = Math.max(...rounds.map((r) => r.round_number));
-  const grandFinalRound = rounds.find((r) => r.round_number === maxRoundNumber);
+  const grandFinalRound = rounds.find((r) => r.round_number === maxRoundNumber || r.name.toLowerCase().includes('final'));
   const grandFinalMatch = grandFinalRound?.matches[0];
 
   // Calculate Real Completion Metrics
