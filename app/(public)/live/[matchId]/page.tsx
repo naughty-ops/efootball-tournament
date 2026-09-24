@@ -38,6 +38,8 @@ import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Tournament, Participant } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LiveMatchPredictionsWidget } from '@/components/public/live/LiveMatchPredictionsWidget';
+import { ViewerSessionTracker } from '@/components/public/live/ViewerSessionTracker';
 
 interface FullLiveMatchData {
   match: Match;
@@ -985,6 +987,21 @@ export default function DedicatedLiveMatchPage({
           </div>
         </div>
       </div>
+
+      {/* Viewer Session Tracking (Background) */}
+      <ViewerSessionTracker matchId={matchId} />
+
+      {/* Live Match Prediction Widget */}
+      {matchData && (
+        <LiveMatchPredictionsWidget
+          matchId={matchId}
+          participantA={matchData.participantA}
+          participantB={matchData.participantB}
+          isMatchCompleted={matchData.match.status === 'completed' || matchData.match.status === 'walkover'}
+          isMatchLive={matchData.match.status === 'live'}
+          matchWinnerId={matchData.match.winner_id}
+        />
+      )}
     </div>
   );
 }

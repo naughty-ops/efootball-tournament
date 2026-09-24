@@ -280,6 +280,76 @@ export interface Database {
           created_at?: string;
         };
       };
+      match_predictions: {
+        Row: {
+          id: string;
+          match_id: string;
+          user_id: string;
+          predicted_player_id: string;
+          predicted_at: string;
+          locked_at: string | null;
+          result: 'pending' | 'correct' | 'wrong' | 'void';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_id: string;
+          user_id: string;
+          predicted_player_id: string;
+          predicted_at?: string;
+          locked_at?: string | null;
+          result?: 'pending' | 'correct' | 'wrong' | 'void';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_id?: string;
+          user_id?: string;
+          predicted_player_id?: string;
+          predicted_at?: string;
+          locked_at?: string | null;
+          result?: 'pending' | 'correct' | 'wrong' | 'void';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      live_viewer_sessions: {
+        Row: {
+          id: string;
+          match_id: string;
+          user_id: string | null;
+          session_id: string;
+          device_type: string;
+          joined_at: string;
+          left_at: string | null;
+          duration_seconds: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_id: string;
+          user_id?: string | null;
+          session_id: string;
+          device_type?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          duration_seconds?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_id?: string;
+          user_id?: string | null;
+          session_id?: string;
+          device_type?: string;
+          joined_at?: string;
+          left_at?: string | null;
+          duration_seconds?: number;
+          created_at?: string;
+        };
+      };
     };
   };
 }
@@ -292,6 +362,20 @@ export type Round = Database['public']['Tables']['rounds']['Row'];
 export type Match = Database['public']['Tables']['matches']['Row'];
 export type KnockoutBracketDraft = Database['public']['Tables']['knockout_bracket_drafts']['Row'];
 export type KnockoutBracketLog = Database['public']['Tables']['knockout_bracket_logs']['Row'];
+export type MatchPrediction = Database['public']['Tables']['match_predictions']['Row'];
+export type LiveViewerSession = Database['public']['Tables']['live_viewer_sessions']['Row'];
+
+export interface PredictionAggregateStats {
+  totalPredictions: number;
+  playerACount: number;
+  playerBCount: number;
+  playerAPercent: number;
+  playerBPercent: number;
+  correctCount: number;
+  wrongCount: number;
+  voidCount: number;
+  isLocked: boolean;
+}
 
 export interface DraftMatchNode {
   id: string;
@@ -328,4 +412,5 @@ export interface BracketValidationResult {
   warnings: string[];
   impactedCompletedMatches: string[];
 }
+
 

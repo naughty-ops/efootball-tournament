@@ -285,6 +285,26 @@ export default function AdminMatchCenterPage() {
             Centralized tournament fixture control, live score updates, and match results.
           </p>
         </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+            <Link href="/admin/matches/analytics">
+              <span>Live Analytics</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+            <Link href="/admin/matches/viewers">
+              <span>Viewer History</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+            <Link href="/admin/matches/predictions">
+              <span>Predictions</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Dynamic Summary Stats Cards */}

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Participant, MatchStatus, Tournament } from '@/types/database';
 import type { MatchResultInput } from '@/lib/validations';
 import { finalizeGroupStage, prepareKnockoutFromGroups, getGroupKnockoutTransitionPreview, getTournamentGroups } from '@/services/groupService';
+import { settleMatchPredictions } from '@/services/predictionService';
 
 export interface FullMatchData extends Match {
   participantAUser?: Participant | null;
@@ -562,6 +563,13 @@ export async function submitMatchResult(
 
   if (updateErr) {
     throw new Error(`Failed to submit match result: ${formatSupabaseError(updateErr)}`);
+  }
+
+  // Settle predictions idempotently for completed match
+  try {
+    await settleMatchPredictions(matchId);
+  } catch (settleErr) {
+    console.error('Prediction settlement note:', settleErr);
   }
 
   // 1.5. AUTOMATIC GROUP-TO-KNOCKOUT SHIFT IF ALL GROUP MATCHES ARE FINISHED
