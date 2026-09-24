@@ -22,6 +22,28 @@ interface LiveMatchPredictionsWidgetProps {
   matchWinnerId?: string | null;
 }
 
+function getOrCreateVisitorId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem('ef_visitor_uuid');
+  if (!id) {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      id = crypto.randomUUID();
+    } else {
+      id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+    try {
+      localStorage.setItem('ef_visitor_uuid', id);
+    } catch {
+      // Fallback if localStorage is disabled/blocked
+    }
+  }
+  return id;
+}
+
 export function LiveMatchPredictionsWidget({
   matchId,
   participantA,
@@ -38,8 +60,9 @@ export function LiveMatchPredictionsWidget({
 
   const fetchPredictionData = useCallback(async () => {
     try {
+      const visitorId = getOrCreateVisitorId();
       const [uPred, pStats] = await Promise.all([
-        getUserPrediction(matchId),
+        getUserPrediction(matchId, visitorId),
         getMatchPredictionStats(matchId, participantA?.id, participantB?.id),
       ]);
       setUserPred(uPred);
@@ -62,7 +85,8 @@ export function LiveMatchPredictionsWidget({
     setError(null);
 
     try {
-      const updated = await submitOrUpdatePrediction(matchId, predictedPlayerId);
+      const visitorId = getOrCreateVisitorId();
+      const updated = await submitOrUpdatePrediction(matchId, predictedPlayerId, visitorId);
       setUserPred(updated);
       await fetchPredictionData();
     } catch (err) {

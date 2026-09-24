@@ -25,19 +25,31 @@ function formatSupabaseError(error: unknown): string {
 }
 
 /**
- * Submit or update a user prediction with server-side validation & lock checks
+ * Submit or update a user/visitor prediction with server-side validation & lock checks
  */
 export async function submitOrUpdatePrediction(
   matchId: string,
-  predictedPlayerId: string
+  predictedPlayerId: string,
+  visitorId?: string
 ): Promise<MatchPrediction> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let activeUserId: string | null = null;
 
-  if (!user) {
-    throw new Error('You must be signed in to submit a match prediction.');
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) activeUserId = user.id;
+  } catch {
+    // Non-fatal if unauthenticated
+  }
+
+  if (!activeUserId && visitorId) {
+    activeUserId = visitorId;
+  }
+
+  if (!activeUserId) {
+    throw new Error('Unable to identify visitor session for prediction.');
   }
 
   // 1. Authoritative Match Check
@@ -69,7 +81,7 @@ export async function submitOrUpdatePrediction(
   )
     .select('*')
     .eq('match_id', matchId)
-    .eq('user_id', user.id)
+    .eq('user_id', activeUserId)
     .single();
 
   const predObj = existingPred as MatchPrediction | null;
@@ -81,7 +93,7 @@ export async function submitOrUpdatePrediction(
   const now = new Date().toISOString();
   const payload = {
     match_id: matchId,
-    user_id: user.id,
+    user_id: activeUserId,
     predicted_player_id: predictedPlayerId,
     predicted_at: now,
     result: 'pending',
@@ -104,15 +116,29 @@ export async function submitOrUpdatePrediction(
 }
 
 /**
- * Fetch prediction of current authenticated user for a match
+ * Fetch prediction of current authenticated user or visitor for a match
  */
-export async function getUserPrediction(matchId: string): Promise<MatchPrediction | null> {
+export async function getUserPrediction(
+  matchId: string,
+  visitorId?: string
+): Promise<MatchPrediction | null> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let activeUserId: string | null = null;
 
-  if (!user) return null;
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) activeUserId = user.id;
+  } catch {
+    // Ignore error
+  }
+
+  if (!activeUserId && visitorId) {
+    activeUserId = visitorId;
+  }
+
+  if (!activeUserId) return null;
 
   try {
     const { data, error } = await (
@@ -120,7 +146,7 @@ export async function getUserPrediction(matchId: string): Promise<MatchPredictio
     )
       .select('*')
       .eq('match_id', matchId)
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .single();
 
     if (!error && data) {
