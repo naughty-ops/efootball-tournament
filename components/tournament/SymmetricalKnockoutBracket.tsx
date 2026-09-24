@@ -183,7 +183,7 @@ function PlayerSlot({
             WIN
           </Badge>
         )}
-        {isCompleted || isLive ? (
+        {score !== null && score !== undefined ? (
           <span
             className={cn(
               'h-7 w-7 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs transition-all',
@@ -191,10 +191,12 @@ function PlayerSlot({
                 ? 'bg-emerald-600 text-white border-emerald-500 scale-105'
                 : isLive
                 ? 'bg-rose-100 text-rose-700 border-rose-300 font-extrabold'
+                : isCompleted
+                ? 'bg-slate-100 text-slate-900 border-slate-300'
                 : 'bg-slate-100 text-slate-700 border-slate-200'
             )}
           >
-            {score ?? 0}
+            {score}
           </span>
         ) : (
           <span className="h-7 w-7 rounded-lg flex items-center justify-center text-xs text-slate-300 bg-slate-50 border border-slate-200 font-mono">

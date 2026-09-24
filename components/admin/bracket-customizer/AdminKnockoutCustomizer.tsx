@@ -619,18 +619,35 @@ export default function AdminKnockoutCustomizer({
                             </span>
                           </div>
 
-                          {playerA && !isSwapMode && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleClearSlot(round.id, m.id, 'participant_a');
-                              }}
-                              className="text-slate-300 hover:text-rose-600 p-0.5"
-                              title="Clear Slot"
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {m.winner_id === m.participant_a && m.participant_a && (
+                              <Badge className="bg-emerald-600 text-white text-[8px] font-black px-1 py-0 border-0 uppercase">
+                                WIN
+                              </Badge>
+                            )}
+                            <span
+                              className={cn(
+                                'h-6 w-6 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs',
+                                m.winner_id === m.participant_a && m.participant_a
+                                  ? 'bg-emerald-600 text-white border-emerald-500'
+                                  : 'bg-slate-100 text-slate-800 border-slate-200'
+                              )}
                             >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                              {m.score_a ?? 0}
+                            </span>
+                            {playerA && !isSwapMode && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearSlot(round.id, m.id, 'participant_a');
+                                }}
+                                className="text-slate-300 hover:text-rose-600 p-0.5"
+                                title="Clear Slot"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* SLOT B Drop Zone */}
@@ -665,18 +682,35 @@ export default function AdminKnockoutCustomizer({
                             </span>
                           </div>
 
-                          {playerB && !isSwapMode && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleClearSlot(round.id, m.id, 'participant_b');
-                              }}
-                              className="text-slate-300 hover:text-rose-600 p-0.5"
-                              title="Clear Slot"
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {m.winner_id === m.participant_b && m.participant_b && (
+                              <Badge className="bg-emerald-600 text-white text-[8px] font-black px-1 py-0 border-0 uppercase">
+                                WIN
+                              </Badge>
+                            )}
+                            <span
+                              className={cn(
+                                'h-6 w-6 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs',
+                                m.winner_id === m.participant_b && m.participant_b
+                                  ? 'bg-emerald-600 text-white border-emerald-500'
+                                  : 'bg-slate-100 text-slate-800 border-slate-200'
+                              )}
                             >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                              {m.score_b ?? 0}
+                            </span>
+                            {playerB && !isSwapMode && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearSlot(round.id, m.id, 'participant_b');
+                                }}
+                                className="text-slate-300 hover:text-rose-600 p-0.5"
+                                title="Clear Slot"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Match Routing Footer */}
