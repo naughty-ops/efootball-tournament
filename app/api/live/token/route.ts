@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { AccessToken } from 'livekit-server-sdk';
+import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse, buildRateLimitHeaders } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,11 +9,12 @@ const DEFAULT_LIVEKIT_URL = 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
 const DEFAULT_API_KEY = 'API57Y48Vmbn4nm';
 const DEFAULT_API_SECRET = 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
 
-function getCorsHeaders() {
+function getCorsHeaders(rateLimitHeaders?: Record<string, string>) {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    ...(rateLimitHeaders || {}),
   };
 }
 
@@ -21,6 +23,15 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`token_${ip}`, RATE_LIMIT_RULES.tokens);
+
+  if (!rateLimitResult.success) {
+    return createRateLimitErrorResponse(rateLimitResult);
+  }
+
+  const rateLimitHeaders = buildRateLimitHeaders(rateLimitResult);
+
   try {
     const body = await request.json().catch(() => ({}));
     const room = body.room || 'efootball-live-test';
@@ -53,16 +64,25 @@ export async function POST(request: Request) {
         room,
         identity,
       },
-      { headers: getCorsHeaders() }
+      { headers: getCorsHeaders(rateLimitHeaders) }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit viewer token:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
+    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders(rateLimitHeaders) });
   }
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`token_${ip}`, RATE_LIMIT_RULES.tokens);
+
+  if (!rateLimitResult.success) {
+    return createRateLimitErrorResponse(rateLimitResult);
+  }
+
+  const rateLimitHeaders = buildRateLimitHeaders(rateLimitResult);
+
   try {
     const { searchParams } = new URL(request.url);
     const room = searchParams.get('room') || 'efootball-live-test';
@@ -95,11 +115,12 @@ export async function GET(request: Request) {
         room,
         identity,
       },
-      { headers: getCorsHeaders() }
+      { headers: getCorsHeaders(rateLimitHeaders) }
     );
   } catch (error: unknown) {
     console.error('Error generating LiveKit viewer token:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders() });
+    return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders(rateLimitHeaders) });
   }
 }
+
