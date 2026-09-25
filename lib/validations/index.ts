@@ -83,20 +83,48 @@ export const participantSchema = z.object({
 
 export type ParticipantInput = z.infer<typeof participantSchema>;
 
-export const matchResultSchema = z.object({
-  score_a: z
-    .number({ message: 'Score for Participant A is required' })
-    .int('Score must be a whole number')
-    .min(0, 'Score cannot be negative'),
-  score_b: z
-    .number({ message: 'Score for Participant B is required' })
-    .int('Score must be a whole number')
-    .min(0, 'Score cannot be negative'),
-  result_type: z.enum(['normal', 'walkover', 'disqualification'], {
-    message: 'Please select a valid result type',
-  }),
-  walkover_winner_id: z.string().optional().nullable(),
-  notes: z.string().max(500, 'Notes must not exceed 500 characters').optional().nullable(),
-});
+export const matchResultSchema = z
+  .object({
+    score_a: z
+      .number({ message: 'Score for Participant A is required' })
+      .int('Score must be a whole number')
+      .min(0, 'Score cannot be negative'),
+    score_b: z
+      .number({ message: 'Score for Participant B is required' })
+      .int('Score must be a whole number')
+      .min(0, 'Score cannot be negative'),
+    decided_by: z.enum(['normal', 'penalties', 'extra_time']).optional().nullable(),
+    penalty_score_a: z
+      .number({ message: 'Penalty score A must be a number' })
+      .int('Penalty score A must be a whole number')
+      .min(0, 'Penalty score cannot be negative')
+      .optional()
+      .nullable(),
+    penalty_score_b: z
+      .number({ message: 'Penalty score B must be a number' })
+      .int('Penalty score B must be a whole number')
+      .min(0, 'Penalty score cannot be negative')
+      .optional()
+      .nullable(),
+    result_type: z.enum(['normal', 'walkover', 'disqualification'], {
+      message: 'Please select a valid result type',
+    }),
+    walkover_winner_id: z.string().optional().nullable(),
+    notes: z.string().max(500, 'Notes must not exceed 500 characters').optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      if (data.result_type === 'normal' && data.decided_by === 'penalties') {
+        if (data.penalty_score_a === null || data.penalty_score_a === undefined) return false;
+        if (data.penalty_score_b === null || data.penalty_score_b === undefined) return false;
+        if (data.penalty_score_a === data.penalty_score_b) return false;
+      }
+      return true;
+    },
+    {
+      message: 'Penalty shootout scores are required and cannot be tied.',
+      path: ['penalty_score_a'],
+    }
+  );
 
 export type MatchResultInput = z.infer<typeof matchResultSchema>;

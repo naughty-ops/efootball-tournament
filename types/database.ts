@@ -177,6 +177,9 @@ export interface Database {
           status: MatchStatus;
           score_a: number;
           score_b: number;
+          decided_by: 'normal' | 'penalties' | 'extra_time' | null;
+          penalty_score_a: number | null;
+          penalty_score_b: number | null;
           winner_id: string | null;
           notes: string | null;
           match_position: number;
@@ -196,6 +199,9 @@ export interface Database {
           status?: MatchStatus;
           score_a?: number;
           score_b?: number;
+          decided_by?: 'normal' | 'penalties' | 'extra_time' | null;
+          penalty_score_a?: number | null;
+          penalty_score_b?: number | null;
           winner_id?: string | null;
           notes?: string | null;
           match_position?: number;
@@ -215,6 +221,9 @@ export interface Database {
           status?: MatchStatus;
           score_a?: number;
           score_b?: number;
+          decided_by?: 'normal' | 'penalties' | 'extra_time' | null;
+          penalty_score_a?: number | null;
+          penalty_score_b?: number | null;
           winner_id?: string | null;
           notes?: string | null;
           match_position?: number;
@@ -385,6 +394,9 @@ export interface DraftMatchNode {
   participant_b: string | null;
   score_a: number;
   score_b: number;
+  decided_by?: 'normal' | 'penalties' | 'extra_time' | null;
+  penalty_score_a?: number | null;
+  penalty_score_b?: number | null;
   status: MatchStatus;
   winner_id: string | null;
   next_match_id: string | null;

@@ -186,7 +186,7 @@ function PlayerSlot({
         {score !== null && score !== undefined ? (
           <span
             className={cn(
-              'h-7 w-7 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs transition-all',
+              'h-7 min-w-[28px] px-1.5 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs transition-all gap-0.5',
               isWinner
                 ? 'bg-emerald-600 text-white border-emerald-500 scale-105'
                 : isLive
@@ -196,7 +196,14 @@ function PlayerSlot({
                 : 'bg-slate-100 text-slate-700 border-slate-200'
             )}
           >
-            {score}
+            <span>{score}</span>
+            {match.decided_by === 'penalties' &&
+              (isSlotA ? match.penalty_score_a : match.penalty_score_b) !== null &&
+              (isSlotA ? match.penalty_score_a : match.penalty_score_b) !== undefined && (
+                <span className={cn('text-[10px] font-mono font-bold ml-0.5', isWinner ? 'text-emerald-100' : 'text-emerald-700 bg-emerald-50 px-1 rounded')}>
+                  ({isSlotA ? match.penalty_score_a : match.penalty_score_b})
+                </span>
+              )}
           </span>
         ) : (
           <span className="h-7 w-7 rounded-lg flex items-center justify-center text-xs text-slate-300 bg-slate-50 border border-slate-200 font-mono">

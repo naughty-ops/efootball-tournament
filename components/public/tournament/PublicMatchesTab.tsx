@@ -16,7 +16,8 @@ interface PublicMatchesTabProps {
 function MatchCard({ match }: { match: FullMatchData }) {
   const isLive = match.status === 'live';
   const isCompleted = match.status === 'completed' || match.status === 'walkover';
-  const isDraw = isCompleted && match.status === 'completed' && match.score_a === match.score_b && !match.winner_id;
+  const isPenalty = isCompleted && match.decided_by === 'penalties';
+  const isDraw = isCompleted && match.status === 'completed' && match.score_a === match.score_b && !match.winner_id && !isPenalty;
   const isWalkover = match.status === 'walkover';
 
   return (
@@ -41,7 +42,12 @@ function MatchCard({ match }: { match: FullMatchData }) {
               LIVE
             </Badge>
           )}
-          {isCompleted && !isDraw && !isWalkover && (
+          {isPenalty && (
+            <Badge variant="outline" className="text-[10px] font-bold text-emerald-800 border-emerald-300 bg-emerald-50">
+              PENALTIES
+            </Badge>
+          )}
+          {isCompleted && !isDraw && !isWalkover && !isPenalty && (
             <Badge variant="secondary" className="text-[10px] font-bold">COMPLETED</Badge>
           )}
           {isDraw && (
@@ -76,21 +82,39 @@ function MatchCard({ match }: { match: FullMatchData }) {
         {/* Score center */}
         <div className="flex items-center gap-2 shrink-0">
           {isCompleted || isLive ? (
-            <>
-              <span className={cn(
-                'text-2xl font-black tabular-nums w-7 text-center',
-                isLive ? 'text-red-600' : 'text-[#0B3323]'
-              )}>
-                {match.score_a ?? 0}
-              </span>
-              <span className={cn('font-bold text-sm', isLive ? 'text-red-400' : 'text-muted-foreground/60')}>—</span>
-              <span className={cn(
-                'text-2xl font-black tabular-nums w-7 text-center',
-                isLive ? 'text-red-600' : 'text-[#0B3323]'
-              )}>
-                {match.score_b ?? 0}
-              </span>
-            </>
+            isPenalty &&
+            match.penalty_score_a !== null &&
+            match.penalty_score_a !== undefined &&
+            match.penalty_score_b !== null &&
+            match.penalty_score_b !== undefined ? (
+              <div className="flex items-center gap-1 text-[#0B3323] font-mono">
+                <span className="text-xl font-black">{match.score_a}</span>
+                <span className="text-xs font-extrabold text-emerald-900 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-200">
+                  ({match.penalty_score_a})
+                </span>
+                <span className="font-bold text-slate-400 font-sans px-0.5">–</span>
+                <span className="text-xs font-extrabold text-emerald-900 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-200">
+                  ({match.penalty_score_b})
+                </span>
+                <span className="text-xl font-black">{match.score_b}</span>
+              </div>
+            ) : (
+              <>
+                <span className={cn(
+                  'text-2xl font-black tabular-nums w-7 text-center',
+                  isLive ? 'text-red-600' : 'text-[#0B3323]'
+                )}>
+                  {match.score_a ?? 0}
+                </span>
+                <span className={cn('font-bold text-sm', isLive ? 'text-red-400' : 'text-muted-foreground/60')}>—</span>
+                <span className={cn(
+                  'text-2xl font-black tabular-nums w-7 text-center',
+                  isLive ? 'text-red-600' : 'text-[#0B3323]'
+                )}>
+                  {match.score_b ?? 0}
+                </span>
+              </>
+            )
           ) : (
             <span className="text-sm font-bold text-muted-foreground/60 px-2">vs</span>
           )}

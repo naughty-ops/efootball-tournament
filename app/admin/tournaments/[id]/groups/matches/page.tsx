@@ -165,12 +165,14 @@ export default function AdminGroupMatchesPage({
           score_a: scoreA,
           score_b: scoreB,
           result_type: 'normal',
+          decided_by: 'normal',
         });
       } else {
         await submitMatchResult(activeScoreMatch.id, tournamentId, {
           score_a: scoreA,
           score_b: scoreB,
           result_type: 'normal',
+          decided_by: 'normal',
         });
       }
       setActiveScoreMatch(null);

@@ -486,13 +486,30 @@ export function determineWinner(
     if (!match.participant_a || !match.participant_b) {
       throw new Error('Both participants must be assigned before entering match scores.');
     }
+
+    if (input.decided_by === 'penalties') {
+      if (
+        input.penalty_score_a === null ||
+        input.penalty_score_a === undefined ||
+        input.penalty_score_b === null ||
+        input.penalty_score_b === undefined
+      ) {
+        throw new Error('Penalty scores are required for a penalty shootout decision.');
+      }
+      if (input.penalty_score_a === input.penalty_score_b) {
+        throw new Error('Penalty shootout scores cannot be tied. A winner must be decided.');
+      }
+      const winnerId = input.penalty_score_a > input.penalty_score_b ? match.participant_a : match.participant_b;
+      return { winnerId, status: 'completed' };
+    }
+
     if (input.score_a === input.score_b) {
       const isLeagueOrGroup = Boolean(match.group_id) || tournamentFormat === 'league' || tournamentFormat === 'single_league_knockout';
       if (isLeagueOrGroup) {
         // League & Group matches allow draws!
         return { winnerId: null, status: 'completed' };
       }
-      throw new Error('Knockout matches require a winner. Scores cannot be equal.');
+      throw new Error('Knockout matches require a winner. If the match ended level, select Penalty Shootout.');
     }
     const winnerId = input.score_a > input.score_b ? match.participant_a : match.participant_b;
     return { winnerId, status: 'completed' };
@@ -551,6 +568,11 @@ export async function submitMatchResult(
   const updatePayload = {
     score_a: input.result_type === 'normal' ? input.score_a : 0,
     score_b: input.result_type === 'normal' ? input.score_b : 0,
+    decided_by: input.result_type === 'normal' ? (input.decided_by || 'normal') : 'normal',
+    penalty_score_a:
+      input.result_type === 'normal' && input.decided_by === 'penalties' ? input.penalty_score_a : null,
+    penalty_score_b:
+      input.result_type === 'normal' && input.decided_by === 'penalties' ? input.penalty_score_b : null,
     winner_id: winnerId,
     status: newStatus,
     notes: input.notes ? input.notes.trim() : null,

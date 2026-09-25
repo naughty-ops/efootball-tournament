@@ -731,11 +731,26 @@ export default function DedicatedLiveMatchPage({
               {participantA?.username || 'Player 1'}
             </p>
 
-            <div className="flex items-center gap-2 px-3 py-1 bg-black/40 rounded-xl border border-amber-400/30 shrink-0 font-mono">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 rounded-xl border border-amber-400/30 shrink-0 font-mono">
               <span className="text-xl sm:text-2xl font-black text-amber-300 tabular-nums">
                 {match.score_a}
               </span>
-              <span className="text-xs font-bold text-slate-400">—</span>
+              {match.decided_by === 'penalties' &&
+                match.penalty_score_a !== null &&
+                match.penalty_score_a !== undefined &&
+                match.penalty_score_b !== null &&
+                match.penalty_score_b !== undefined && (
+                  <>
+                    <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-500/40">
+                      ({match.penalty_score_a})
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 font-sans">–</span>
+                    <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-500/40">
+                      ({match.penalty_score_b})
+                    </span>
+                  </>
+                )}
+              {match.decided_by !== 'penalties' && <span className="text-xs font-bold text-slate-400">—</span>}
               <span className="text-xl sm:text-2xl font-black text-amber-300 tabular-nums">
                 {match.score_b}
               </span>

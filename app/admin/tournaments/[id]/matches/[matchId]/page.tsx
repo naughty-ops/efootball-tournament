@@ -56,6 +56,9 @@ export default function MatchDetailsPage({
   const [resultType, setResultType] = useState<'normal' | 'walkover' | 'disqualification'>('normal');
   const [walkoverWinnerId, setWalkoverWinnerId] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [decidedBy, setDecidedBy] = useState<'normal' | 'penalties'>('normal');
+  const [penaltyScoreA, setPenaltyScoreA] = useState<number>(0);
+  const [penaltyScoreB, setPenaltyScoreB] = useState<number>(0);
 
   // Complete Confirmation Modal
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -73,6 +76,9 @@ export default function MatchDetailsPage({
       setResultType(data.match.status === 'walkover' ? 'walkover' : 'normal');
       setWalkoverWinnerId(data.match.winner_id || '');
       setNotes(data.match.notes || '');
+      setDecidedBy(data.match.decided_by === 'penalties' ? 'penalties' : 'normal');
+      setPenaltyScoreA(data.match.penalty_score_a ?? 0);
+      setPenaltyScoreB(data.match.penalty_score_b ?? 0);
       setErrorMessage(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load match details.';
@@ -207,8 +213,14 @@ export default function MatchDetailsPage({
         return;
       }
       if (!isGroupMatch && scoreA === scoreB) {
-        setErrorMessage('Knockout matches require a winner. Scores cannot be equal.');
-        return;
+        if (decidedBy !== 'penalties') {
+          setErrorMessage('Knockout matches require a winner. Select Penalty Shootout or adjust score.');
+          return;
+        }
+        if (penaltyScoreA === penaltyScoreB) {
+          setErrorMessage('Penalty shootout scores cannot be tied.');
+          return;
+        }
       }
     } else if (!walkoverWinnerId) {
       setErrorMessage('Please select an advancing winner for walkover/disqualification.');
@@ -230,6 +242,9 @@ export default function MatchDetailsPage({
       result_type: resultType,
       walkover_winner_id: walkoverWinnerId || null,
       notes: notes.trim(),
+      decided_by: resultType === 'normal' ? (scoreA === scoreB && !isGroupMatch ? 'penalties' : decidedBy) : 'normal',
+      penalty_score_a: resultType === 'normal' && (decidedBy === 'penalties' || scoreA === scoreB) ? penaltyScoreA : null,
+      penalty_score_b: resultType === 'normal' && (decidedBy === 'penalties' || scoreA === scoreB) ? penaltyScoreB : null,
     };
 
     try {

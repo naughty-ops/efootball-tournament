@@ -118,13 +118,22 @@ export default function SingleMatchCenterPage({
     }
   };
 
-  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+  const handleCompleteMatch = async (
+    scoreA: number,
+    scoreB: number,
+    penA?: number | null,
+    penB?: number | null,
+    decidedBy?: 'normal' | 'penalties'
+  ) => {
     if (!matchData) return;
     setActionLoading(true);
     try {
       await submitMatchResult(matchData.id, matchData.tournamentId, {
         score_a: scoreA,
         score_b: scoreB,
+        decided_by: decidedBy || 'normal',
+        penalty_score_a: penA,
+        penalty_score_b: penB,
         result_type: 'normal',
       });
       setIsScoreModalOpen(false);
@@ -169,6 +178,7 @@ export default function SingleMatchCenterPage({
   const isLive = matchData.status === 'live';
   const isScheduled = matchData.status === 'pending';
   const isLocked = Boolean(matchData.group_id && matchData.isGroupStageFinalized);
+  const isPenalty = matchData.decided_by === 'penalties';
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
@@ -189,6 +199,11 @@ export default function SingleMatchCenterPage({
             <Badge variant={isLive ? 'default' : isCompleted ? 'outline' : 'secondary'} className="capitalize py-1 px-3">
               {isLive ? 'LIVE NOW' : matchData.status}
             </Badge>
+            {isPenalty && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold">
+                PENALTIES
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -238,11 +253,20 @@ export default function SingleMatchCenterPage({
             </div>
 
             {/* Score */}
-            <div className="col-span-1 py-4 px-3 rounded-2xl bg-gradient-to-b from-[#F4F8F5] to-secondary/30 border border-border shadow-inner font-mono font-black text-4xl text-[#0B3323]">
+            <div className="col-span-1 py-4 px-3 rounded-2xl bg-gradient-to-b from-[#F4F8F5] to-secondary/30 border border-border shadow-inner font-mono font-black text-[#0B3323]">
               {isScheduled ? (
                 <span className="text-lg text-muted-foreground font-normal">VS</span>
+              ) : isPenalty && matchData.penalty_score_a !== null && matchData.penalty_score_b !== null ? (
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="text-3xl font-black">
+                    {matchData.score_a} - {matchData.score_b}
+                  </div>
+                  <div className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                    ({matchData.penalty_score_a}) - ({matchData.penalty_score_b}) PK
+                  </div>
+                </div>
               ) : (
-                <span>
+                <span className="text-4xl font-black">
                   {matchData.score_a} - {matchData.score_b}
                 </span>
               )}

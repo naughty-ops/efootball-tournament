@@ -25,6 +25,7 @@ import {
   FullMatchData,
 } from '@/services/matchService';
 import { formatDate } from '@/lib/utils';
+import { formatBracketParticipantScore } from '@/lib/formatScore';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,23 +88,30 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+  const handleCompleteMatch = async (
+    scoreA: number,
+    scoreB: number,
+    penA?: number | null,
+    penB?: number | null,
+    decidedBy?: 'normal' | 'penalties'
+  ) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
     try {
       const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      const payload = {
+        score_a: scoreA,
+        score_b: scoreB,
+        result_type: 'normal' as const,
+        decided_by: decidedBy || (penA != null && penB != null ? 'penalties' : 'normal'),
+        penalty_score_a: penA,
+        penalty_score_b: penB,
+      };
+
       if (isCompleted) {
-        await editMatchResult(activeScoreMatch.id, tournamentId, {
-          score_a: scoreA,
-          score_b: scoreB,
-          result_type: 'normal',
-        });
+        await editMatchResult(activeScoreMatch.id, tournamentId, payload);
       } else {
-        await submitMatchResult(activeScoreMatch.id, tournamentId, {
-          score_a: scoreA,
-          score_b: scoreB,
-          result_type: 'normal',
-        });
+        await submitMatchResult(activeScoreMatch.id, tournamentId, payload);
       }
       setActiveScoreMatch(null);
       await reloadMatches();
@@ -333,6 +341,9 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
           participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
           currentScoreA={activeScoreMatch.score_a}
           currentScoreB={activeScoreMatch.score_b}
+          currentPenaltyScoreA={activeScoreMatch.penalty_score_a}
+          currentPenaltyScoreB={activeScoreMatch.penalty_score_b}
+          currentDecidedBy={activeScoreMatch.decided_by}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
           allowDraw={Boolean(activeScoreMatch.group_id) || Boolean(activeScoreMatch.round_id)}
@@ -412,7 +423,9 @@ function AdminMatchCard({
           </div>
 
           <span className="font-mono font-extrabold text-sm ml-2">
-            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0 ? match.score_a : '-'}
+            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0
+              ? formatBracketParticipantScore(match.score_a, match, true)
+              : '-'}
           </span>
         </div>
 
@@ -434,7 +447,9 @@ function AdminMatchCard({
           </div>
 
           <span className="font-mono font-extrabold text-sm ml-2">
-            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0 ? match.score_b : '-'}
+            {isCompleted || isLive || match.score_a > 0 || match.score_b > 0
+              ? formatBracketParticipantScore(match.score_b, match, false)
+              : '-'}
           </span>
         </div>
       </div>

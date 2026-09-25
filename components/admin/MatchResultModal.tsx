@@ -15,6 +15,9 @@ interface MatchResultModalProps {
   scoreB: number;
   winnerName: string;
   resultType: 'normal' | 'walkover' | 'disqualification';
+  decidedBy?: 'normal' | 'penalties' | 'extra_time' | null;
+  penaltyScoreA?: number | null;
+  penaltyScoreB?: number | null;
   isLoading: boolean;
 }
 
@@ -27,6 +30,9 @@ export function MatchResultModal({
   scoreB,
   winnerName,
   resultType,
+  decidedBy,
+  penaltyScoreA,
+  penaltyScoreB,
   isLoading,
 }: MatchResultModalProps) {
   if (!isOpen || !match) return null;

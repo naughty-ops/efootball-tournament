@@ -28,6 +28,9 @@ export function MatchEditorModal({
   const [participantB, setParticipantB] = useState<string>('');
   const [scoreA, setScoreA] = useState<number>(0);
   const [scoreB, setScoreB] = useState<number>(0);
+  const [decidedBy, setDecidedBy] = useState<'normal' | 'penalties' | 'extra_time'>('normal');
+  const [penaltyScoreA, setPenaltyScoreA] = useState<number | ''>('');
+  const [penaltyScoreB, setPenaltyScoreB] = useState<number | ''>('');
   const [status, setStatus] = useState<MatchStatus>('pending');
   const [winnerId, setWinnerId] = useState<string>('');
   const [nextMatchId, setNextMatchId] = useState<string>('');
@@ -41,6 +44,9 @@ export function MatchEditorModal({
       setParticipantB(match.participant_b || '');
       setScoreA(match.score_a ?? 0);
       setScoreB(match.score_b ?? 0);
+      setDecidedBy(match.decided_by === 'penalties' ? 'penalties' : 'normal');
+      setPenaltyScoreA(match.penalty_score_a ?? '');
+      setPenaltyScoreB(match.penalty_score_b ?? '');
       setStatus(match.status || 'pending');
       setWinnerId(match.winner_id || '');
       setNextMatchId(match.next_match_id || '');
@@ -59,14 +65,31 @@ export function MatchEditorModal({
       return;
     }
 
+    let finalWinnerId = winnerId.trim().length > 0 ? winnerId : null;
+
+    if (decidedBy === 'penalties') {
+      if (penaltyScoreA === '' || penaltyScoreB === '') {
+        setError('Penalty scores are required when match is decided by penalties.');
+        return;
+      }
+      if (Number(penaltyScoreA) === Number(penaltyScoreB)) {
+        setError('Penalty shootout scores cannot be tied. A winner must be decided.');
+        return;
+      }
+      finalWinnerId = Number(penaltyScoreA) > Number(penaltyScoreB) ? participantA : participantB;
+    }
+
     const updatedMatch: DraftMatchNode = {
       ...match,
       participant_a: participantA.trim().length > 0 ? participantA : null,
       participant_b: participantB.trim().length > 0 ? participantB : null,
       score_a: Number(scoreA) || 0,
       score_b: Number(scoreB) || 0,
+      decided_by: decidedBy,
+      penalty_score_a: decidedBy === 'penalties' && penaltyScoreA !== '' ? Number(penaltyScoreA) : null,
+      penalty_score_b: decidedBy === 'penalties' && penaltyScoreB !== '' ? Number(penaltyScoreB) : null,
       status,
-      winner_id: winnerId.trim().length > 0 ? winnerId : null,
+      winner_id: finalWinnerId,
       next_match_id: nextMatchId.trim().length > 0 ? nextMatchId : null,
       winner_slot: winnerSlot === 'participant_a' || winnerSlot === 'participant_b' ? winnerSlot : null,
       notes: notes.trim().length > 0 ? notes : null,
@@ -183,6 +206,59 @@ export function MatchEditorModal({
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
+          </div>
+
+          {/* Decision Method & Penalty Shootout */}
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+            <div>
+              <label className="text-[11px] font-black text-[#0B3323] block mb-1">Decision Method</label>
+              <select
+                value={decidedBy}
+                onChange={(e) => setDecidedBy(e.target.value as 'normal' | 'penalties' | 'extra_time')}
+                className="w-full text-xs font-bold bg-white border border-slate-200 rounded-xl p-2"
+              >
+                <option value="normal">Normal / Extra Time</option>
+                <option value="penalties">Penalty Shootout (PK)</option>
+              </select>
+            </div>
+
+            {decidedBy === 'penalties' && (
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+                <div>
+                  <label className="text-[10px] font-bold text-emerald-900 block mb-1">
+                    Slot A Penalty Score
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 4"
+                    value={penaltyScoreA}
+                    onChange={(e) => setPenaltyScoreA(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl p-2 text-center"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-emerald-900 block mb-1">
+                    Slot B Penalty Score
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 3"
+                    value={penaltyScoreB}
+                    onChange={(e) => setPenaltyScoreB(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl p-2 text-center"
+                  />
+                </div>
+
+                {penaltyScoreA !== '' && penaltyScoreB !== '' && (
+                  <div className="col-span-2 p-2 bg-emerald-100/70 border border-emerald-300 rounded-xl text-center text-xs font-bold text-emerald-950 font-mono">
+                    Result Preview: {scoreA} ({penaltyScoreA})–({penaltyScoreB}) {scoreB}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Winner Selection */}

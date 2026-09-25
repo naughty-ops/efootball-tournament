@@ -119,25 +119,32 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleCompleteMatch = async (scoreA: number, scoreB: number) => {
+  const handleCompleteMatch = async (
+    scoreA: number,
+    scoreB: number,
+    penA?: number | null,
+    penB?: number | null,
+    decidedBy?: 'normal' | 'penalties'
+  ) => {
     if (!activeScoreMatch) return;
     setActionLoading(true);
     const isFinalMatch = !activeScoreMatch.next_match_id && !activeScoreMatch.group_id;
 
     try {
       const isCompleted = activeScoreMatch.status === 'completed' || activeScoreMatch.status === 'walkover';
+      const payload = {
+        score_a: scoreA,
+        score_b: scoreB,
+        result_type: 'normal' as const,
+        decided_by: decidedBy || (penA != null && penB != null ? 'penalties' : 'normal'),
+        penalty_score_a: penA,
+        penalty_score_b: penB,
+      };
+
       if (isCompleted) {
-        await editMatchResult(activeScoreMatch.id, tournamentId, {
-          score_a: scoreA,
-          score_b: scoreB,
-          result_type: 'normal',
-        });
+        await editMatchResult(activeScoreMatch.id, tournamentId, payload);
       } else {
-        await submitMatchResult(activeScoreMatch.id, tournamentId, {
-          score_a: scoreA,
-          score_b: scoreB,
-          result_type: 'normal',
-        });
+        await submitMatchResult(activeScoreMatch.id, tournamentId, payload);
       }
       setActiveScoreMatch(null);
       await fetchBracketData();
@@ -458,6 +465,9 @@ export default function AdminBracketPage({ params }: { params: Promise<{ id: str
           participantB={activeScoreMatch.participantBUser?.username || 'Player B'}
           currentScoreA={activeScoreMatch.score_a}
           currentScoreB={activeScoreMatch.score_b}
+          currentPenaltyScoreA={activeScoreMatch.penalty_score_a}
+          currentPenaltyScoreB={activeScoreMatch.penalty_score_b}
+          currentDecidedBy={activeScoreMatch.decided_by}
           isLive={activeScoreMatch.status === 'live'}
           isGroupMatch={Boolean(activeScoreMatch.group_id)}
           isLoading={actionLoading}
