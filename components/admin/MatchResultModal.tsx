@@ -80,7 +80,11 @@ export function MatchResultModal({
             </div>
 
             <div className="font-mono text-base font-extrabold text-primary px-3 py-0.5 rounded-lg bg-white border border-border">
-              {resultType === 'normal' ? `${scoreA} - ${scoreB}` : 'W/O'}
+              {resultType === 'normal'
+                ? decidedBy === 'penalties' && penaltyScoreA != null && penaltyScoreB != null
+                  ? `${scoreA} (${penaltyScoreA}) – (${penaltyScoreB}) ${scoreB}`
+                  : `${scoreA} - ${scoreB}`
+                : 'W/O'}
             </div>
 
             <div className="flex items-center gap-2 font-bold text-[#0B3323] text-right">

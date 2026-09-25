@@ -67,12 +67,18 @@ export function ScoreEntryModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
 
-  // Auto enable penalties if score is tied and not allowed to draw
+  const isKnockoutDraw = !canDraw && scoreA === scoreB;
+
+  // Auto enable penalties strictly when a knockout match score is tied
   useEffect(() => {
-    if (!canDraw && scoreA === scoreB && !isPenalties) {
+    if (isKnockoutDraw) {
       setIsPenalties(true);
+    } else {
+      setIsPenalties(false);
+      setPenScoreA('');
+      setPenScoreB('');
     }
-  }, [scoreA, scoreB, canDraw]);
+  }, [isKnockoutDraw]);
 
   // Debounced Live Auto-Save when modal is open and match is LIVE
   useEffect(() => {
@@ -105,24 +111,21 @@ export function ScoreEntryModal({
       return;
     }
 
-    if (isPenalties) {
+    if (isKnockoutDraw) {
       if (penScoreA === '' || penScoreB === '' || isNaN(Number(penScoreA)) || isNaN(Number(penScoreB))) {
-        setErrorMessage('Penalty shootout scores are required.');
+        setErrorMessage('Penalty shootout scores are required for tied knockout matches.');
         return;
       }
       if (Number(penScoreA) === Number(penScoreB)) {
         setErrorMessage('Penalty shootout scores cannot be tied. A winner must be decided.');
         return;
       }
-    } else if (!canDraw && scoreA === scoreB) {
-      setErrorMessage('Knockout matches require a winner. Select Penalty Shootout for tied matches.');
-      return;
     }
 
     setErrorMessage(null);
-    const pA = isPenalties && penScoreA !== '' ? Number(penScoreA) : null;
-    const pB = isPenalties && penScoreB !== '' ? Number(penScoreB) : null;
-    const dec = isPenalties ? 'penalties' : 'normal';
+    const pA = isKnockoutDraw && penScoreA !== '' ? Number(penScoreA) : null;
+    const pB = isKnockoutDraw && penScoreB !== '' ? Number(penScoreB) : null;
+    const dec = isKnockoutDraw ? 'penalties' : 'normal';
 
     if (onCompleteMatch) {
       await onCompleteMatch(scoreA, scoreB, pA, pB, dec);
@@ -133,7 +136,7 @@ export function ScoreEntryModal({
   };
 
   let winnerPreview = 'TBD';
-  if (isPenalties && penScoreA !== '' && penScoreB !== '') {
+  if (isKnockoutDraw && penScoreA !== '' && penScoreB !== '') {
     winnerPreview = Number(penScoreA) > Number(penScoreB) ? `${participantA} (Won on Penalties)` : `${participantB} (Won on Penalties)`;
   } else if (scoreA > scoreB) {
     winnerPreview = participantA;
@@ -211,58 +214,51 @@ export function ScoreEntryModal({
           </div>
         </div>
 
-        {/* Penalty Shootout Section */}
-        {(!canDraw || isPenalties) && (
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+        {/* Penalty Shootout Section - Revealed strictly when knockout match is tied */}
+        {isKnockoutDraw && (
+          <div className="p-3 bg-[#F4F8F5] rounded-2xl border border-emerald-300/80 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#0B3323] flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isPenalties}
-                  onChange={(e) => setIsPenalties(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                />
-                <span>Decided by Penalty Shootout (PK)</span>
-              </label>
+              <span className="text-xs font-black text-[#0B3323] flex items-center gap-1.5">
+                <Trophy className="h-4 w-4 text-emerald-600" />
+                <span>Knockout Tie — Enter Penalty Shootout Scores</span>
+              </span>
             </div>
 
-            {isPenalties && (
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-emerald-900 block">
-                    {participantA} Penalty PK
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 4"
-                    value={penScoreA}
-                    onChange={(e) => setPenScoreA(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="text-center font-mono font-bold text-base h-10 border-emerald-300"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-emerald-900 block text-right">
-                    {participantB} Penalty PK
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 3"
-                    value={penScoreB}
-                    onChange={(e) => setPenScoreB(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="text-center font-mono font-bold text-base h-10 border-emerald-300"
-                  />
-                </div>
-
-                {penScoreA !== '' && penScoreB !== '' && (
-                  <div className="col-span-2 p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-center text-xs font-black text-emerald-950 font-mono">
-                    Preview: {scoreA} ({penScoreA})–({penScoreB}) {scoreB}
-                  </div>
-                )}
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-emerald-200/60">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#0B3323] block truncate">
+                  {participantA} Penalty PK
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 4"
+                  value={penScoreA}
+                  onChange={(e) => setPenScoreA(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="text-center font-mono font-bold text-base h-10 border-emerald-400 bg-white"
+                />
               </div>
-            )}
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#0B3323] block truncate text-right">
+                  {participantB} Penalty PK
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 3"
+                  value={penScoreB}
+                  onChange={(e) => setPenScoreB(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="text-center font-mono font-bold text-base h-10 border-emerald-400 bg-white"
+                />
+              </div>
+
+              {penScoreA !== '' && penScoreB !== '' && (
+                <div className="col-span-2 p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-center text-xs font-black text-emerald-950 font-mono">
+                  Final Result Preview: {scoreA} ({penScoreA})–({penScoreB}) {scoreB}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

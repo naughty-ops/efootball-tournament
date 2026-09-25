@@ -589,7 +589,7 @@ export default function MatchDetailsPage({
                     </div>
                   </div>
 
-                  {/* Draw Indicator / Warning */}
+                  {/* Draw Indicator / Penalty Shootout Section */}
                   {scoreA === scoreB && (
                     isGroupMatch ? (
                       <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold flex items-center gap-2">
@@ -597,9 +597,43 @@ export default function MatchDetailsPage({
                         <span>Group Match Draw — Both contestants will receive 1 point when completed.</span>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        <span>Knockout matches require a winner. Resolve tie score before completing.</span>
+                      <div className="p-4 rounded-2xl bg-[#F4F8F5] border border-emerald-300 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-[#0B3323] flex items-center gap-1.5">
+                            <Trophy className="h-4 w-4 text-emerald-600" />
+                            <span>Knockout Match Tied — Enter Penalty Shootout Scores</span>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-emerald-200">
+                          <div>
+                            <label className="text-xs font-bold text-[#0B3323] block mb-1 truncate">
+                              {playerA?.username} Penalty PK
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              placeholder="e.g. 4"
+                              value={penaltyScoreA}
+                              onChange={(e) => setPenaltyScoreA(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                              className="text-center font-mono font-bold text-base h-11 border-emerald-400 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-[#0B3323] block mb-1 truncate text-right">
+                              {playerB?.username} Penalty PK
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              placeholder="e.g. 3"
+                              value={penaltyScoreB}
+                              onChange={(e) => setPenaltyScoreB(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                              className="text-center font-mono font-bold text-base h-11 border-emerald-400 bg-white"
+                            />
+                          </div>
+                        </div>
                       </div>
                     )
                   )}

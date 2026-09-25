@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, UserCheck, AlertCircle, Swords } from 'lucide-react';
+import { X, Edit3, UserCheck, AlertCircle, Swords, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Participant, MatchStatus, DraftMatchNode } from '@/types/database';
 
@@ -52,9 +52,20 @@ export function MatchEditorModal({
       setNextMatchId(match.next_match_id || '');
       setWinnerSlot(match.winner_slot || '');
       setNotes(match.notes || '');
-      setError(null);
     }
   }, [match]);
+
+  const isKnockoutTied = Number(scoreA) === Number(scoreB);
+
+  useEffect(() => {
+    if (isKnockoutTied) {
+      setDecidedBy('penalties');
+    } else {
+      setDecidedBy('normal');
+      setPenaltyScoreA('');
+      setPenaltyScoreB('');
+    }
+  }, [isKnockoutTied]);
 
   if (!isOpen || !match) return null;
 
@@ -208,24 +219,17 @@ export function MatchEditorModal({
             </div>
           </div>
 
-          {/* Decision Method & Penalty Shootout */}
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-            <div>
-              <label className="text-[11px] font-black text-[#0B3323] block mb-1">Decision Method</label>
-              <select
-                value={decidedBy}
-                onChange={(e) => setDecidedBy(e.target.value as 'normal' | 'penalties' | 'extra_time')}
-                className="w-full text-xs font-bold bg-white border border-slate-200 rounded-xl p-2"
-              >
-                <option value="normal">Normal / Extra Time</option>
-                <option value="penalties">Penalty Shootout (PK)</option>
-              </select>
-            </div>
+          {/* Penalty Shootout Section — Revealed strictly when knockout match is tied */}
+          {isKnockoutTied && (
+            <div className="p-3 bg-[#F4F8F5] rounded-2xl border border-emerald-300/80 space-y-3">
+              <div className="text-xs font-black text-[#0B3323] flex items-center gap-1.5">
+                <Trophy className="h-4 w-4 text-emerald-600" />
+                <span>Knockout Tie — Enter Penalty Shootout Scores</span>
+              </div>
 
-            {decidedBy === 'penalties' && (
-              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-emerald-200/60">
                 <div>
-                  <label className="text-[10px] font-bold text-emerald-900 block mb-1">
+                  <label className="text-[10px] font-bold text-[#0B3323] block mb-1">
                     Slot A Penalty Score
                   </label>
                   <input
@@ -234,12 +238,12 @@ export function MatchEditorModal({
                     placeholder="e.g. 4"
                     value={penaltyScoreA}
                     onChange={(e) => setPenaltyScoreA(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl p-2 text-center"
+                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-400 rounded-xl p-2 text-center"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-emerald-900 block mb-1">
+                  <label className="text-[10px] font-bold text-[#0B3323] block mb-1">
                     Slot B Penalty Score
                   </label>
                   <input
@@ -248,7 +252,7 @@ export function MatchEditorModal({
                     placeholder="e.g. 3"
                     value={penaltyScoreB}
                     onChange={(e) => setPenaltyScoreB(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl p-2 text-center"
+                    className="w-full text-xs font-mono font-bold bg-white border border-emerald-400 rounded-xl p-2 text-center"
                   />
                 </div>
 
@@ -258,8 +262,8 @@ export function MatchEditorModal({
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Winner Selection */}
           {(status === 'completed' || status === 'walkover' || participantA || participantB) && (
