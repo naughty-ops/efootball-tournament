@@ -24,6 +24,7 @@ import {
   MatchDetailsOverview,
 } from '@/services/matchService';
 import { formatDate } from '@/lib/utils';
+import { isLeagueOrGroupMatch } from '@/lib/matchClassification';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -160,7 +161,7 @@ export default function MatchDetailsPage({
 
   if (!details) return null;
 
-  const { match, round } = details;
+  const { match, round, tournament } = details;
   const playerA = match.participantAUser;
   const playerB = match.participantBUser;
   const winner = match.winnerUser;
@@ -168,7 +169,11 @@ export default function MatchDetailsPage({
   const isCompleted = match.status === 'completed' || match.status === 'walkover';
   const isLive = match.status === 'live';
   const isPending = match.status === 'pending';
-  const isGroupMatch = Boolean(match.group_id) || Boolean(round?.name?.toLowerCase().includes('matchday'));
+  const isGroupMatch = isLeagueOrGroupMatch({
+    group_id: match.group_id,
+    tournament_format: tournament?.format,
+    round_name: round?.name,
+  });
   const isReadyToPlay = Boolean(playerA && playerB);
 
   // Toggle Start Match (Pending -> Live)

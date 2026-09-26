@@ -23,6 +23,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScoreEntryModal } from '@/components/match/ScoreEntryModal';
+import { isLeagueOrGroupMatch } from '@/lib/matchClassification';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
 
 export default function SingleMatchCenterPage({
@@ -320,7 +321,8 @@ export default function SingleMatchCenterPage({
           currentScoreA={matchData.score_a}
           currentScoreB={matchData.score_b}
           isLive={isLive}
-          isGroupMatch={Boolean(matchData.group_id)}
+          isGroupMatch={isLeagueOrGroupMatch({ group_id: matchData.group_id, stageType: matchData.stageType })}
+          allowDraw={isLeagueOrGroupMatch({ group_id: matchData.group_id, stageType: matchData.stageType })}
           isLoading={actionLoading}
         />
       )}

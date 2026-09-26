@@ -3,6 +3,7 @@ import type { Match, Round, Participant, MatchStatus, Tournament } from '@/types
 import type { MatchResultInput } from '@/lib/validations';
 import { finalizeGroupStage, prepareKnockoutFromGroups, getGroupKnockoutTransitionPreview, getTournamentGroups } from '@/services/groupService';
 import { settleMatchPredictions } from '@/services/predictionService';
+import { isKnockoutMatch } from '@/lib/matchClassification';
 
 export interface FullMatchData extends Match {
   participantAUser?: Participant | null;
@@ -17,6 +18,7 @@ export interface RoundWithMatches extends Round {
 export interface MatchDetailsOverview {
   match: FullMatchData;
   round: Round;
+  tournament?: Tournament | null;
   tournamentId: string;
 }
 
@@ -165,9 +167,15 @@ export async function getMatchDetails(
     winnerUser: matchObj.winner_id ? pMap.get(matchObj.winner_id) || null : null,
   };
 
+  const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .select('*')
+    .eq('id', tournamentId)
+    .single();
+
   return {
     match: fullMatch,
     round: roundObj,
+    tournament: tData ? (tData as Tournament) : null,
     tournamentId,
   };
 }
@@ -480,13 +488,30 @@ export async function updateLiveScore(
 export function determineWinner(
   match: Match,
   input: MatchResultInput,
-  tournamentFormat?: string
+  tournamentFormat?: string,
+  roundName?: string
 ): { winnerId: string | null; status: MatchStatus } {
   if (input.result_type === 'normal') {
     if (!match.participant_a || !match.participant_b) {
       throw new Error('Both participants must be assigned before entering match scores.');
     }
 
+    const isKnockout = isKnockoutMatch({
+      group_id: match.group_id,
+      tournament_format: tournamentFormat,
+      round_name: roundName,
+    });
+
+    // 1. LEAGUE / GROUP MATCH RULES
+    if (!isKnockout) {
+      if (input.score_a === input.score_b) {
+        return { winnerId: null, status: 'completed' };
+      }
+      const winnerId = input.score_a > input.score_b ? match.participant_a : match.participant_b;
+      return { winnerId, status: 'completed' };
+    }
+
+    // 2. KNOCKOUT MATCH RULES
     if (input.decided_by === 'penalties') {
       if (
         input.penalty_score_a === null ||
@@ -494,7 +519,7 @@ export function determineWinner(
         input.penalty_score_b === null ||
         input.penalty_score_b === undefined
       ) {
-        throw new Error('Penalty scores are required for a penalty shootout decision.');
+        throw new Error('Penalty scores are required for a penalty shootout decision in knockout matches.');
       }
       if (input.penalty_score_a === input.penalty_score_b) {
         throw new Error('Penalty shootout scores cannot be tied. A winner must be decided.');
@@ -504,12 +529,7 @@ export function determineWinner(
     }
 
     if (input.score_a === input.score_b) {
-      const isLeagueOrGroup = Boolean(match.group_id) || tournamentFormat === 'league' || tournamentFormat === 'single_league_knockout';
-      if (isLeagueOrGroup) {
-        // League & Group matches allow draws!
-        return { winnerId: null, status: 'completed' };
-      }
-      throw new Error('Knockout matches require a winner. If the match ended level, select Penalty Shootout.');
+      throw new Error('Knockout matches require a winner. Enter penalty shootout scores for tied knockout matches.');
     }
     const winnerId = input.score_a > input.score_b ? match.participant_a : match.participant_b;
     return { winnerId, status: 'completed' };
@@ -539,7 +559,7 @@ export async function submitMatchResult(
   input: MatchResultInput
 ): Promise<MatchDetailsOverview> {
   const supabase = createClient();
-  const { match } = await getMatchDetails(matchId, tournamentId);
+  const { match, round } = await getMatchDetails(matchId, tournamentId);
 
   // Stage Protection Guards
   const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)
@@ -552,7 +572,7 @@ export async function submitMatchResult(
     throw new Error('Cannot submit result: Group stage is finalized and locked.');
   }
 
-  const { winnerId, status: newStatus } = determineWinner(match, input, tObj?.format);
+  const { winnerId, status: newStatus } = determineWinner(match, input, tObj?.format, round?.name);
 
   // If Disqualification, update loser participant status to 'disqualified'
   if (input.result_type === 'disqualification') {
@@ -707,7 +727,7 @@ export async function editMatchResult(
   input: MatchResultInput
 ): Promise<MatchDetailsOverview> {
   const supabase = createClient();
-  const { match } = await getMatchDetails(matchId, tournamentId);
+  const { match, round } = await getMatchDetails(matchId, tournamentId);
 
   // Stage Protection Guards
   const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)
@@ -720,7 +740,7 @@ export async function editMatchResult(
     throw new Error('Cannot edit result: Group stage is finalized and locked.');
   }
 
-  const { winnerId: newWinnerId } = determineWinner(match, input, tObj?.format);
+  const { winnerId: newWinnerId } = determineWinner(match, input, tObj?.format, round?.name);
   const oldWinnerId = match.winner_id;
 
   // Downstream Protection Check if winner has changed

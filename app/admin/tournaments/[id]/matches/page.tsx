@@ -26,6 +26,7 @@ import {
 } from '@/services/matchService';
 import { formatDate } from '@/lib/utils';
 import { formatBracketParticipantScore } from '@/lib/formatScore';
+import { isLeagueOrGroupMatch } from '@/lib/matchClassification';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -345,8 +346,8 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
           currentPenaltyScoreB={activeScoreMatch.penalty_score_b}
           currentDecidedBy={activeScoreMatch.decided_by}
           isLive={activeScoreMatch.status === 'live'}
-          isGroupMatch={Boolean(activeScoreMatch.group_id)}
-          allowDraw={Boolean(activeScoreMatch.group_id) || Boolean(activeScoreMatch.round_id)}
+          isGroupMatch={isLeagueOrGroupMatch({ group_id: activeScoreMatch.group_id, tournament_format: tournament?.format })}
+          allowDraw={isLeagueOrGroupMatch({ group_id: activeScoreMatch.group_id, tournament_format: tournament?.format })}
           isLoading={actionLoading}
         />
       )}

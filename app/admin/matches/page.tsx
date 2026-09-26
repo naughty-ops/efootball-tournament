@@ -31,6 +31,7 @@ import {
 } from '@/services/matchService';
 import { getTournaments } from '@/services/tournamentService';
 import type { Tournament } from '@/types/database';
+import { isLeagueOrGroupMatch } from '@/lib/matchClassification';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -692,8 +693,8 @@ export default function AdminMatchCenterPage() {
           currentPenaltyScoreB={activeScoreMatch.penalty_score_b}
           currentDecidedBy={activeScoreMatch.decided_by}
           isLive={activeScoreMatch.status === 'live'}
-          isGroupMatch={Boolean(activeScoreMatch.group_id)}
-          allowDraw={Boolean(activeScoreMatch.group_id) || activeScoreMatch.stageType.toLowerCase().includes('group') || activeScoreMatch.stageType.toLowerCase().includes('league')}
+          isGroupMatch={isLeagueOrGroupMatch({ group_id: activeScoreMatch.group_id, stageType: activeScoreMatch.stageType })}
+          allowDraw={isLeagueOrGroupMatch({ group_id: activeScoreMatch.group_id, stageType: activeScoreMatch.stageType })}
           isLoading={actionLoading}
         />
       )}
