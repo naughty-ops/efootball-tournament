@@ -6,6 +6,7 @@ import {
   createCashfreeOrder,
   isCashfreeConfigured,
   getCashfreeEnvironment,
+  getResolvedCashfreeCredentials,
   sanitizeCashfreePhone,
 } from '@/lib/cashfree/server';
 import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse } from '@/lib/rateLimit';
@@ -308,7 +309,7 @@ export async function POST(request: NextRequest) {
 
       let cashfreeOrder: { orderId: string; paymentSessionId: string; cfOrderId?: string | number };
 
-      const appId = process.env.CASHFREE_APP_ID?.trim() || '';
+      const { appId = '' } = getResolvedCashfreeCredentials();
       const isPlaceholderCreds = appId.includes('xxxx') || appId.startsWith('TEST10000000');
 
       if (isPlaceholderCreds) {

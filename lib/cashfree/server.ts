@@ -85,20 +85,47 @@ export interface CashfreePaymentEntity {
 }
 
 /**
+ * Resolves server-side Cashfree credentials with support for common alias conventions
+ * (CASHFREE_APP_ID vs CASHFREE_CLIENT_ID, and CASHFREE_SECRET_KEY vs CASHFREE_CLIENT_SECRET).
+ */
+export function getResolvedCashfreeCredentials(): { appId?: string; secretKey?: string } {
+  const appId = (
+    process.env.CASHFREE_APP_ID ||
+    process.env.CASHFREE_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_CASHFREE_APP_ID ||
+    process.env.NEXT_PUBLIC_CASHFREE_CLIENT_ID
+  )?.trim();
+
+  const secretKey = (
+    process.env.CASHFREE_SECRET_KEY ||
+    process.env.CASHFREE_CLIENT_SECRET
+  )?.trim();
+
+  return { 
+    appId: appId || undefined, 
+    secretKey: secretKey || undefined 
+  };
+}
+
+/**
  * Normalizes environment selector string to 'sandbox' | 'production'.
  */
 export function getCashfreeEnvironment(): 'sandbox' | 'production' {
-  const env = (process.env.CASHFREE_ENV || process.env.CASHFREE_ENVIRONMENT || 'sandbox').trim().toLowerCase();
+  const env = (
+    process.env.CASHFREE_ENV || 
+    process.env.CASHFREE_ENVIRONMENT || 
+    process.env.NEXT_PUBLIC_CASHFREE_ENV || 
+    'sandbox'
+  ).trim().toLowerCase();
   return env === 'production' || env === 'prod' ? 'production' : 'sandbox';
 }
 
 /**
- * Checks whether server-side Cashfree credentials (CASHFREE_APP_ID and CASHFREE_SECRET_KEY) are configured.
+ * Checks whether server-side Cashfree credentials (CASHFREE_APP_ID/CLIENT_ID and CASHFREE_SECRET_KEY/CLIENT_SECRET) are configured.
  * Does NOT throw errors and does NOT crash during build time.
  */
 export function isCashfreeConfigured(): boolean {
-  const appId = process.env.CASHFREE_APP_ID?.trim();
-  const secretKey = process.env.CASHFREE_SECRET_KEY?.trim();
+  const { appId, secretKey } = getResolvedCashfreeCredentials();
   return Boolean(appId && secretKey);
 }
 
@@ -117,13 +144,12 @@ export function getCashfreeBaseUrl(): string {
  * if credentials are not configured.
  */
 export function getCashfreeConfig(): CashfreeServerConfig {
-  const appId = process.env.CASHFREE_APP_ID?.trim();
-  const secretKey = process.env.CASHFREE_SECRET_KEY?.trim();
+  const { appId, secretKey } = getResolvedCashfreeCredentials();
   const webhookSecret = process.env.CASHFREE_WEBHOOK_SECRET?.trim() || secretKey;
 
   if (!appId || !secretKey) {
     throw new CashfreeConfigurationError(
-      'Cashfree server credentials are not configured. Please define CASHFREE_APP_ID and CASHFREE_SECRET_KEY in your environment.'
+      'Cashfree server credentials are not configured. Please define CASHFREE_APP_ID (or CASHFREE_CLIENT_ID) and CASHFREE_SECRET_KEY (or CASHFREE_CLIENT_SECRET) in your environment variables.'
     );
   }
 
