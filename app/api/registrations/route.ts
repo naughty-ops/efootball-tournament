@@ -278,8 +278,22 @@ export async function POST(request: NextRequest) {
 
     // 8. Gateway Selection (Cashfree default / sandbox mode, Razorpay safe fallback)
     const requestedGateway = parseResult.data.gateway;
+    const hasCashfree = isCashfreeConfigured();
+    const hasRazorpay = isRazorpayConfigured();
+
+    if (!hasCashfree && !hasRazorpay) {
+      console.error(
+        '[Payment Gateway Configuration Error] Neither Cashfree nor Razorpay credentials are configured in this deployment environment. ' +
+        'Please define CASHFREE_APP_ID and CASHFREE_SECRET_KEY in Vercel Project Settings -> Environment Variables.'
+      );
+      return NextResponse.json(
+        { error: 'Payment gateway configuration error. Please ensure payment gateway credentials are set in your environment variables.' },
+        { status: 503 }
+      );
+    }
+
     const activeGateway: 'cashfree' | 'razorpay' =
-      requestedGateway || (isCashfreeConfigured() ? 'cashfree' : 'razorpay');
+      requestedGateway || (hasCashfree ? 'cashfree' : 'razorpay');
 
     const amountPaise = Number(tournament.entry_fee_paise);
     const currency = (tournament.currency || 'INR').toUpperCase();
