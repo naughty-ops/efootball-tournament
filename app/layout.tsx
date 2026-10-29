@@ -5,7 +5,7 @@ import PWAInstaller from '@/components/shared/PWAInstaller';
 import PWAInstallPrompt from '@/components/shared/PWAInstallPrompt';
 
 export const viewport: Viewport = {
-  themeColor: '#0B3323',
+  themeColor: '#08088F',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

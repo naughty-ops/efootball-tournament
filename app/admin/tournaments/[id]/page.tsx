@@ -23,9 +23,9 @@ import {
   getTournamentStageInfo,
   startTournament,
   completeTournament,
-  deleteTournament,
 } from '@/services/tournamentService';
-import type { Participant, Tournament } from '@/types/database';
+import { deleteTournamentAction, updateTournamentStatusAction } from '@/app/actions/tournamentActions';
+import type { Participant, Tournament, TournamentStatus } from '@/types/database';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,12 +77,35 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
   const handleDeleteTournament = async () => {
     setActionLoading(true);
     try {
-      await deleteTournament(id);
+      const res = await deleteTournamentAction(id);
+      if (!res.success) {
+        setError(res.message);
+        setIsDeleteModalOpen(false);
+        return;
+      }
       router.push('/admin/tournaments');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete tournament.';
       setError(msg);
       setIsDeleteModalOpen(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: TournamentStatus) => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await updateTournamentStatusAction(id, newStatus);
+      if (!res.success) {
+        setError(res.message);
+      } else {
+        await loadStageData();
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update tournament status.';
+      setError(msg);
     } finally {
       setActionLoading(false);
     }
@@ -458,6 +481,30 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                     </Button>
                   </div>
                 )
+              )}
+
+              {/* Registration Control Actions */}
+              {tournament.status === 'draft' && (
+                <Button
+                  onClick={() => handleUpdateStatus('registration')}
+                  disabled={actionLoading}
+                  className="w-full justify-center gap-2 text-xs h-9 font-bold bg-[#00C853] hover:bg-emerald-600 text-white shadow-sm"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  <span>Open Registration</span>
+                </Button>
+              )}
+
+              {tournament.status === 'registration' && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleUpdateStatus('draft')}
+                  disabled={actionLoading}
+                  className="w-full justify-center gap-2 text-xs h-9 font-bold border-amber-600 text-amber-700 hover:bg-amber-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Pause / Close Registration</span>
+                </Button>
               )}
 
               {/* Draft / Registration Mode Start Button */}

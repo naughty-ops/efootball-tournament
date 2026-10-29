@@ -1,13 +1,20 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse, buildRateLimitHeaders } from '@/lib/rateLimit';
+import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse } from '@/lib/rateLimit';
+
+const PRIMARY_ADMIN_EMAIL = 'ye.agrajj@gmail.com';
+
+function isAllowlistedAdmin(email?: string | null): boolean {
+  if (!email || typeof email !== 'string') return false;
+  return email.trim().toLowerCase() === PRIMARY_ADMIN_EMAIL.toLowerCase();
+}
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const ip = getClientIp(request);
 
   // 1. Rate Limit Checks for sensitive routes
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/auth/login') {
     const rateLimit = checkRateLimit(`login_${ip}`, RATE_LIMIT_RULES.auth);
     if (!rateLimit.success) {
       return createRateLimitErrorResponse(rateLimit);
@@ -58,22 +65,54 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: Avoid using getSession(), use getUser() for security
+  // IMPORTANT: Use getUser() for verified cryptographic server-side validation
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Guard /admin/* routes: redirect to /login if unauthenticated
-  if (pathname.startsWith('/admin') && !user) {
+  // 2. Guard /admin/* routes:
+  if (pathname.startsWith('/admin')) {
+    // If not authenticated, redirect to /login
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    // If authenticated but email is NOT ye.agrajj@gmail.com, strictly deny access
+    if (!isAllowlistedAdmin(user.email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      url.searchParams.set('error', 'admin_unauthorized');
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // 3. Guard /login route:
+  if (pathname === '/login' && user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    if (isAllowlistedAdmin(user.email)) {
+      url.pathname = '/admin/dashboard';
+    } else {
+      url.pathname = '/dashboard';
+    }
     return NextResponse.redirect(url);
   }
 
-  // 3. Guard /login route: redirect to /admin/dashboard if already authenticated
-  if (pathname === '/login' && user) {
+  // 4. Guard /auth/login route:
+  if (pathname === '/auth/login' && user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/dashboard';
+    if (isAllowlistedAdmin(user.email)) {
+      url.pathname = '/admin/dashboard';
+    } else {
+      const nextParam = request.nextUrl.searchParams.get('next');
+      if (nextParam && !nextParam.startsWith('/admin') && nextParam.startsWith('/')) {
+        url.pathname = nextParam;
+        url.search = '';
+      } else {
+        url.pathname = '/dashboard';
+      }
+    }
     return NextResponse.redirect(url);
   }
 

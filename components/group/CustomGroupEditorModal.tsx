@@ -198,12 +198,12 @@ export function CustomGroupEditorModal({
         <div className="flex items-center justify-between flex-wrap gap-2 p-3 bg-[#F4F8F5] rounded-xl border border-border">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleAutoBalance}
-            className="text-xs font-bold gap-1.5 rounded-lg border-border bg-white"
+            className="text-xs font-black gap-1.5 rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 shadow-xs cursor-pointer h-9 px-3.5"
           >
-            <Shuffle className="h-3.5 w-3.5 text-primary" />
+            <Shuffle className="h-3.5 w-3.5 text-[#1D1DE0]" />
             <span>Auto Balance Players</span>
           </Button>
 
@@ -213,15 +213,16 @@ export function CustomGroupEditorModal({
               placeholder="Group Name (e.g. Group C)"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
-              className="h-8 text-xs w-44 rounded-lg bg-white"
+              className="h-9 text-xs w-44 rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] font-bold"
             />
             <Button
               type="submit"
+              variant="ghost"
               size="sm"
               disabled={isCreatingGroup || !newGroupName.trim()}
-              className="h-8 text-xs font-bold rounded-lg bg-primary text-white"
+              className="h-9 text-xs font-black rounded-xl bg-[#1D1DE0] hover:bg-[#1515B0] text-white px-3 cursor-pointer"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
             </Button>
           </form>
         </div>
@@ -231,18 +232,18 @@ export function CustomGroupEditorModal({
           {groupList.map((g) => {
             const pIds = groupMap[g.id] || [];
             return (
-              <div key={g.id} className="p-3.5 bg-white rounded-xl border border-border space-y-3 shadow-2xs">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <span className="text-sm font-extrabold text-[#0B3323]">{g.name}</span>
+              <div key={g.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-sm font-black text-[#0A0D14]">{g.name}</span>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] font-bold">
+                    <Badge className="text-[10px] font-bold font-mono bg-slate-100 text-[#0A0D14] border border-slate-300">
                       {pIds.length} Players
                     </Badge>
                     {pIds.length === 0 && (
                       <button
                         type="button"
                         onClick={() => handleDeleteGroup(g.id)}
-                        className="text-muted-foreground hover:text-destructive p-1 rounded-md"
+                        className="text-slate-400 hover:text-destructive p-1 rounded-md transition-colors"
                         title="Delete Empty Group"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -254,7 +255,7 @@ export function CustomGroupEditorModal({
                 {/* Player List */}
                 <div className="space-y-1.5 min-h-[80px]">
                   {pIds.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground italic text-center py-4">
+                    <p className="text-[11px] text-[#334155] italic text-center py-4">
                       No players assigned to this group.
                     </p>
                   ) : (
@@ -263,16 +264,16 @@ export function CustomGroupEditorModal({
                       return (
                         <div
                           key={pId}
-                          className="flex items-center justify-between p-2 rounded-lg bg-[#F9FBF9] border border-border/60 text-xs"
+                          className="flex items-center justify-between p-2 rounded-xl bg-[#F8FAFC] border border-slate-200 text-xs"
                         >
-                          <span className="font-bold text-[#0B3323]">
+                          <span className="font-bold text-[#0A0D14]">
                             {p?.username || 'Unknown'} {p?.real_name ? `(${p.real_name})` : ''}
                           </span>
 
                           <select
                             value={g.id}
                             onChange={(e) => handleMovePlayer(pId, e.target.value)}
-                            className="h-6 text-[10px] font-bold rounded-md border border-border bg-white px-1.5 text-muted-foreground"
+                            className="h-7 text-[10px] font-bold rounded-lg border border-slate-300 bg-white px-2 text-[#0A0D14] cursor-pointer"
                           >
                             <option value={g.id}>Group: {g.name}</option>
                             {groupList
@@ -296,10 +297,10 @@ export function CustomGroupEditorModal({
 
         {/* Unassigned Players Pool */}
         {unassignedPIds.length > 0 && (
-          <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200 space-y-2">
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-amber-600" />
+              <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-amber-700" />
                 <span>Unassigned Tournament Players ({unassignedPIds.length})</span>
               </span>
             </div>
@@ -310,15 +311,15 @@ export function CustomGroupEditorModal({
                 return (
                   <div
                     key={pId}
-                    className="flex items-center justify-between p-2 rounded-lg bg-white border border-amber-200 text-xs"
+                    className="flex items-center justify-between p-2 rounded-xl bg-white border border-amber-300 text-xs"
                   >
-                    <span className="font-bold text-[#0B3323]">{p?.username}</span>
+                    <span className="font-bold text-[#0A0D14]">{p?.username}</span>
                     <select
                       defaultValue=""
                       onChange={(e) => {
                         if (e.target.value) handleMovePlayer(pId, e.target.value);
                       }}
-                      className="h-6 text-[10px] font-bold rounded-md border border-border bg-white px-1.5 text-primary"
+                      className="h-7 text-[10px] font-bold rounded-lg border border-slate-300 bg-white px-2 text-[#1D1DE0] cursor-pointer"
                     >
                       <option value="">Assign to...</option>
                       {groupList.map((g) => (
@@ -335,30 +336,38 @@ export function CustomGroupEditorModal({
         )}
 
         {/* Fixtures Regenerate Toggle */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
           <input
             type="checkbox"
             id="regenFixtures"
             checked={regenerateFixtures}
             onChange={(e) => setRegenerateFixtures(e.target.checked)}
-            className="h-4 w-4 rounded-md text-primary accent-primary"
+            className="h-4 w-4 rounded-md text-[#1D1DE0] accent-[#1D1DE0]"
           />
-          <label htmlFor="regenFixtures" className="text-xs font-medium text-[#0B3323] cursor-pointer">
+          <label htmlFor="regenFixtures" className="text-xs font-bold text-[#0A0D14] cursor-pointer">
             Auto-generate new round-robin fixtures for modified groups (unplayed matches)
           </label>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 cursor-pointer shadow-xs"
+          >
             Cancel
           </Button>
           <Button
             type="button"
+            variant="ghost"
             size="sm"
             onClick={handleSubmit}
             disabled={isLoading}
-            className="font-bold bg-primary text-white"
+            className="rounded-xl font-black text-xs h-10 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] gap-2 shadow-sm cursor-pointer uppercase tracking-wider"
           >
             {isLoading ? 'Saving...' : 'Save Group Assignments'}
           </Button>

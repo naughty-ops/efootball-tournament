@@ -98,23 +98,23 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl text-white">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B3323] tracking-tight flex items-center gap-2">
-            <Settings className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl sm:text-4xl font-black text-white font-display uppercase tracking-wider flex items-center gap-2">
+            <Settings className="h-7 w-7 text-[#FFFF00]" />
             <span>Admin Settings & Banner Management</span>
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-white/70 mt-1">
             Customize user home page carousel banners, titles, buttons, and system preferences.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={handleReset} className="rounded-full gap-1.5 text-xs font-bold border-white/20 bg-[#0A0A7A] text-white hover:bg-white/10">
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset Defaults
+            <span>Reset Defaults</span>
           </Button>
           <Button
             size="sm"
@@ -129,10 +129,10 @@ export default function AdminSettingsPage() {
               });
               setNewSlideModalOpen(true);
             }}
-            className="gap-1.5 text-xs font-bold bg-[#00C853] hover:bg-[#00E676] text-[#0B3323]"
+            className="rounded-full gap-1.5 text-xs font-black bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] uppercase tracking-wider shadow-md"
           >
             <Plus className="h-4 w-4" />
-            Add New Banner
+            <span>Add New Banner</span>
           </Button>
         </div>
       </div>

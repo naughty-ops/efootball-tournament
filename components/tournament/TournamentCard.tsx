@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Trophy, Medal, Users, Calendar, ChevronRight, Edit, Trash2, Share2, Check, Image as ImageIcon } from 'lucide-react';
 import type { TournamentWithStats } from '@/services/tournamentService';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,8 +82,8 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
               (e.target as HTMLImageElement).src = '/images/banner1.jpg';
             }}
           />
-          {/* Vibrant eFootball Emerald Stadium Glow (No heavy black shading!) */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#062418]/95 via-[#0A3D29]/40 to-black/20" />
+          {/* Vibrant eFootball Electric Navy Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#08088F]/95 via-[#1010C5]/40 to-transparent" />
         </div>
 
         {/* Card Foreground Content */}
@@ -99,9 +99,14 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
               ) : (
                 <Badge
                   variant={t.status === 'ongoing' ? 'default' : t.status === 'registration' ? 'secondary' : 'outline'}
-                  className="capitalize font-extrabold text-[10px] shadow-md px-2.5 py-1 bg-black/40 text-white backdrop-blur-md border-white/20"
+                  className={cn(
+                    "capitalize font-extrabold text-[10px] shadow-md px-2.5 py-1 backdrop-blur-md",
+                    t.status === 'registration'
+                      ? "bg-[#00C853] text-[#072418] border-0"
+                      : "bg-black/40 text-white border-white/20"
+                  )}
                 >
-                  {t.status}
+                  {t.status === 'registration' ? 'Registration Open' : t.status}
                 </Badge>
               )}
 
@@ -125,11 +130,11 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
 
             {/* Tournament Title & Description */}
             <div className="space-y-1 pt-1">
-              <CardTitle className="text-lg sm:text-xl font-black text-white group-hover:text-emerald-300 transition-colors line-clamp-2 drop-shadow-md">
+              <CardTitle className="text-lg sm:text-xl font-black text-white group-hover:text-[#FFFF00] transition-colors line-clamp-2 drop-shadow-md">
                 {t.name}
               </CardTitle>
               {t.description && !isCompleted && (
-                <CardDescription className="text-xs text-slate-200/90 line-clamp-2 drop-shadow-xs font-medium">
+                <CardDescription className="text-xs text-[#D9DCFF] line-clamp-2 drop-shadow-xs font-medium">
                   {t.description}
                 </CardDescription>
               )}
@@ -257,7 +262,7 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
                     )}
                   </div>
 
-                  <Button asChild size="sm" className="h-8 px-3 text-xs font-extrabold gap-1 rounded-xl bg-emerald-500 text-emerald-950 hover:bg-emerald-400 shadow-md">
+                  <Button asChild size="sm" className="h-8 px-3 text-xs font-black gap-1 rounded-full bg-[#FFFF00] text-[#08088F] hover:bg-yellow-300 shadow-md">
                     <Link href={detailUrl}>
                       <span>Manage</span>
                       <ChevronRight className="h-3.5 w-3.5" />
@@ -270,24 +275,24 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
                     variant="outline"
                     size="sm"
                     onClick={handleOneTapCopy}
-                    className="h-8 px-2.5 text-xs font-bold text-white bg-black/40 border-white/20 hover:bg-white/20 backdrop-blur-md"
+                    className="h-8 px-2.5 text-xs font-bold text-white bg-black/40 border-white/20 hover:bg-white/20 backdrop-blur-md rounded-full"
                   >
                     {copiedLink ? (
                       <>
-                        <Check className="h-3.5 w-3.5 mr-1 text-emerald-400" />
-                        <span className="text-emerald-300 font-bold">Copied!</span>
+                        <Check className="h-3.5 w-3.5 mr-1 text-[#FFFF00]" />
+                        <span className="text-[#FFFF00] font-bold">Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Share2 className="h-3.5 w-3.5 mr-1 text-slate-300" />
+                        <Share2 className="h-3.5 w-3.5 mr-1 text-[#D9DCFF]" />
                         <span>Share</span>
                       </>
                     )}
                   </Button>
 
-                  <Button asChild size="sm" className="h-8 px-4 text-xs font-extrabold gap-1 rounded-xl bg-emerald-500 text-emerald-950 hover:bg-emerald-400 shadow-md">
+                  <Button asChild size="sm" className="h-8 px-4 text-xs font-black gap-1 rounded-full bg-[#FFFF00] text-[#08088F] hover:bg-yellow-300 shadow-md">
                     <Link href={detailUrl}>
-                      <span>{isCompleted ? 'Results' : 'View Tournament'}</span>
+                      <span>{isCompleted ? 'Results' : t.status === 'registration' ? 'Register / View' : 'View Tournament'}</span>
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>

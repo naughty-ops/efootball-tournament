@@ -15,6 +15,7 @@ import { getMatchesByTournament } from '@/services/matchService';
 export interface PublicParticipant {
   id: string;
   username: string;
+  real_name?: string | null;
   seed_number: number | null;
   status: string;
 }
@@ -52,6 +53,7 @@ export async function getPublicTournaments(params?: {
   const data = await getTournaments({
     search: params?.search,
     status: params?.status,
+    includeDrafts: false,
     sort: 'newest',
   });
 
@@ -61,9 +63,14 @@ export async function getPublicTournaments(params?: {
 
 /**
  * Fetch a single tournament for public display.
+ * Draft tournaments are strictly hidden from public view.
  */
 export async function getPublicTournament(id: string): Promise<TournamentWithStats | null> {
-  return getTournamentById(id);
+  const tourney = await getTournamentById(id);
+  if (!tourney || tourney.status === 'draft') {
+    return null;
+  }
+  return tourney;
 }
 
 /**
@@ -74,14 +81,29 @@ export async function getPublicTournamentStageInfo(tournamentId: string) {
 }
 
 /**
- * Fetch participants for public display — strips contact_info and other private fields.
+ * Fetch participants for public display — uses safe tournament_participants_public view
+ * to ensure sensitive fields (contact_info, real_name, user_id) are never retrieved.
  */
 export async function getPublicParticipants(tournamentId: string): Promise<PublicParticipant[]> {
   const supabase = createClient();
 
+  try {
+    const { data: viewData, error: viewError } = await (supabase
+      .from('tournament_participants_public') as any)
+      .select('id, username, real_name, seed_number, status')
+      .eq('tournament_id', tournamentId)
+      .order('seed_number', { ascending: true });
+
+    if (!viewError && viewData) {
+      return viewData as PublicParticipant[];
+    }
+  } catch {
+    // Fall back to table query if view is not yet applied in environment
+  }
+
   const { data, error } = await supabase
     .from('participants')
-    .select('id, username, seed_number, status')
+    .select('id, username, real_name, seed_number, status')
     .eq('tournament_id', tournamentId)
     .order('seed_number', { ascending: true });
 

@@ -65,10 +65,16 @@ export async function getMatchesByTournament(
   const rounds = (rRes.data || []) as Round[];
   if (rounds.length === 0) return [];
 
-  // 2. Fetch Participants
-  const pRes = await (supabase.from('participants') as unknown as UnknownQuery)
-    .select('*')
+  // 2. Fetch Participants (safe public projection)
+  let pRes = await (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+    .select('id, tournament_id, username, seed_number, status')
     .eq('tournament_id', tournamentId);
+
+  if (pRes.error || !pRes.data) {
+    pRes = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id, tournament_id, username, seed_number, status')
+      .eq('tournament_id', tournamentId);
+  }
 
   const participants = (pRes.data || []) as Participant[];
   const participantMap = new Map<string, Participant>(participants.map((p) => [p.id, p]));
@@ -152,9 +158,20 @@ export async function getMatchDetails(
 
   let pMap = new Map<string, Participant>();
   if (participantIds.length > 0) {
-    const { data: pData } = await (supabase.from('participants') as unknown as UnknownQuery)
-      .select('*')
+    let pData: any = null;
+    const viewRes = await (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+      .select('id, username, seed_number, status')
       .in('id', participantIds);
+
+    if (!viewRes.error && viewRes.data) {
+      pData = viewRes.data;
+    } else {
+      const fallback = await (supabase.from('participants') as unknown as UnknownQuery)
+        .select('id, username, seed_number, status')
+        .in('id', participantIds);
+      pData = fallback.data;
+    }
+
     if (pData) {
       pMap = new Map((pData as Participant[]).map((p) => [p.id, p]));
     }
@@ -227,15 +244,24 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
   const tournamentMap = new Map<string, Tournament>(tournaments.map((t) => [t.id, t]));
 
   // 2. Fetch Rounds, Groups, and Participants
-  const [rRes, gRes, pRes] = await Promise.all([
+  const [rRes, gRes, pResRaw] = await Promise.all([
     (supabase.from('rounds') as unknown as UnknownQuery).select('*').in('tournament_id', tournamentIds),
     (supabase.from('groups') as unknown as UnknownQuery).select('*').in('tournament_id', tournamentIds),
-    (supabase.from('participants') as unknown as UnknownQuery).select('*').in('tournament_id', tournamentIds),
+    (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+      .select('id, tournament_id, username, seed_number, status')
+      .in('tournament_id', tournamentIds)
+      .then((res: any) =>
+        res.error || !res.data
+          ? (supabase.from('participants') as unknown as UnknownQuery)
+              .select('id, tournament_id, username, seed_number, status')
+              .in('tournament_id', tournamentIds)
+          : res
+      ),
   ]);
 
   const rounds = (rRes.data || []) as Round[];
   const groups = (gRes.data || []) as { id: string; name: string; tournament_id: string }[];
-  const participants = (pRes.data || []) as Participant[];
+  const participants = (pResRaw.data || []) as Participant[];
 
   const roundMap = new Map<string, Round>(rounds.map((r) => [r.id, r]));
   const groupMap = new Map<string, { id: string; name: string; tournament_id: string }>(

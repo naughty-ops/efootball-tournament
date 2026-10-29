@@ -91,11 +91,18 @@ export async function getTournamentBracket(tournamentId: string): Promise<Bracke
     throw new Error('Tournament not found');
   }
 
-  // 2. Fetch Participants
-  const pRes = await (supabase.from('participants') as unknown as UnknownQuery)
-    .select('*')
+  // 2. Fetch Participants (safe public projection omitting contact_info / real_name)
+  let pRes = await (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+    .select('id, tournament_id, username, seed_number, status')
     .eq('tournament_id', tournamentId)
     .order('seed_number', { ascending: true });
+
+  if (pRes.error || !pRes.data) {
+    pRes = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id, tournament_id, username, seed_number, status')
+      .eq('tournament_id', tournamentId)
+      .order('seed_number', { ascending: true });
+  }
 
   const participants = (pRes.data || []) as Participant[];
 

@@ -123,21 +123,21 @@ export function CsvImportModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
         onClick={resetStateAndClose}
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl border border-border shadow-2xl p-6 z-10 space-y-6 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-3xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 z-10 space-y-6 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-border/60 pb-4">
+        <div className="flex items-start justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-[#1D1DE0] border border-slate-200 shadow-xs">
               <FileSpreadsheet className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-extrabold text-[#0B3323]">Bulk CSV Participant Import</h3>
-              <p className="text-xs text-muted-foreground">
+              <h3 className="text-xl font-black text-[#0A0D14] uppercase tracking-tight">Bulk CSV Participant Import</h3>
+              <p className="text-xs text-[#334155] font-medium mt-0.5">
                 Upload a CSV roster file to add multiple players at once.
               </p>
             </div>
@@ -145,17 +145,20 @@ export function CsvImportModal({
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              type="button"
+              variant="ghost"
               size="sm"
               onClick={handleDownloadTemplate}
-              className="text-xs font-bold gap-1.5 rounded-xl border-border hover:bg-secondary text-[#0B3323]"
+              className="text-xs font-bold gap-2 rounded-xl border-2 border-slate-300 bg-white hover:bg-slate-100 hover:border-slate-400 text-[#0A0D14] shadow-xs cursor-pointer h-9 px-3.5 transition-all"
             >
-              <Download className="h-3.5 w-3.5 text-primary" />
+              <Download className="h-3.5 w-3.5 text-[#1D1DE0]" />
               <span>Download Template</span>
             </Button>
             <button
+              type="button"
               onClick={resetStateAndClose}
-              className="text-muted-foreground hover:text-[#0B3323] p-1.5 rounded-xl transition-colors"
+              className="text-slate-400 hover:text-[#0A0D14] p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              aria-label="Close modal"
             >
               <X className="h-5 w-5" />
             </button>
@@ -164,11 +167,11 @@ export function CsvImportModal({
 
         {/* Upload Dropzone */}
         <div className="space-y-4">
-          <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-colors bg-[#F4F8F5]">
-            <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
-            <p className="text-xs font-bold text-[#0B3323]">Select CSV file from your device</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">
-              Must include headers: <code className="bg-white px-1.5 py-0.5 rounded border border-border">username, real_name, contact_info, seed_number</code>
+          <div className="border-2 border-dashed border-slate-300 hover:border-[#1D1DE0] rounded-2xl p-6 text-center transition-colors bg-[#F8FAFC]">
+            <Upload className="h-8 w-8 text-[#1D1DE0] mx-auto mb-2" />
+            <p className="text-sm font-black text-[#0A0D14]">Select CSV file from your device</p>
+            <p className="text-xs text-[#334155] font-medium mt-1 mb-4">
+              Must include headers: <code className="bg-white px-2 py-0.5 rounded border border-slate-300 font-mono font-bold text-[#0A0D14]">username, real_name, contact_info, seed_number</code>
             </p>
             <input
               type="file"
@@ -178,7 +181,12 @@ export function CsvImportModal({
               id="csv-file-upload-input"
             />
             <label htmlFor="csv-file-upload-input">
-              <Button asChild size="sm" variant="outline" className="rounded-xl font-bold text-xs cursor-pointer">
+              <Button
+                asChild
+                size="sm"
+                variant="ghost"
+                className="rounded-xl font-bold text-xs h-10 px-6 border-2 border-[#1D1DE0] bg-[#1D1DE0] text-white hover:bg-[#1515B0] cursor-pointer shadow-sm transition-all"
+              >
                 <span>{selectedFile ? selectedFile.name : 'Choose CSV File'}</span>
               </Button>
             </label>
@@ -197,17 +205,17 @@ export function CsvImportModal({
         {csvResult && (
           <div className="flex-1 min-h-0 flex flex-col space-y-3">
             {/* Stats Summary Bar */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border text-xs">
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-[#0B3323]">
-                  Valid: <span className="text-emerald-600">{csvResult.validCount}</span>
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div className="flex items-center gap-4">
+                <span className="font-extrabold text-[#0A0D14]">
+                  Valid: <span className="text-[#00C853] font-black">{csvResult.validCount}</span>
                 </span>
-                <span className="font-bold text-[#0B3323]">
-                  Invalid: <span className="text-destructive">{csvResult.invalidCount}</span>
+                <span className="font-extrabold text-[#0A0D14]">
+                  Invalid: <span className="text-destructive font-black">{csvResult.invalidCount}</span>
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={csvResult.exceedsCapacity ? 'destructive' : 'efootball'} className="text-[11px]">
+                <Badge variant={csvResult.exceedsCapacity ? 'destructive' : 'default'} className={csvResult.exceedsCapacity ? 'text-xs' : 'text-xs bg-[#1D1DE0] text-white font-bold'}>
                   Capacity: {existingParticipants.length + csvResult.validCount} / {maxParticipants}
                 </Badge>
               </div>
@@ -215,7 +223,7 @@ export function CsvImportModal({
 
             {/* Capacity Warning Alert */}
             {csvResult.exceedsCapacity && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold flex items-start gap-2">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
                   This CSV file exceeds the tournament capacity limit of {maxParticipants} participants (Current: {existingParticipants.length}, Available: {csvResult.availableCapacity}). Please remove excess rows from the file before importing.
@@ -224,30 +232,30 @@ export function CsvImportModal({
             )}
 
             {/* Preview Data Table */}
-            <div className="flex-1 overflow-y-auto no-scrollbar rounded-xl border border-border bg-white">
+            <div className="flex-1 overflow-y-auto no-scrollbar rounded-xl border border-slate-200 bg-white">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#F4F8F5] text-[#0B3323] font-bold border-b border-border sticky top-0">
+                <thead className="bg-[#F1F5F9] text-[#0A0D14] font-black border-b border-slate-200 sticky top-0">
                   <tr>
-                    <th className="p-3 w-12 text-center">Row</th>
-                    <th className="p-3">Username</th>
-                    <th className="p-3">Real Name</th>
-                    <th className="p-3">Contact</th>
-                    <th className="p-3 w-16">Seed</th>
-                    <th className="p-3">Status / Error</th>
+                    <th className="p-3 w-12 text-center text-[#0A0D14] font-black">Row</th>
+                    <th className="p-3 text-[#0A0D14] font-black">Username</th>
+                    <th className="p-3 text-[#0A0D14] font-black">Real Name</th>
+                    <th className="p-3 text-[#0A0D14] font-black">Contact</th>
+                    <th className="p-3 w-16 text-[#0A0D14] font-black">Seed</th>
+                    <th className="p-3 text-[#0A0D14] font-black">Status / Error</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60">
+                <tbody className="divide-y divide-slate-100">
                   {csvResult.rows.map((row) => (
-                    <tr key={row.rowIndex} className={row.isValid ? 'hover:bg-secondary/20' : 'bg-destructive/5'}>
-                      <td className="p-3 text-center font-mono text-muted-foreground">{row.rowIndex}</td>
-                      <td className="p-3 font-semibold text-[#0B3323]">{row.rawUsername || '-'}</td>
-                      <td className="p-3 text-muted-foreground">{row.rawRealName || '-'}</td>
-                      <td className="p-3 text-muted-foreground">{row.rawContactInfo || '-'}</td>
-                      <td className="p-3 font-mono font-[#0B3323] font-bold text-primary">{row.rawSeedNumber || '-'}</td>
+                    <tr key={row.rowIndex} className={row.isValid ? 'hover:bg-slate-50/80' : 'bg-red-50/50'}>
+                      <td className="p-3 text-center font-mono text-slate-500 font-bold">{row.rowIndex}</td>
+                      <td className="p-3 font-bold text-[#0A0D14]">{row.rawUsername || '-'}</td>
+                      <td className="p-3 text-slate-600 font-medium">{row.rawRealName || '-'}</td>
+                      <td className="p-3 text-slate-600 font-medium">{row.rawContactInfo || '-'}</td>
+                      <td className="p-3 font-mono font-bold text-[#1D1DE0]">{row.rawSeedNumber || '-'}</td>
                       <td className="p-3">
                         {row.isValid ? (
-                          <Badge variant="secondary" className="gap-1 text-[11px] bg-emerald-100 text-emerald-800 border-emerald-200">
-                            <CheckCircle2 className="h-3 w-3" />
+                          <Badge variant="secondary" className="gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
                             Valid
                           </Badge>
                         ) : (
@@ -266,24 +274,32 @@ export function CsvImportModal({
         )}
 
         {/* Modal Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
-          <Button variant="outline" onClick={resetStateAndClose} disabled={isImporting} className="rounded-xl text-xs">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={resetStateAndClose}
+            disabled={isImporting}
+            className="rounded-xl text-xs font-black h-11 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 transition-all shadow-xs cursor-pointer"
+          >
             Cancel
           </Button>
 
           <Button
+            type="button"
+            variant="ghost"
             onClick={handleImportExecute}
             disabled={!csvResult || csvResult.validCount === 0 || csvResult.exceedsCapacity || isImporting}
-            className="rounded-xl font-bold text-xs gap-2"
+            className="rounded-xl font-black text-xs h-11 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] border-none gap-2 shadow-sm uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
           >
             {isImporting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-[#072418]" />
                 <span>Importing...</span>
               </>
             ) : (
               <>
-                <Upload className="h-4 w-4" />
+                <Upload className="h-4 w-4 text-[#072418]" />
                 <span>Import {csvResult ? csvResult.validCount : 0} Valid Participants</span>
               </>
             )}

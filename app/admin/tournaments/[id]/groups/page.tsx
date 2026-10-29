@@ -250,8 +250,8 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-bold text-[#0B3323]">{error || 'Groups Not Found'}</h2>
-        <Button asChild variant="outline" size="sm">
+        <h2 className="text-2xl font-black text-[#0A0D14]">{error || 'Groups Not Found'}</h2>
+        <Button asChild variant="ghost" size="sm" className="rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 font-bold">
           <Link href="/admin/tournaments">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Tournaments
@@ -289,7 +289,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary -ml-2 mb-1">
+          <Button asChild variant="ghost" size="sm" className="gap-2 text-[#334155] hover:text-[#0A0D14] -ml-2 mb-1 font-bold">
             <Link href={`/admin/tournaments/${tournament.id}`}>
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Tournament Details</span>
@@ -297,32 +297,32 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
           </Button>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+            <h1 className="text-3xl font-black text-[#0A0D14] tracking-tight">
               {groups.length === 1 ? 'Single League Table Management' : 'Group Stage Management'}
             </h1>
             <Badge
-              variant={
+              className={cn(
+                'text-xs py-1 px-3 font-extrabold shadow-xs',
                 isFinalized
-                  ? 'default'
+                  ? 'bg-emerald-600 text-white border-0'
                   : isGroupStageComplete
-                  ? 'efootball'
+                  ? 'bg-[#1D1DE0] text-white border-0'
                   : groups.length > 0
-                  ? 'secondary'
-                  : 'outline'
-              }
-              className="text-xs py-1 px-3 font-bold"
+                  ? 'bg-[#00C853] text-[#072418] border-0'
+                  : 'bg-slate-100 text-[#0A0D14] border border-slate-300'
+              )}
             >
               {groupStatus}
             </Badge>
 
             {groups.length > 0 && (
-              <Badge variant="outline" className="text-xs py-1 px-3 font-bold font-mono">
+              <Badge className="text-xs py-1 px-3 font-bold font-mono bg-white text-[#0A0D14] border border-slate-300 shadow-2xs">
                 {roundsPerPair === 2 ? '2 Rounds Mode' : '1 Round Mode'}
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Tournament: <span className="font-bold text-[#0B3323]">{tournament.name}</span>
+          <p className="text-xs text-[#334155]">
+            Tournament: <span className="font-extrabold text-[#0A0D14]">{tournament.name}</span>
           </p>
         </div>
 
@@ -330,7 +330,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
         {isGroupKnockout && (
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={async () => {
                 setActionLoading(true);
@@ -344,7 +344,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                 }
               }}
               disabled={actionLoading}
-              className="rounded-xl text-xs font-bold border-amber-600/40 text-amber-800 bg-amber-50/50 hover:bg-amber-100/60 gap-1.5"
+              className="rounded-xl text-xs font-bold border-2 border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 gap-1.5 shadow-xs cursor-pointer"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', actionLoading && 'animate-spin')} />
               <span>Recalculate Standings</span>
@@ -353,24 +353,24 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
             {groups.length > 0 && (
               <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsEditPointsModalOpen(true)}
                   disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-2 border-emerald-300 text-emerald-900 bg-emerald-50 hover:bg-emerald-100 shadow-xs cursor-pointer"
                 >
                   <Edit3 className="h-3.5 w-3.5 text-emerald-700" />
                   <span>Edit Points Table</span>
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsQualificationModalOpen(true)}
                   disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary bg-primary/5 hover:bg-primary/10"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-2 border-blue-300 text-blue-900 bg-blue-50 hover:bg-blue-100 shadow-xs cursor-pointer"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-700" />
                   <span>Qualification Admin Controls</span>
                 </Button>
               </>
@@ -379,7 +379,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
             {groups.length > 0 && !isFinalized && (
               <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     setGroupCountInput(groups.length);
@@ -388,7 +388,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                     setIsSetupModalOpen(true);
                   }}
                   disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary/10"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-2 border-slate-300 text-[#0A0D14] bg-white hover:bg-slate-100 shadow-xs cursor-pointer"
                   title="Re-configure group count, qualifiers per group, or 1 vs 2 round mode"
                 >
                   <Grid className="h-3.5 w-3.5" />
@@ -396,11 +396,11 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsCustomEditorOpen(true)}
                   disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-primary text-primary hover:bg-primary/10"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-2 border-slate-300 text-[#0A0D14] bg-white hover:bg-slate-100 shadow-xs cursor-pointer"
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
                   <span>Custom Group Manager</span>
@@ -410,20 +410,22 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
 
             {groups.length === 0 ? (
               <Button
+                variant="ghost"
                 onClick={() => setIsSetupModalOpen(true)}
                 disabled={actionLoading || participants.length < 4}
-                className="rounded-xl text-xs font-bold gap-2 shadow-md"
+                className="rounded-xl text-xs font-black gap-2 shadow-sm bg-[#00C853] hover:bg-[#00B048] text-[#072418] border-none cursor-pointer h-10 px-5 uppercase tracking-wider"
               >
-                <Grid className="h-4 w-4" />
+                <Grid className="h-4 w-4 text-[#072418]" />
                 <span>Create Groups & Fixtures</span>
               </Button>
             ) : (
               <>
                 {!isFinalized ? (
                   <Button
+                    variant="ghost"
                     onClick={() => setIsFinalizeModalOpen(true)}
                     disabled={actionLoading || !isGroupStageComplete}
-                    className="rounded-xl text-xs font-bold gap-2 shadow-md bg-emerald-700 hover:bg-emerald-800"
+                    className="rounded-xl text-xs font-black gap-2 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer h-10 px-5 uppercase tracking-wider"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     <span>Finalize Group Stage</span>
@@ -432,7 +434,8 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                   <>
                     <Button
                       asChild
-                      className="rounded-xl text-xs font-bold gap-2 shadow-md bg-primary text-white"
+                      variant="ghost"
+                      className="rounded-xl text-xs font-black gap-2 shadow-sm bg-[#1D1DE0] hover:bg-[#1515B0] text-white cursor-pointer h-10 px-5 uppercase tracking-wider"
                     >
                       <Link href={`/admin/tournaments/${tournamentId}/groups/transition`}>
                         <Zap className="h-4 w-4" />
@@ -441,11 +444,11 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                     </Button>
 
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => setIsUnlockModalOpen(true)}
                       disabled={actionLoading}
-                      className="rounded-xl text-xs font-bold gap-1.5 border-amber-500 text-amber-800"
+                      className="rounded-xl text-xs font-bold gap-1.5 border-2 border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 shadow-xs cursor-pointer"
                     >
                       <Unlock className="h-3.5 w-3.5" />
                       <span>Reopen Group Stage</span>
@@ -454,11 +457,11 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                 )}
 
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setIsResetModalOpen(true)}
                   disabled={actionLoading}
-                  className="rounded-xl text-xs font-bold gap-1.5 border-destructive text-destructive hover:bg-destructive/10"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-2 border-rose-300 text-rose-900 bg-rose-50 hover:bg-rose-100 shadow-xs cursor-pointer"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   <span>Reset Groups</span>
@@ -501,45 +504,45 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
 
       {/* Summary Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 bg-white border-border shadow-xs flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+        <Card className="p-4 bg-white border border-slate-200 shadow-xs flex items-center gap-3 rounded-2xl">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#1D1DE0] shrink-0 border border-slate-200">
             <Grid className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-semibold">Total Groups</p>
-            <p className="text-lg font-extrabold text-[#0B3323]">{groups.length} Groups</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total Groups</p>
+            <p className="text-xl font-black text-[#0A0D14]">{groups.length} Groups</p>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-border shadow-xs flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+        <Card className="p-4 bg-white border border-slate-200 shadow-xs flex items-center gap-3 rounded-2xl">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#1D1DE0] shrink-0 border border-slate-200">
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-semibold">Participants</p>
-            <p className="text-lg font-extrabold text-[#0B3323]">{participants.length} Players</p>
+            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Participants</p>
+            <p className="text-xl font-black text-[#0A0D14]">{participants.length} Players</p>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-border shadow-xs flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+        <Card className="p-4 bg-white border border-slate-200 shadow-xs flex items-center gap-3 rounded-2xl">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#1D1DE0] shrink-0 border border-slate-200">
             <Swords className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-semibold">Fixture Progress</p>
-            <p className="text-lg font-extrabold text-[#0B3323]">
+            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Fixture Progress</p>
+            <p className="text-xl font-black text-[#0A0D14]">
               {completedGroupMatches} / {totalGroupMatches} Matches
             </p>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border-border shadow-xs flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+        <Card className="p-4 bg-white border border-slate-200 shadow-xs flex items-center gap-3 rounded-2xl">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#1D1DE0] shrink-0 border border-slate-200">
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-semibold">Qualifiers Target</p>
-            <p className="text-lg font-extrabold text-[#0B3323]">
+            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Qualifiers Target</p>
+            <p className="text-xl font-black text-[#0A0D14]">
               Top {qualifiersPerGroup} per group ({groups.length * qualifiersPerGroup} Total)
             </p>
           </div>
@@ -548,31 +551,33 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
 
       {/* Group Cards Grid / Empty State */}
       {groups.length === 0 ? (
-        <Card className="border-dashed border-2 p-12 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-primary mb-4">
+        <Card className="border-2 border-dashed border-slate-300 bg-[#F8FAFC] p-12 text-center rounded-3xl shadow-xs">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white border-2 border-slate-200 text-[#1D1DE0] mb-4 shadow-xs">
             <Grid className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-bold text-[#0B3323]">Groups Not Configured Yet</h3>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1 mb-6">
+          <h3 className="text-xl font-black text-[#0A0D14]">Groups Not Configured Yet</h3>
+          <p className="text-xs text-[#334155] font-medium max-w-md mx-auto mt-1 mb-6">
             {participants.length < 4
               ? 'At least 4 participants are required to create groups. Add players first in Participant Management.'
               : `Ready to divide ${participants.length} players into balanced groups with 1-Round or 2-Round fixtures.`}
           </p>
 
           <Button
+            type="button"
+            variant="ghost"
             onClick={() => setIsSetupModalOpen(true)}
             disabled={actionLoading || participants.length < 4 || !isGroupKnockout}
-            className="font-bold gap-2 rounded-xl"
+            className="font-black gap-2 rounded-xl h-11 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] cursor-pointer shadow-sm text-xs uppercase tracking-wider disabled:opacity-50"
           >
-            <Grid className="h-4 w-4" />
+            <Grid className="h-4 w-4 text-[#072418]" />
             <span>Setup Groups & Fixtures</span>
           </Button>
         </Card>
       ) : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <h2 className="text-xl font-extrabold text-[#0B3323]">Groups Overview</h2>
-            <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-bold text-primary gap-1">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <h2 className="text-xl font-black text-[#0A0D14]">Groups Overview</h2>
+            <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-bold text-[#1D1DE0] hover:text-[#1515B0] gap-1">
               <Link href={`/admin/tournaments/${tournamentId}/groups/matches`}>
                 <Swords className="h-3.5 w-3.5" />
                 <span>View Full Group Schedule</span>
@@ -582,66 +587,67 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {groups.map((gDet) => (
-              <Card key={gDet.group.id} className="border-border bg-white shadow-xs overflow-hidden flex flex-col justify-between">
-                <CardHeader className="bg-[#F4F8F5] border-b border-border pb-3">
+              <Card key={gDet.group.id} className="border border-slate-200 bg-white shadow-xs rounded-2xl overflow-hidden flex flex-col justify-between">
+                <CardHeader className="bg-[#F8FAFC] border-b border-slate-200 pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-extrabold text-[#0B3323] flex items-center gap-2">
+                    <CardTitle className="text-lg font-black text-[#0A0D14] flex items-center gap-2">
                       <span>{gDet.group.name}</span>
                       <Button
-                        variant="outline"
+                        type="button"
+                        variant="ghost"
                         size="sm"
                         onClick={() => setEditingGroupDetails(gDet)}
                         disabled={isFinalized || actionLoading}
-                        className="h-7 text-[11px] font-bold gap-1 rounded-lg border-border"
+                        className="h-7 text-xs font-bold gap-1.5 rounded-lg border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 shadow-xs cursor-pointer px-2.5"
                       >
-                        <UserCog className="h-3 w-3" />
+                        <UserCog className="h-3 w-3 text-[#1D1DE0]" />
                         <span>Edit Players</span>
                       </Button>
                     </CardTitle>
-                    <Badge variant={gDet.isComplete ? 'default' : 'outline'} className="text-[10px] font-bold font-mono">
+                    <Badge className={cn('text-xs font-bold font-mono', gDet.isComplete ? 'bg-[#00C853] text-[#072418]' : 'bg-slate-100 text-[#0A0D14] border border-slate-300')}>
                       {gDet.completedMatchesCount} / {gDet.totalMatchesCount} Fixtures
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-[#334155] font-medium">
                     {gDet.participants.length} Players • Top {qualifiersPerGroup} qualify
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="p-4 space-y-4">
                   {/* Standings Preview Table */}
-                  <div className="overflow-x-auto rounded-xl border border-border">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
                     <table className="w-full text-left text-xs font-sans">
-                      <thead className="bg-secondary/40 text-[#0B3323] font-bold border-b border-border text-[11px]">
+                      <thead className="bg-[#F1F5F9] text-[#0A0D14] font-black border-b border-slate-200 text-xs">
                         <tr>
-                          <th className="p-2 w-8 text-center">#</th>
-                          <th className="p-2">Player</th>
-                          <th className="p-2 text-center">P</th>
-                          <th className="p-2 text-center">GD</th>
-                          <th className="p-2 text-right font-extrabold">Pts</th>
+                          <th className="p-2.5 w-8 text-center text-[#0A0D14] font-black">#</th>
+                          <th className="p-2.5 text-[#0A0D14] font-black">Player</th>
+                          <th className="p-2.5 text-center text-[#0A0D14] font-black">P</th>
+                          <th className="p-2.5 text-center text-[#0A0D14] font-black">GD</th>
+                          <th className="p-2.5 text-right font-black text-[#0A0D14]">Pts</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border/60 text-xs">
+                      <tbody className="divide-y divide-slate-100 text-xs">
                         {gDet.standings.map((row) => (
                           <tr
                             key={row.participant.id}
                             className={
                               row.isQualified
-                                ? 'bg-emerald-50/70 font-semibold text-emerald-950'
-                                : 'hover:bg-secondary/15'
+                                ? 'bg-emerald-50 font-bold text-emerald-950 border-l-4 border-l-emerald-500'
+                                : 'hover:bg-slate-50 text-[#0A0D14]'
                             }
                           >
-                            <td className="p-2 text-center font-bold">{row.position}</td>
-                            <td className="p-2">
-                              <span className="font-bold">{row.participant.username}</span>
+                            <td className="p-2.5 text-center font-bold text-slate-500">{row.position}</td>
+                            <td className="p-2.5">
+                              <span className="font-bold text-[#0A0D14]">{row.participant.username}</span>
                               {row.isQualified && (
-                                <Check className="h-3 w-3 text-emerald-600 inline ml-1" />
+                                <Check className="h-3 w-3 text-emerald-600 inline ml-1.5" />
                               )}
                             </td>
-                            <td className="p-2 text-center font-mono">{row.played}</td>
-                            <td className="p-2 text-center font-mono">
+                            <td className="p-2.5 text-center font-mono text-slate-600">{row.played}</td>
+                            <td className="p-2.5 text-center font-mono text-slate-600">
                               {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                             </td>
-                            <td className="p-2 text-right font-mono font-extrabold text-primary">
+                            <td className="p-2.5 text-right font-mono font-extrabold text-[#1D1DE0]">
                               {row.points}
                             </td>
                           </tr>
@@ -651,11 +657,11 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                   </div>
 
                   {/* Footer Action */}
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                    <span className="text-xs text-muted-foreground font-medium">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                    <span className="text-xs text-[#334155] font-medium">
                       {gDet.isComplete ? 'All fixtures finished' : 'In Progress'}
                     </span>
-                    <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-bold text-primary gap-1">
+                    <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-bold text-[#1D1DE0] hover:text-[#1515B0] gap-1 cursor-pointer">
                       <Link href={`/admin/tournaments/${tournamentId}/groups/${gDet.group.id}`}>
                         <span>View Full Standings & Matches</span>
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -672,18 +678,18 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
       {/* Group Setup Modal */}
       {isSetupModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsSetupModalOpen(false)} />
-          <Card className="relative w-full max-w-md bg-white border border-border shadow-2xl z-10 p-6 space-y-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200" onClick={() => setIsSetupModalOpen(false)} />
+          <Card className="relative w-full max-w-md bg-white border border-slate-200 shadow-2xl z-10 p-6 space-y-5 rounded-3xl animate-in zoom-in-95 duration-200 text-[#0A0D14]">
             <CardHeader className="p-0 pb-2">
-              <CardTitle className="text-xl">World Cup Group Stage Setup</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-xl font-black text-[#0A0D14] uppercase tracking-tight">World Cup Group Stage Setup</CardTitle>
+              <CardDescription className="text-xs text-[#334155] font-medium">
                 Configure group count, rounds per pair, and qualification spots for {participants.length} players.
               </CardDescription>
             </CardHeader>
 
             <form onSubmit={handleSetupGroups} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-[#0B3323] block mb-1">
+                <label className="text-xs font-bold text-[#0A0D14] block mb-1">
                   Number of Groups
                 </label>
                 <Input
@@ -692,25 +698,26 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                   max={Math.floor(participants.length / 2)}
                   value={groupCountInput}
                   onChange={(e) => setGroupCountInput(Number(e.target.value))}
+                  className="border-2 border-slate-300 text-[#0A0D14] font-bold h-10 rounded-xl"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0B3323] block mb-1">
+                <label className="text-xs font-bold text-[#0A0D14] block mb-1">
                   Matches Per Pair (Rounds)
                 </label>
                 <select
                   value={roundsPerPairInput}
                   onChange={(e) => setRoundsPerPairInput(Number(e.target.value))}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-white text-xs font-semibold text-[#0B3323]"
+                  className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 bg-white text-xs font-bold text-[#0A0D14]"
                 >
                   <option value={1}>1 Round (Single Round-Robin)</option>
                   <option value={2}>2 Rounds (Double Round-Robin / Two Legs)</option>
                   <option value={3}>3 Rounds</option>
                   <option value={4}>4 Rounds</option>
                 </select>
-                <p className="text-[11px] text-muted-foreground mt-1">
+                <p className="text-[11px] text-[#334155] mt-1 font-medium">
                   {roundsPerPairInput === 1
                     ? 'Each pair plays 1 match.'
                     : `Each pair plays ${roundsPerPairInput} matches. All results contribute to the group standings.`}
@@ -718,7 +725,7 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0B3323] block mb-1">
+                <label className="text-xs font-bold text-[#0A0D14] block mb-1">
                   Qualifiers Per Group
                 </label>
                 <Input
@@ -727,19 +734,32 @@ export default function AdminGroupsPage({ params }: { params: Promise<{ id: stri
                   max={4}
                   value={qualifiersInput}
                   onChange={(e) => setQualifiersInput(Number(e.target.value))}
+                  className="border-2 border-slate-300 text-[#0A0D14] font-bold h-10 rounded-xl"
                   required
                 />
-                <p className="text-[11px] text-muted-foreground mt-1">
+                <p className="text-[11px] text-[#334155] mt-1 font-medium">
                   Top {qualifiersInput} players per group will qualify for the Knockout Stage ({groupCountInput * qualifiersInput} total qualifiers).
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setIsSetupModalOpen(false)}>
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSetupModalOpen(false)}
+                  className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 cursor-pointer shadow-xs"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={actionLoading} className="font-bold gap-2">
-                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  disabled={actionLoading}
+                  className="rounded-xl font-black text-xs h-10 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] gap-2 shadow-sm cursor-pointer uppercase tracking-wider disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin text-[#072418]" /> : <Grid className="h-4 w-4 text-[#072418]" />}
                   <span>Generate Groups & Fixtures</span>
                 </Button>
               </div>

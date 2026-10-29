@@ -198,11 +198,12 @@ export function EditPointsTableModal({
               </span>
               {currentOverrides[selectedRow.participant.id] && (
                 <Button
+                  type="button"
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleReset(selectedRow.participant.id)}
                   disabled={loading}
-                  className="h-7 text-[10px] font-bold border-amber-600 text-amber-800 gap-1"
+                  className="h-8 text-xs font-bold border-2 border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100 gap-1 rounded-xl cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3" />
                   <span>Reset to Auto-Calculation</span>
@@ -326,8 +327,14 @@ export function EditPointsTableModal({
           </div>
         )}
 
-        <div className="flex justify-end pt-2 border-t border-border">
-          <Button variant="outline" size="sm" onClick={onClose} className="font-bold text-xs">
+        <div className="flex justify-end pt-2 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 cursor-pointer shadow-xs"
+          >
             Close
           </Button>
         </div>

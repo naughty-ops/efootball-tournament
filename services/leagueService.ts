@@ -111,11 +111,20 @@ export async function generateLeagueFixtures(
   const tObj = await getTournamentById(tournamentId);
   if (!tObj) throw new Error('Tournament not found.');
 
-  // 2. Fetch Participants
-  const { data: pData, error: pErr } = await (supabase.from('participants') as unknown as UnknownQuery)
-    .select('*')
+  // 2. Fetch Participants (safe public projection)
+  let { data: pData, error: pErr } = await (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+    .select('id, tournament_id, username, seed_number, status')
     .eq('tournament_id', tournamentId)
     .order('seed_number', { ascending: true });
+
+  if (pErr || !pData) {
+    const fallback = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id, tournament_id, username, seed_number, status')
+      .eq('tournament_id', tournamentId)
+      .order('seed_number', { ascending: true });
+    pData = fallback.data;
+    pErr = fallback.error;
+  }
 
   if (pErr) throw new Error(`Failed to load participants: ${formatSupabaseError(pErr)}`);
 

@@ -79,7 +79,13 @@ export default function DedicatedLiveMatchPage({
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [activeVideoPub, setActiveVideoPub] = useState<RemoteTrackPublication | null>(null);
   const [trackDimensions, setTrackDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [showDebugHUD, setShowDebugHUD] = useState(false);
+  const [showDebugHUD, setShowDebugHUD] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('debug') === '1' || process.env.NODE_ENV === 'development';
+    }
+    return false;
+  });
 
   // Video Controls State
   const [isMuted, setIsMuted] = useState(true);
@@ -110,15 +116,7 @@ export default function DedicatedLiveMatchPage({
     side: 'left' | 'right';
   } | null>(null);
 
-  // Toggle Debug HUD via query param ?debug=1 or development environment
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('debug') === '1' || process.env.NODE_ENV === 'development') {
-        setShowDebugHUD(true);
-      }
-    }
-  }, []);
+
 
   // Parse available LiveKit video quality layers dynamically
   const parseAvailableQualities = useCallback(
@@ -236,10 +234,32 @@ export default function DedicatedLiveMatchPage({
           ? (supabase.from('rounds') as any).select('*').eq('id', match.round_id).single()
           : Promise.resolve({ data: null }),
         match.participant_a
-          ? (supabase.from('participants') as any).select('*').eq('id', match.participant_a).single()
+          ? (supabase.from('tournament_participants_public') as any)
+              .select('id, username')
+              .eq('id', match.participant_a)
+              .single()
+              .then((res: any) =>
+                res.error
+                  ? (supabase.from('participants') as any)
+                      .select('id, username')
+                      .eq('id', match.participant_a)
+                      .single()
+                  : res
+              )
           : Promise.resolve({ data: null }),
         match.participant_b
-          ? (supabase.from('participants') as any).select('*').eq('id', match.participant_b).single()
+          ? (supabase.from('tournament_participants_public') as any)
+              .select('id, username')
+              .eq('id', match.participant_b)
+              .single()
+              .then((res: any) =>
+                res.error
+                  ? (supabase.from('participants') as any)
+                      .select('id, username')
+                      .eq('id', match.participant_b)
+                      .single()
+                  : res
+              )
           : Promise.resolve({ data: null }),
       ]);
 
@@ -649,10 +669,10 @@ export default function DedicatedLiveMatchPage({
 
   if (loadingMatch) {
     return (
-      <div className="min-h-screen bg-[#F4F8F5] text-[#0B3323] flex items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-2.5">
-          <Loader2 className="h-6 w-6 animate-spin text-[#0B3323]" />
-          <span className="text-xs font-bold text-[#0B3323]">Loading Stream...</span>
+      <div className="min-h-screen bg-[#08088F] text-white flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
+          <span className="text-sm font-black font-display uppercase tracking-widest text-white">Loading Stream...</span>
         </div>
       </div>
     );
@@ -660,12 +680,12 @@ export default function DedicatedLiveMatchPage({
 
   if (matchError || !matchData) {
     return (
-      <div className="min-h-screen bg-[#F4F8F5] text-[#0B3323] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="p-4 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20">
-          <AlertCircle className="h-7 w-7 mx-auto mb-2" />
-          <h2 className="text-sm font-bold">{matchError || 'Match Not Found'}</h2>
+      <div className="min-h-screen bg-[#08088F] text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="p-6 rounded-[28px] bg-[#1818D4] text-white border border-white/20 max-w-sm">
+          <AlertCircle className="h-8 w-8 mx-auto mb-3 text-[#FF168B]" />
+          <h2 className="text-base font-black font-display uppercase">{matchError || 'Match Not Found'}</h2>
         </div>
-        <Button asChild variant="outline" className="border-[#0B3323]/20 text-[#0B3323] hover:bg-white text-xs font-bold">
+        <Button asChild className="bg-[#FFFF00] text-[#08088F] hover:bg-[#FFFF00]/90 font-black rounded-full text-xs shadow-md">
           <Link href="/live">
             <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
             Back to Live Matches
@@ -678,11 +698,11 @@ export default function DedicatedLiveMatchPage({
   const { match, round, tournament, participantA, participantB } = matchData;
 
   return (
-    <div className="min-h-screen bg-[#F4F8F5] text-[#0B3323] pb-12 font-sans">
+    <div className="min-h-screen bg-transparent text-white pb-12 font-sans">
       {/* Top Navbar */}
-      <div className="border-b border-[#0B3323]/10 bg-white shadow-xs sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
-          <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs text-[#0B3323] hover:bg-[#F4F8F5] font-bold">
+      <div className="border-b border-white/15 bg-[#1010C5] shadow-lg sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+          <Button asChild variant="ghost" size="sm" className="h-8 px-3 text-xs text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full font-black">
             <Link href="/live">
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               <span>Back</span>
@@ -690,49 +710,48 @@ export default function DedicatedLiveMatchPage({
           </Button>
 
           <Button
-            variant="outline"
             size="sm"
             onClick={handleCopyLink}
-            className="h-7 px-2.5 text-xs font-bold bg-[#F4F8F5] border-[#0B3323]/20 hover:bg-white text-[#0B3323] gap-1 rounded-lg"
+            className="h-8 px-3.5 text-xs font-black bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] gap-1.5 rounded-full shadow-md"
           >
-            {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Share2 className="h-3 w-3" />}
-            <span>{copied ? 'Copied' : 'Share'}</span>
+            {copied ? <Check className="h-3.5 w-3.5 text-[#08088F]" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span>{copied ? 'Copied' : 'Share Stream'}</span>
           </Button>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-3 space-y-3">
-        {/* ESSENTIAL INFO ONLY (ABOVE THE VIDEO) — Premium Emerald Green Scoreboard Banner */}
-        <div className="bg-gradient-to-r from-[#0B3323] via-[#0E422E] to-[#0B3323] text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-[#0B3323] space-y-3">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-4 space-y-4">
+        {/* ESSENTIAL INFO ONLY (ABOVE THE VIDEO) — Electric Blue Scoreboard Banner */}
+        <div className="bg-[#1010C5] text-white p-4 sm:p-5 rounded-[28px] shadow-xl border border-white/20 space-y-3">
           {/* Top Line: 🔴 LIVE & Viewer Count */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Badge className="bg-red-600 text-white font-black text-[9px] uppercase px-2 py-0.5 tracking-wider gap-1 shadow-2xs">
-                <span className="relative flex h-1.5 w-1.5">
+              <span className="bg-[#FF168B] text-white font-black text-[9px] uppercase px-2.5 py-0.5 rounded-full tracking-wider gap-1 shadow-sm flex items-center">
+                <span className="relative flex h-1.5 w-1.5 mr-1">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
                 </span>
                 LIVE
-              </Badge>
-              <span className="text-xs font-bold text-slate-200 truncate">
+              </span>
+              <span className="text-xs font-bold text-[#D9DCFF] truncate">
                 {tournament?.name ? `${tournament.name} • ` : ''}Match #{match.match_position}
               </span>
             </div>
 
-            <div className="flex items-center gap-1 text-xs font-bold text-emerald-300 bg-black/30 border border-white/20 px-2.5 py-0.5 rounded-lg">
+            <div className="flex items-center gap-1.5 text-xs font-black text-[#FFFF00] bg-[#0A0A7A] border border-white/20 px-3 py-1 rounded-full">
               <Users className="h-3 w-3" />
               <span>👁 {viewerCount}</span>
             </div>
           </div>
 
           {/* Minimal Scoreboard Display */}
-          <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/10">
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/15">
             <p className="text-sm sm:text-base font-black text-white truncate flex-1 text-left">
               {participantA?.username || 'Player 1'}
             </p>
 
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 rounded-xl border border-amber-400/30 shrink-0 font-mono">
-              <span className="text-xl sm:text-2xl font-black text-amber-300 tabular-nums">
+            <div className="flex items-center gap-2 px-4 py-1 bg-[#0A0A7A] rounded-2xl border border-white/20 shrink-0 font-mono">
+              <span className="text-xl sm:text-2xl font-black font-display text-[#FFFF00] tabular-nums">
                 {match.score_a}
               </span>
               {match.decided_by === 'penalties' &&
@@ -741,17 +760,17 @@ export default function DedicatedLiveMatchPage({
                 match.penalty_score_b !== null &&
                 match.penalty_score_b !== undefined && (
                   <>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-500/40">
+                    <span className="text-xs font-black text-[#08088F] bg-[#FFFF00] px-1.5 py-0.5 rounded-full">
                       ({match.penalty_score_a})
                     </span>
-                    <span className="text-xs font-bold text-slate-400 font-sans">–</span>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 px-1 py-0.5 rounded border border-emerald-500/40">
+                    <span className="text-xs font-bold text-white/40 font-sans">–</span>
+                    <span className="text-xs font-black text-[#08088F] bg-[#FFFF00] px-1.5 py-0.5 rounded-full">
                       ({match.penalty_score_b})
                     </span>
                   </>
                 )}
-              {match.decided_by !== 'penalties' && <span className="text-xs font-bold text-slate-400">—</span>}
-              <span className="text-xl sm:text-2xl font-black text-amber-300 tabular-nums">
+              {match.decided_by !== 'penalties' && <span className="text-xs font-bold text-white/40">—</span>}
+              <span className="text-xl sm:text-2xl font-black font-display text-[#FFFF00] tabular-nums">
                 {match.score_b}
               </span>
             </div>
@@ -763,14 +782,14 @@ export default function DedicatedLiveMatchPage({
         </div>
 
         {/* MAIN SECTION — Live Streaming Video Player Wrapper Card */}
-        <div className="bg-white border border-[#0B3323]/15 shadow-xl rounded-2xl p-2 sm:p-2.5 space-y-2">
+        <div className="bg-[#1818D4] border border-white/20 shadow-2xl rounded-[32px] p-2 sm:p-3 space-y-2">
           <div
             ref={containerRef}
             onClick={handlePlayerTap}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-[#0B3323]/20 shadow-inner flex items-center justify-center select-none group touch-none"
+            className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-inner flex items-center justify-center select-none group touch-none"
             style={{ filter: `brightness(${brightness}%)` }}
           >
             {/* Development Diagnostic HUD */}
@@ -883,7 +902,7 @@ export default function DedicatedLiveMatchPage({
                     This live match has concluded.
                   </p>
                 </div>
-                <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs px-4 h-8">
+                <Button asChild size="sm" className="bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] font-black rounded-full text-xs px-5 h-9 shadow-lg">
                   <Link href={tournament ? `/t/${tournament.id}` : '/live'}>
                     View Match Result
                   </Link>
@@ -914,7 +933,7 @@ export default function DedicatedLiveMatchPage({
                     onClick={toggleMute}
                     className="h-8 w-8 text-white hover:bg-white/20 rounded-xl"
                   >
-                    {isMuted ? <VolumeX className="h-4 w-4 text-red-400" /> : <Volume2 className="h-4 w-4" />}
+                    {isMuted ? <VolumeX className="h-4 w-4 text-[#FF168B]" /> : <Volume2 className="h-4 w-4 text-[#FFFF00]" />}
                   </Button>
                 </div>
 
@@ -932,8 +951,8 @@ export default function DedicatedLiveMatchPage({
                       className="h-8 px-2 text-white hover:bg-white/20 rounded-xl gap-1 text-xs font-bold"
                       title="Video Quality"
                     >
-                      <Settings className="h-4 w-4" />
-                      <span className="text-[10px] bg-emerald-600/80 px-1.5 py-0.5 rounded font-mono">
+                      <Settings className="h-4 w-4 text-[#FFFF00]" />
+                      <span className="text-[10px] bg-[#3434FF] text-white px-1.5 py-0.5 rounded font-mono font-bold">
                         {selectedQuality === 'auto' ? 'Auto' : selectedQuality}
                       </span>
                     </Button>
@@ -941,9 +960,9 @@ export default function DedicatedLiveMatchPage({
                     {showQualityMenu && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute bottom-10 right-0 w-36 py-1 bg-[#0B3323]/95 backdrop-blur-md border border-emerald-500/30 rounded-xl shadow-2xl z-40 text-xs text-white"
+                        className="absolute bottom-10 right-0 w-36 py-1 bg-[#0A0A7A]/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl z-40 text-xs text-white"
                       >
-                        <div className="px-3 py-1 text-[10px] font-bold text-emerald-300 uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
+                        <div className="px-3 py-1 text-[10px] font-black text-[#FFFF00] uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
                           <span>⚙ Quality</span>
                         </div>
 
@@ -951,11 +970,11 @@ export default function DedicatedLiveMatchPage({
                           type="button"
                           onClick={() => handleSelectQuality('auto')}
                           className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors ${
-                            selectedQuality === 'auto' ? 'text-amber-300 font-bold bg-white/5' : 'text-slate-200'
+                            selectedQuality === 'auto' ? 'text-[#FFFF00] font-black bg-white/10' : 'text-white/90'
                           }`}
                         >
                           <span>Auto</span>
-                          {selectedQuality === 'auto' && <Check className="h-3.5 w-3.5 text-amber-300" />}
+                          {selectedQuality === 'auto' && <Check className="h-3.5 w-3.5 text-[#FFFF00]" />}
                         </button>
 
                         {availableQualities.map((q) => (

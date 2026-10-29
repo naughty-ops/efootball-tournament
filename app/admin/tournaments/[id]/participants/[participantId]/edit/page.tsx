@@ -78,117 +78,135 @@ export default function EditParticipantPage({
 
   if (loading) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-[#0B3323]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xs font-semibold font-sans">Loading Participant Details...</span>
+      <div className="min-h-[400px] flex items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
+          <span className="text-xs font-semibold">Loading Participant Details...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-xl mx-auto pb-12">
+    <div className="space-y-6 max-w-xl mx-auto pb-16 text-white">
       {/* Back Button & Title */}
       <div className="space-y-2">
-        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary -ml-2">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full">
           <Link href={`/admin/tournaments/${tournamentId}/participants`}>
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Roster</span>
           </Link>
         </Button>
 
-        <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black font-display uppercase tracking-wider text-white">
           Edit Participant
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Update player gamertag, contact info, or seed assignment.
+        <p className="text-xs text-white/70">
+          Update player name, eFootball ID, contact info, or seed assignment.
         </p>
       </div>
 
       {/* Form Card */}
-      <Card className="border-border shadow-md bg-white">
-        <CardHeader>
-          <CardTitle className="text-xl">Participant Settings</CardTitle>
-          <CardDescription className="text-xs">
+      <Card className="border border-white/20 shadow-2xl bg-[#1818D4] rounded-3xl overflow-hidden text-white">
+        <CardHeader className="border-b border-white/10 pb-4">
+          <CardTitle className="text-lg font-black font-display uppercase tracking-wider text-white">
+            Participant Information
+          </CardTitle>
+          <CardDescription className="text-xs text-white/70">
             Save changes to update tournament participant record.
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {/* Error Banner */}
           {errorMessage && (
-            <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-start gap-2.5">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-xl bg-destructive/20 border border-destructive/40 text-red-200 text-xs font-semibold flex items-start gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-[#0B3323] block mb-1.5">
-                Gamertag / Username *
+              <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
+                Player Name (Full / Display Name) *
               </label>
-              <Input disabled={isSubmitting} {...register('username')} />
-              {errors.username && (
-                <p className="text-xs text-destructive mt-1 font-medium">{errors.username.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#0B3323] block mb-1.5">
-                Real Name
-              </label>
-              <Input disabled={isSubmitting} {...register('real_name')} />
+              <Input
+                placeholder="e.g. Alex Mercer"
+                disabled={isSubmitting}
+                className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11"
+                {...register('real_name')}
+              />
               {errors.real_name && (
-                <p className="text-xs text-destructive mt-1 font-medium">{errors.real_name.message}</p>
+                <p className="text-xs text-red-300 mt-1 font-medium">{errors.real_name.message}</p>
               )}
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#0B3323] block mb-1.5">
-                Contact Information (Private)
+              <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
+                eFootball ID / Gamertag *
               </label>
-              <Input disabled={isSubmitting} {...register('contact_info')} />
-              {errors.contact_info && (
-                <p className="text-xs text-destructive mt-1 font-medium">{errors.contact_info.message}</p>
+              <Input
+                placeholder="e.g. ABCD-123-456-789 or Alex_FC"
+                disabled={isSubmitting}
+                className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11 font-mono"
+                {...register('username')}
+              />
+              {errors.username && (
+                <p className="text-xs text-red-300 mt-1 font-medium">{errors.username.message}</p>
               )}
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#0B3323] block mb-1.5">
+              <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
+                Contact Information (WhatsApp / Private)
+              </label>
+              <Input
+                placeholder="e.g. +919876543210"
+                disabled={isSubmitting}
+                className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11 font-mono"
+                {...register('contact_info')}
+              />
+              {errors.contact_info && (
+                <p className="text-xs text-red-300 mt-1 font-medium">{errors.contact_info.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
                 Seed Number
               </label>
               <Input
                 type="number"
                 min={1}
                 disabled={isSubmitting}
+                className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11 font-mono"
                 {...register('seed_number', { valueAsNumber: true })}
               />
               {errors.seed_number && (
-                <p className="text-xs text-destructive mt-1 font-medium">{errors.seed_number.message}</p>
+                <p className="text-xs text-red-300 mt-1 font-medium">{errors.seed_number.message}</p>
               )}
             </div>
 
             {/* Actions */}
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
-              <Button asChild variant="outline" type="button" className="rounded-xl">
+            <div className="pt-4 flex items-center justify-end gap-3 border-t border-white/10">
+              <Button asChild variant="outline" type="button" className="rounded-full border-white/20 text-white hover:bg-white/10">
                 <Link href={`/admin/tournaments/${tournamentId}/participants`}>Cancel</Link>
               </Button>
 
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="font-bold rounded-xl px-6 gap-2 shadow-md"
+                className="font-black rounded-full px-7 h-11 gap-2 bg-[#FFFF00] text-[#08088F] hover:bg-[#E6E600] uppercase tracking-wider cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-[#08088F]" />
                     <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4" />
+                    <Save className="h-4 w-4 text-[#08088F]" />
                     <span>Update Participant</span>
                   </>
                 )}

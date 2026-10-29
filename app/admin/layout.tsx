@@ -1,34 +1,41 @@
-'use client';
+import React from 'react';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { isAllowlistedAdminEmail, checkIsAdmin } from '@/lib/auth/server';
+import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
+import type { Metadata } from 'next';
 
-import React, { useState } from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminTopNav from '@/components/admin/AdminTopNav';
+export const metadata: Metadata = {
+  title: 'Admin Dashboard | eFootball Tournament',
+  description: 'Administrative portal for managing tournaments, fixtures, and settings.',
+};
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  return (
-    <div className="min-h-screen flex bg-[#F4F8F5]">
-      {/* Desktop & Mobile Admin Sidebar */}
-      <AdminSidebar
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
-      />
+  // 1. Enforce active authentication
+  if (error || !user) {
+    redirect('/login');
+  }
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Navigation */}
-        <AdminTopNav onMenuClick={() => setMobileSidebarOpen(true)} />
+  // 2. Enforce strict email allowlist check (ye.agrajj@gmail.com only)
+  if (!isAllowlistedAdminEmail(user.email)) {
+    redirect('/dashboard?error=admin_unauthorized');
+  }
 
-        {/* Content Body */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-      </div>
-    </div>
-  );
+  // 3. Enforce database admin_users record verification
+  const isAdmin = await checkIsAdmin(user.id, user.email);
+  if (!isAdmin) {
+    redirect('/dashboard?error=admin_unauthorized');
+  }
+
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

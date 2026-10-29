@@ -5,19 +5,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PUBLIC_NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { Home, Radio, Trophy } from 'lucide-react';
+import { Trophy, Radio, Home, Info, Phone } from 'lucide-react';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
 
 const NAV_ICONS: Record<string, React.ElementType> = {
   '/': Home,
-  '/live': Radio,
   '/tournaments': Trophy,
+  '/live': Radio,
+  '/about': Info,
+  '/contact': Phone,
 };
 
 interface PublicNavProps {
   onItemClick?: () => void;
   className?: string;
+  isMobile?: boolean;
 }
 
 export default function PublicNav({ onItemClick, className }: PublicNavProps) {
@@ -29,7 +32,7 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
       const liveMatches = await getPublicLiveMatches();
       setLiveCount(liveMatches.length);
     } catch {
-      // Silent fail on nav
+      // Silent fail
     }
   }, []);
 
@@ -46,9 +49,8 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
   useRealtimeMatches(fetchLiveCount);
 
   return (
-    <nav className={cn('flex items-center justify-center max-w-full w-auto mx-auto', className)}>
-      {/* Centered Segmented Control Container */}
-      <div className="inline-flex items-center justify-center p-1 bg-slate-200/80 border border-border/70 rounded-2xl shadow-inner gap-1 sm:gap-1.5 max-w-full overflow-x-auto no-scrollbar touch-pan-x">
+    <nav className={cn('flex items-center justify-start sm:justify-center max-w-full overflow-x-auto no-scrollbar px-1', className)}>
+      <div className="inline-flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 rounded-full bg-[#1212B8]/80 sm:bg-white/10 backdrop-blur-md p-1 sm:p-1.5 border border-white/15 shrink-0">
         {PUBLIC_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           const isLiveItem = item.href === '/live';
@@ -60,16 +62,26 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
               href={item.href}
               onClick={onItemClick}
               className={cn(
-                'h-9 sm:h-9 px-3.5 sm:px-4 text-xs sm:text-sm font-extrabold transition-all duration-300 ease-out shrink-0 whitespace-nowrap flex items-center justify-center gap-1.5 rounded-xl active:scale-95 touch-target',
+                'transition-all duration-200 ease-out whitespace-nowrap flex items-center justify-center gap-1.5 rounded-full font-black tracking-wide active:scale-95 touch-target px-2.5 sm:px-4 py-1.5 sm:py-2 shrink-0',
                 isActive
-                  ? 'bg-primary text-white shadow-md shadow-primary/30 scale-[1.03] ring-1 ring-primary/40'
-                  : 'text-[#0B3323]/80 hover:text-[#0B3323] hover:bg-white/60 text-[#0B3323]'
+                  ? 'bg-[#FFFF00] text-[#08088F] shadow-md'
+                  : 'text-white hover:text-[#FFFF00] hover:bg-white/10'
               )}
             >
-              <IconComponent className={cn('h-4 w-4 shrink-0 transition-transform duration-300', isActive ? 'text-white scale-110' : 'text-primary')} />
-              <span>{item.label}</span>
+              <IconComponent
+                className={cn(
+                  'h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform',
+                  isActive ? 'text-[#08088F]' : 'text-[#D9DCFF]'
+                )}
+              />
+              <span className="text-[11px] sm:text-xs md:text-sm">{item.label}</span>
               {isLiveItem && liveCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-black animate-pulse shadow-xs">
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-black animate-pulse shadow-xs',
+                    isActive ? 'bg-[#FF168B] text-white' : 'bg-[#FF168B] text-white'
+                  )}
+                >
                   <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
                   {liveCount}
                 </span>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F4F8F5] p-4 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-[#0B0860] text-white p-4 text-center">
       <div className="max-w-md space-y-6">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-secondary text-primary border border-primary/20 shadow-inner">
           <Gamepad2 className="h-10 w-10" />
@@ -14,10 +14,10 @@ export default function NotFound() {
           <span className="text-xs font-bold uppercase tracking-widest text-primary">
             Error 404
           </span>
-          <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+          <h1 className="text-3xl font-black text-white tracking-tight">
             Page Offside!
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-300">
             The page or tournament fixture you are searching for does not exist or has been relocated.
           </p>
         </div>

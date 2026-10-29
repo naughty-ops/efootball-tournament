@@ -3,19 +3,26 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-full border px-3 py-1 text-xs font-black transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFFF00] focus:ring-offset-2',
   {
     variants: {
       variant: {
         default:
-          'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+          'border-transparent bg-[#FFFF00] text-[#08088F] shadow-xs uppercase tracking-wide',
         secondary:
-          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+          'border-transparent bg-[#1010C5] text-white',
         destructive:
-          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        outline: 'text-foreground border-border',
+          'border-transparent bg-[#FF2E56] text-white',
+        outline:
+          'text-white border-white/40 bg-white/10',
         efootball:
-          'efootball-badge border-primary/20 text-[#0B3323]',
+          'border-transparent bg-[#3434FF] text-white shadow-xs',
+        pink:
+          'border-transparent bg-[#FF168B] text-white shadow-sm',
+        lime:
+          'border-transparent bg-[#FFFF00] text-[#08088F]',
+        live:
+          'border-transparent bg-[#FF168B] text-white animate-pulse shadow-sm',
       },
     },
     defaultVariants: {

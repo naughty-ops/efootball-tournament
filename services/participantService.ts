@@ -13,6 +13,7 @@ type UnknownQuery = {
   ilike: (column: string, pattern: string) => UnknownQuery;
   or: (filters: string) => UnknownQuery;
   eq: (column: string, value: unknown) => UnknownQuery;
+  neq: (column: string, value: unknown) => UnknownQuery;
   not: (column: string, operator: string, value: unknown) => UnknownQuery;
   is: (column: string, value: unknown) => UnknownQuery;
   order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => UnknownQuery;
@@ -193,6 +194,9 @@ export async function addParticipant(
     contact_info: input.contact_info ? input.contact_info.trim() : null,
     seed_number: input.seed_number ?? null,
     status: 'active' as ParticipantStatus,
+    terms_accepted: true,
+    terms_accepted_at: new Date().toISOString(),
+    rules_version: '1.0',
   };
 
   const { data, error } = await (supabase.from('participants') as unknown as UnknownQuery)
@@ -203,6 +207,21 @@ export async function addParticipant(
   if (error) {
     console.error('Error adding participant:', error);
     throw new Error(`Failed to add participant: ${formatSupabaseError(error)}`);
+  }
+
+  // Sync tournament confirmed_slots_count
+  try {
+    const { count } = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+      .neq('status', 'withdrawn');
+    if (typeof count === 'number') {
+      await (supabase.from('tournaments') as unknown as UnknownQuery)
+        .update({ confirmed_slots_count: count })
+        .eq('id', tournamentId);
+    }
+  } catch (syncErr) {
+    console.warn('Could not sync confirmed_slots_count:', syncErr);
   }
 
   return data as Participant;
@@ -310,6 +329,21 @@ export async function deleteParticipant(
     console.error('Error deleting participant:', error);
     throw new Error(`Failed to delete participant: ${formatSupabaseError(error)}`);
   }
+
+  // Sync tournament confirmed_slots_count
+  try {
+    const { count } = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+      .neq('status', 'withdrawn');
+    if (typeof count === 'number') {
+      await (supabase.from('tournaments') as unknown as UnknownQuery)
+        .update({ confirmed_slots_count: count })
+        .eq('id', tournamentId);
+    }
+  } catch (syncErr) {
+    console.warn('Could not sync confirmed_slots_count:', syncErr);
+  }
 }
 
 /**
@@ -341,6 +375,9 @@ export async function batchAddParticipants(
     contact_info: input.contact_info ? input.contact_info.trim() : null,
     seed_number: input.seed_number ?? null,
     status: 'active' as ParticipantStatus,
+    terms_accepted: true,
+    terms_accepted_at: new Date().toISOString(),
+    rules_version: '1.0',
   }));
 
   const { data, error } = await (supabase.from('participants') as unknown as UnknownQuery)
@@ -350,6 +387,21 @@ export async function batchAddParticipants(
   if (error) {
     console.error('Error batch inserting participants:', error);
     throw new Error(`Failed to import participants: ${formatSupabaseError(error)}`);
+  }
+
+  // Sync tournament confirmed_slots_count
+  try {
+    const { count } = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+      .neq('status', 'withdrawn');
+    if (typeof count === 'number') {
+      await (supabase.from('tournaments') as unknown as UnknownQuery)
+        .update({ confirmed_slots_count: count })
+        .eq('id', tournamentId);
+    }
+  } catch (syncErr) {
+    console.warn('Could not sync confirmed_slots_count:', syncErr);
   }
 
   return (data || []) as Participant[];

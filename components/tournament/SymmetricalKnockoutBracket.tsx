@@ -282,7 +282,7 @@ function MatchCard({
             ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-slate-950 border-amber-300'
             : isLive
             ? 'bg-rose-600 text-white border-rose-500'
-            : 'bg-[#F4F8F5] text-[#0B3323] border-slate-100'
+            : 'bg-[#1212B8] text-white border-white/10'
         )}
       >
         <span className="flex items-center gap-1.5 font-mono">
@@ -440,6 +440,43 @@ export default function SymmetricalKnockoutBracket({
       .sort((a, b) => a.round_number - b.round_number);
   }, [bracket]);
 
+  const maxRoundNumber = rounds.length > 0 ? Math.max(...rounds.map((r) => r.round_number)) : 0;
+
+  // Calculate Real Completion Metrics
+  const allMatches = useMemo(() => rounds.flatMap((r) => r.matches || []), [rounds]);
+  const completedMatchesCount = useMemo(
+    () => allMatches.filter((m) => m.status === 'completed' || m.status === 'walkover').length,
+    [allMatches]
+  );
+  const totalMatchesCount = allMatches.length;
+  const completionPercentage = Math.round((completedMatchesCount / (totalMatchesCount || 1)) * 100);
+
+  // Active/Current Round Detection
+  const currentActiveRoundNumber = useMemo(() => {
+    const unresolvedRound = rounds.find(
+      (r) => (r.matches || []).some((m) => m.status === 'live' || m.status === 'pending' || m.status === 'ready')
+    );
+    return unresolvedRound ? unresolvedRound.round_number : maxRoundNumber;
+  }, [rounds, maxRoundNumber]);
+
+  // Remaining Active Players Count
+  const remainingPlayersCount = useMemo(() => {
+    const currentRound = rounds.find((r) => r.round_number === currentActiveRoundNumber);
+    if (!currentRound) return 2;
+    const playersInRound = new Set<string>();
+    (currentRound.matches || []).forEach((m) => {
+      if (m.participant_a) playersInRound.add(m.participant_a);
+      if (m.participant_b) playersInRound.add(m.participant_b);
+    });
+    return playersInRound.size || (currentRound.matches || []).length * 2;
+  }, [rounds, currentActiveRoundNumber]);
+
+  // Rounds excluding the Grand Final round
+  const prelimRounds = useMemo(
+    () => rounds.filter((r) => r.round_number < maxRoundNumber).sort((a, b) => a.round_number - b.round_number),
+    [rounds, maxRoundNumber]
+  );
+
   if (!bracket || rounds.length === 0 || bracket.status === 'Not Generated') {
     return (
       <Card className="border-dashed border-2 border-slate-200 bg-white p-12 text-center rounded-3xl">
@@ -459,7 +496,6 @@ export default function SymmetricalKnockoutBracket({
   const champion = tournament.championUser;
   const runnerUp = tournament.runnerUpUser;
 
-  const maxRoundNumber = Math.max(...rounds.map((r) => r.round_number));
   const grandFinalRound =
     rounds.find((r) => r.round_number === maxRoundNumber) ||
     rounds.find((r) => {
@@ -467,41 +503,6 @@ export default function SymmetricalKnockoutBracket({
       return n === 'grand final' || n === 'final' || n === 'finals';
     });
   const grandFinalMatch = grandFinalRound?.matches[0];
-
-  // Calculate Real Completion Metrics
-  const allMatches = useMemo(() => rounds.flatMap((r) => r.matches), [rounds]);
-  const completedMatchesCount = useMemo(
-    () => allMatches.filter((m) => m.status === 'completed' || m.status === 'walkover').length,
-    [allMatches]
-  );
-  const totalMatchesCount = allMatches.length;
-  const completionPercentage = Math.round((completedMatchesCount / (totalMatchesCount || 1)) * 100);
-
-  // Active/Current Round Detection
-  const currentActiveRoundNumber = useMemo(() => {
-    const unresolvedRound = rounds.find(
-      (r) => r.matches.some((m) => m.status === 'live' || m.status === 'pending' || m.status === 'ready')
-    );
-    return unresolvedRound ? unresolvedRound.round_number : maxRoundNumber;
-  }, [rounds, maxRoundNumber]);
-
-  // Remaining Active Players Count
-  const remainingPlayersCount = useMemo(() => {
-    const currentRound = rounds.find((r) => r.round_number === currentActiveRoundNumber);
-    if (!currentRound) return 2;
-    const playersInRound = new Set<string>();
-    currentRound.matches.forEach((m) => {
-      if (m.participant_a) playersInRound.add(m.participant_a);
-      if (m.participant_b) playersInRound.add(m.participant_b);
-    });
-    return playersInRound.size || currentRound.matches.length * 2;
-  }, [rounds, currentActiveRoundNumber]);
-
-  // Rounds excluding the Grand Final round
-  const prelimRounds = useMemo(
-    () => rounds.filter((r) => r.round_number < maxRoundNumber).sort((a, b) => a.round_number - b.round_number),
-    [rounds, maxRoundNumber]
-  );
 
   // Apply Filter to Match Collections
   const filterMatch = (m: FullMatchData, roundNum: number) => {
@@ -676,7 +677,7 @@ export default function SymmetricalKnockoutBracket({
 
       {/* 3. SYMMETRICAL BRACKET CANVAS (DESKTOP & TABLET) */}
       {viewMode === 'tree' ? (
-        <div className="relative w-full overflow-x-auto no-scrollbar rounded-3xl border border-slate-200 bg-[#F4F8F5]/80 p-6 sm:p-8 shadow-xs">
+        <div className="relative w-full overflow-x-auto no-scrollbar rounded-3xl border border-white/20 bg-[#1010C5] p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center justify-center min-w-max gap-8 sm:gap-12 py-4">
             {/* LEFT WING: R16 -> QF -> SF */}
             <div className="flex items-center gap-8 sm:gap-10">

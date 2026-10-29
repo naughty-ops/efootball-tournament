@@ -118,7 +118,13 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   }, [tournamentId]);
 
   useEffect(() => {
-    fetchAll();
+    let cancelled = false;
+    void (async () => {
+      if (!cancelled) await fetchAll();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchAll]);
 
   // Realtime subscription callback
@@ -131,8 +137,8 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-        <p className="text-sm font-extrabold text-[#0B3323]">Loading Public Tournament Details...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-[#FFFF00]" />
+        <p className="text-sm font-black font-display uppercase tracking-widest text-white">Loading Tournament Details...</p>
       </div>
     );
   }
@@ -140,16 +146,16 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   if (error || !tournament) {
     return (
       <div className="max-w-md mx-auto py-16 px-4 text-center space-y-6">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-rose-100 text-rose-600 shadow-xs">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FF168B]/20 text-[#FF168B] shadow-lg border border-[#FF168B]/30">
           <AlertCircle className="h-8 w-8" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-[#0B3323]">Tournament Not Found</h2>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <h2 className="text-2xl font-black font-display uppercase text-white">Tournament Not Found</h2>
+          <p className="text-xs text-[#D9DCFF]/80 max-w-sm mx-auto">
             This tournament may have been deleted, or the public link is invalid. Please check the URL and try again.
           </p>
         </div>
-        <Button asChild className="font-extrabold rounded-2xl bg-[#0B3323] hover:bg-[#0B3323]/90 text-white gap-2 shadow-md">
+        <Button asChild className="font-black rounded-full bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] gap-2 shadow-lg">
           <Link href="/tournaments">
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Tournaments</span>
@@ -167,7 +173,7 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   const showBracket = tournament.format === 'knockout' || tournament.format === 'group_knockout' || (tournament.format as string) === 'single_league_knockout' || (bracket?.rounds?.length || 0) > 0;
 
   return (
-    <div className="min-h-screen bg-[#F4F8F5]/50 pb-16">
+    <div className="min-h-screen bg-transparent pb-16">
       {/* 🏆 WINNER CELEBRATION OVERLAY */}
       {isCompleted && champion && (
         <WinnerCelebrationOverlay
@@ -180,11 +186,12 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
       )}
 
       {/* 1. PUBLIC HERO BANNER */}
-      <div className="bg-gradient-to-b from-[#0B2518] via-[#0B3323] to-[#0D3B29] text-white border-b border-emerald-800/40 shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 space-y-6">
+      <div className="bg-[#1010C5] text-white border-b border-white/20 shadow-xl relative overflow-hidden rounded-[32px] mx-4 sm:mx-6 my-4 p-6 sm:p-8">
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-[#3434FF]/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-6xl mx-auto space-y-6 relative z-10">
           {/* Breadcrumb & Share Trigger */}
           <div className="flex items-center justify-between gap-4">
-            <Button asChild variant="ghost" size="sm" className="text-emerald-200 hover:text-white hover:bg-emerald-800/50 -ml-2 rounded-xl text-xs font-bold gap-1.5">
+            <Button asChild variant="ghost" size="sm" className="text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full text-xs font-black gap-1.5 px-3">
               <Link href="/tournaments">
                 <ChevronLeft className="h-4 w-4" />
                 <span>All Tournaments</span>
@@ -195,7 +202,7 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
               <Button
                 size="sm"
                 onClick={() => setIsShareModalOpen(true)}
-                className="h-8 px-3 text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-[#0B3323] gap-1.5 rounded-xl shadow-xs"
+                className="h-8 px-4 text-xs font-black bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] gap-1.5 rounded-full shadow-md"
               >
                 <Share2 className="h-3.5 w-3.5" />
                 <span>Share Link & QR</span>
@@ -204,7 +211,7 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
                 variant="ghost"
                 size="sm"
                 onClick={fetchAll}
-                className="h-8 px-2 text-emerald-300 hover:text-white hover:bg-emerald-800/50 rounded-xl"
+                className="h-8 px-2.5 text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full"
                 title="Refresh Tournament Data"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -215,51 +222,52 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
           {/* Title & Metadata Header */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-emerald-400 text-slate-950 font-black text-[10px] uppercase px-2.5 py-0.5 border-0">
-                OFFICIAL PUBLIC EVENT
-              </Badge>
-              <Badge variant="outline" className="text-emerald-200 border-emerald-700 font-bold text-[10px] uppercase">
+              <span className="bg-[#FFFF00] text-[#08088F] font-black text-[10px] uppercase px-3 py-1 rounded-full shadow-sm">
+                OFFICIAL COMPETITION
+              </span>
+              <span className="bg-[#3434FF] text-white border border-white/20 font-bold text-[10px] uppercase px-3 py-1 rounded-full">
                 {formatTournamentFormat(tournament.format)}
-              </Badge>
+              </span>
               {tournament.status === 'ongoing' ? (
-                <Badge className="bg-rose-600 text-white font-extrabold text-[10px] uppercase px-2 py-0.5 border-0 animate-pulse">
-                  ● LIVE NOW
-                </Badge>
+                <span className="bg-[#FF168B] text-white font-black text-[10px] uppercase px-3 py-1 rounded-full shadow-[0_0_12px_rgba(255,22,139,0.5)] animate-pulse flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                  LIVE NOW
+                </span>
               ) : isCompleted ? (
-                <Badge className="bg-amber-400 text-slate-950 font-extrabold text-[10px] uppercase px-2.5 py-0.5 border-0">
+                <span className="bg-[#FFFF00] text-[#08088F] font-black text-[10px] uppercase px-3 py-1 rounded-full">
                   🏆 COMPLETED
-                </Badge>
+                </span>
               ) : (
-                <Badge variant="secondary" className="font-bold text-[10px] uppercase">
+                <span className="bg-[#1818D4] text-white border border-white/20 font-bold text-[10px] uppercase px-3 py-1 rounded-full">
                   {tournament.status}
-                </Badge>
+                </span>
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-emerald-300">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-display uppercase tracking-wider text-white">
               {tournament.name}
             </h1>
 
             {tournament.description && (
-              <p className="text-sm text-emerald-100/90 max-w-2xl font-medium leading-relaxed">
+              <p className="text-sm text-[#D9DCFF]/90 max-w-2xl font-medium leading-relaxed">
                 {tournament.description}
               </p>
             )}
 
             {/* Quick Metadata Stats */}
-            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-emerald-200/90 pt-2 border-t border-emerald-800/50">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-[#D9DCFF]/90 pt-3 border-t border-white/20">
               <span className="flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-emerald-400" />
+                <Users className="h-4 w-4 text-[#FFFF00]" />
                 <span>{tournament.participant_count} / {tournament.max_participants} Participants</span>
               </span>
-              <span>•</span>
+              <span className="text-white/40">•</span>
               <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-emerald-400" />
+                <Calendar className="h-4 w-4 text-[#FFFF00]" />
                 <span>Started {formatDate(tournament.start_date)}</span>
               </span>
               {tournament.end_date && (
                 <>
-                  <span>•</span>
+                  <span className="text-white/40">•</span>
                   <span>Ends {formatDate(tournament.end_date)}</span>
                 </>
               )}
@@ -281,14 +289,14 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
 
       {/* 3. PUBLIC TABS NAVIGATION */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 border-b border-white/20">
           <button
             onClick={() => setActiveTab('overview')}
             className={cn(
-              'px-4 py-2 text-xs font-extrabold rounded-2xl transition-all whitespace-nowrap flex items-center gap-2 border',
+              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
               activeTab === 'overview'
-                ? 'bg-[#0B3323] text-white border-[#0B3323] shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-[#0B3323]'
+                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
             )}
           >
             <LayoutGrid className="h-3.5 w-3.5" />
@@ -298,10 +306,10 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
           <button
             onClick={() => setActiveTab('participants')}
             className={cn(
-              'px-4 py-2 text-xs font-extrabold rounded-2xl transition-all whitespace-nowrap flex items-center gap-2 border',
+              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
               activeTab === 'participants'
-                ? 'bg-[#0B3323] text-white border-[#0B3323] shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-[#0B3323]'
+                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
             )}
           >
             <Users className="h-3.5 w-3.5" />
@@ -312,10 +320,10 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
             <button
               onClick={() => setActiveTab('groups')}
               className={cn(
-                'px-4 py-2 text-xs font-extrabold rounded-2xl transition-all whitespace-nowrap flex items-center gap-2 border',
+                'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
                 activeTab === 'groups'
-                  ? 'bg-[#0B3323] text-white border-[#0B3323] shadow-xs'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-[#0B3323]'
+                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                  : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
               )}
             >
               <Target className="h-3.5 w-3.5" />
@@ -326,10 +334,10 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
           <button
             onClick={() => setActiveTab('matches')}
             className={cn(
-              'px-4 py-2 text-xs font-extrabold rounded-2xl transition-all whitespace-nowrap flex items-center gap-2 border',
+              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
               activeTab === 'matches'
-                ? 'bg-[#0B3323] text-white border-[#0B3323] shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-[#0B3323]'
+                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
             )}
           >
             <Swords className="h-3.5 w-3.5" />
@@ -340,10 +348,10 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
             <button
               onClick={() => setActiveTab('bracket')}
               className={cn(
-                'px-4 py-2 text-xs font-extrabold rounded-2xl transition-all whitespace-nowrap flex items-center gap-2 border',
+                'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
                 activeTab === 'bracket'
-                  ? 'bg-[#0B3323] text-white border-[#0B3323] shadow-xs'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-[#0B3323]'
+                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
               )}
             >
               <GitBranch className="h-3.5 w-3.5" />

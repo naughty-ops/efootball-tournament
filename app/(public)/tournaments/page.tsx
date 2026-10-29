@@ -1,19 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import {
-  Trophy, Search, ChevronRight, Users, Calendar,
-  Flame, CheckCircle2, Clock, Filter,
+  Trophy, Search, Flame, CheckCircle2, Clock, Filter,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getPublicTournaments } from '@/services/publicTournamentService';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
-import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { TournamentCard } from '@/components/tournament/TournamentCard';
 
@@ -23,36 +19,6 @@ const STATUS_FILTERS = [
   { key: 'registration', label: 'Upcoming', icon: Clock },
   { key: 'completed', label: 'Completed', icon: CheckCircle2 },
 ] as const;
-
-function formatTournamentFormat(format: string) {
-  switch (format) {
-    case 'group_knockout': return 'Group + Knockout';
-    case 'knockout': return 'Knockout';
-    case 'league': return 'League';
-    default: return format.replace(/_/g, ' ');
-  }
-}
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'ongoing':
-      return (
-        <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white border-0 gap-1.5 text-[11px] font-bold">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
-          </span>
-          ACTIVE
-        </Badge>
-      );
-    case 'registration':
-      return <Badge variant="secondary" className="text-[11px] font-bold">REGISTRATION</Badge>;
-    case 'completed':
-      return <Badge variant="outline" className="text-[11px] font-bold text-muted-foreground">COMPLETED</Badge>;
-    default:
-      return <Badge variant="outline" className="text-[11px] font-bold capitalize">{status}</Badge>;
-  }
-}
 
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<TournamentWithStats[]>([]);
@@ -83,25 +49,28 @@ export default function TournamentsPage() {
   useRealtimeMatches(fetchData);
 
   return (
-    <div className="space-y-8 w-full overflow-hidden pb-8">
+    <div className="space-y-8 w-full overflow-hidden pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B3323] tracking-tight">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFFF00] text-[#08088F] text-[11px] font-black uppercase tracking-widest mb-2">
+            🏆 Official Competitions
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black font-display text-white tracking-wider uppercase">
             Tournaments
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-[#D9DCFF]/80 mt-1 font-medium">
             Browse ongoing, upcoming, and completed eFootball competitive leagues.
           </p>
         </div>
         <div className="relative w-full sm:w-72 shrink-0">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#D9DCFF]/60" />
           <Input
             id="tournament-search"
-            placeholder="Search tournament..."
+            placeholder="Search tournaments..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 text-xs h-10 w-full bg-white"
+            className="pl-10 text-xs h-11 w-full bg-[#0A0A7A] border-white/20 text-white placeholder:text-[#D9DCFF]/50 rounded-full focus-visible:border-[#FFFF00] focus-visible:ring-1 focus-visible:ring-[#FFFF00]"
           />
         </div>
       </div>
@@ -114,10 +83,10 @@ export default function TournamentsPage() {
             id={`filter-${key}`}
             onClick={() => setStatusFilter(key)}
             className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all',
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border transition-all',
               statusFilter === key
-                ? 'bg-primary text-white border-primary shadow-sm'
-                : 'bg-white text-muted-foreground border-border hover:border-primary/40 hover:text-[#0B3323]'
+                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)] scale-[1.02]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
             )}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -129,27 +98,29 @@ export default function TournamentsPage() {
       {/* Content */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
-          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
-          <div className="h-56 rounded-2xl bg-slate-100 animate-pulse border border-border/40" />
+          <div className="h-64 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
+          <div className="h-64 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
+          <div className="h-64 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
         </div>
       ) : error ? (
-        <Card className="p-12 text-center border-destructive/30 bg-destructive/5">
-          <p className="text-sm font-medium text-destructive mb-3">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchData}>Try Again</Button>
+        <Card className="p-12 text-center border-white/20 bg-[#1818D4] text-white rounded-[28px]">
+          <p className="text-sm font-bold text-[#FF168B] mb-4">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchData} className="rounded-full border-white/30 text-white hover:bg-[#FFFF00] hover:text-[#08088F]">
+            Try Again
+          </Button>
         </Card>
       ) : tournaments.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-primary mb-3">
-            <Trophy className="h-7 w-7" />
+        <Card className="p-12 text-center border-white/20 bg-[#1010C5] text-white rounded-[28px]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#3434FF] text-[#FFFF00] mb-4 shadow-lg">
+            <Trophy className="h-8 w-8" />
           </div>
-          <h3 className="text-base font-bold text-[#0B3323]">No tournaments found</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h3 className="text-xl font-black font-display uppercase tracking-wide text-white">No tournaments found</h3>
+          <p className="text-xs text-[#D9DCFF]/80 mt-2 max-w-sm mx-auto">
             {search
-              ? 'No tournaments match your search criteria.'
+              ? 'No tournaments match your search criteria. Try a different query.'
               : statusFilter !== 'all'
-              ? 'No tournaments with the selected status.'
-              : 'No tournaments are currently listed.'}
+              ? 'No tournaments currently match the selected status filter.'
+              : 'No competitive tournaments are currently listed. Check back soon!'}
           </p>
         </Card>
       ) : (

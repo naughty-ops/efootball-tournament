@@ -155,14 +155,16 @@ export function LeagueQualificationModal({
                           key={num}
                           type="button"
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
                           onClick={() => {
                             setQualifiersCount(num);
                             setManualOverrides({});
                           }}
                           disabled={isLocked || num > standings.length}
-                          className={`h-8 px-2 text-[11px] font-bold ${
-                            qualifiersCount === num ? 'bg-primary text-white border-primary' : 'bg-white'
+                          className={`h-8 px-2.5 text-xs font-black rounded-lg border-2 cursor-pointer ${
+                            qualifiersCount === num
+                              ? 'bg-[#1D1DE0] text-white border-[#1D1DE0]'
+                              : 'bg-white text-[#0A0D14] border-slate-300 hover:bg-slate-100'
                           }`}
                         >
                           Top {num}
@@ -176,10 +178,10 @@ export function LeagueQualificationModal({
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={handleAutoSelect}
                     disabled={isLocked}
-                    className="h-8 text-xs font-bold gap-1 border-emerald-600 text-emerald-800 bg-emerald-50"
+                    className="h-8 text-xs font-black gap-1.5 border-2 border-emerald-400 text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-lg cursor-pointer"
                   >
                     <RefreshCw className="h-3.5 w-3.5 text-emerald-700" />
                     <span>Auto-Select Top {qualifiersCount}</span>
@@ -187,16 +189,16 @@ export function LeagueQualificationModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
-                <span className="font-semibold text-muted-foreground">
-                  Selected Qualifiers: <strong className="text-emerald-700 font-bold">{qualifiedList.length}</strong> / {standings.length} Players
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
+                <span className="font-semibold text-slate-600">
+                  Selected Qualifiers: <strong className="text-emerald-700 font-extrabold">{qualifiedList.length}</strong> / {standings.length} Players
                 </span>
                 {isLocked ? (
                   <Badge className="bg-emerald-600 text-white font-bold gap-1">
                     <Lock className="h-3 w-3" /> Qualification Locked
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-amber-700 border-amber-300 font-bold gap-1">
+                  <Badge className="bg-amber-100 text-amber-950 border border-amber-300 font-bold gap-1">
                     <Unlock className="h-3 w-3" /> Unlocked (Draft)
                   </Badge>
                 )}
@@ -204,42 +206,42 @@ export function LeagueQualificationModal({
             </div>
 
             {/* Standings Table with Toggle Controls */}
-            <div className="border border-border rounded-xl overflow-hidden bg-white max-h-72 overflow-y-auto no-scrollbar">
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white max-h-72 overflow-y-auto no-scrollbar">
               <table className="w-full text-xs">
-                <thead className="bg-[#F4F8F5] sticky top-0 border-b border-border">
+                <thead className="bg-[#F1F5F9] sticky top-0 border-b border-slate-200">
                   <tr>
-                    <th className="text-left p-2.5 font-bold text-[#0B3323]">Rank</th>
-                    <th className="text-left p-2.5 font-bold text-[#0B3323]">Player</th>
-                    <th className="p-2.5 text-center text-muted-foreground">P</th>
-                    <th className="p-2.5 text-center text-primary font-bold">PTS</th>
-                    <th className="p-2.5 text-center text-muted-foreground">GD</th>
-                    <th className="p-2.5 text-center font-bold text-[#0B3323]">Qualification Status</th>
+                    <th className="text-left p-2.5 font-black text-[#0A0D14]">Rank</th>
+                    <th className="text-left p-2.5 font-black text-[#0A0D14]">Player</th>
+                    <th className="p-2.5 text-center text-slate-500 font-bold">P</th>
+                    <th className="p-2.5 text-center text-[#1D1DE0] font-black">PTS</th>
+                    <th className="p-2.5 text-center text-slate-500 font-bold">GD</th>
+                    <th className="p-2.5 text-center font-black text-[#0A0D14]">Qualification Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentSelections.map(({ row, rank, isQualified }) => (
                     <tr
                       key={row.participant.id}
-                      className={`border-b border-border/40 transition-colors ${
-                        isQualified ? 'bg-emerald-50/50 font-semibold' : 'hover:bg-[#F4F8F5]'
+                      className={`border-b border-slate-100 transition-colors ${
+                        isQualified ? 'bg-emerald-50 font-bold text-emerald-950' : 'hover:bg-slate-50 text-[#0A0D14]'
                       }`}
                     >
-                      <td className="p-2.5 text-center font-black text-[#0B3323] w-12">
+                      <td className="p-2.5 text-center font-black text-[#0A0D14] w-12">
                         {rank === 1 ? '🏆 1' : rank}
                       </td>
-                      <td className="p-2.5 font-bold text-[#0B3323]">{row.participant.username}</td>
-                      <td className="p-2.5 text-center text-muted-foreground">{row.played}</td>
-                      <td className="p-2.5 text-center font-black text-[#0B3323]">{row.points}</td>
-                      <td className="p-2.5 text-center font-bold">{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
+                      <td className="p-2.5 font-bold text-[#0A0D14]">{row.participant.username}</td>
+                      <td className="p-2.5 text-center text-slate-600">{row.played}</td>
+                      <td className="p-2.5 text-center font-black text-[#1D1DE0]">{row.points}</td>
+                      <td className="p-2.5 text-center font-bold text-slate-700">{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
                       <td className="p-2.5 text-center">
                         <Button
                           type="button"
                           size="sm"
-                          variant={isQualified ? 'default' : 'outline'}
+                          variant="ghost"
                           onClick={() => handleToggleParticipant(row.participant.id, isQualified)}
                           disabled={isLocked}
-                          className={`h-7 px-3 text-[10px] font-bold rounded-lg ${
-                            isQualified ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-slate-500'
+                          className={`h-7 px-3 text-xs font-bold rounded-lg border-2 cursor-pointer ${
+                            isQualified ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600' : 'bg-white text-[#0A0D14] border-slate-300 hover:bg-slate-100'
                           }`}
                         >
                           {isQualified ? '🟢 Qualified' : '⚪ Non-Qualified'}
@@ -252,30 +254,39 @@ export function LeagueQualificationModal({
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <Button variant="outline" size="sm" onClick={onClose} className="font-bold text-xs">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 cursor-pointer shadow-xs"
+              >
                 Close
               </Button>
 
               {isLocked ? (
                 <Button
+                  type="button"
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleUnlock}
                   disabled={loading}
-                  className="font-bold text-xs border-amber-600 text-amber-800 bg-amber-50 hover:bg-amber-100 gap-1.5"
+                  className="rounded-xl text-xs font-bold h-10 px-5 border-2 border-amber-400 text-amber-950 bg-amber-50 hover:bg-amber-100 gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Unlock className="h-3.5 w-3.5" />
                   <span>Unlock Qualification Status</span>
                 </Button>
               ) : (
                 <Button
+                  type="button"
                   size="sm"
+                  variant="ghost"
                   onClick={() => setStep('confirm')}
                   disabled={loading || qualifiedList.length === 0}
-                  className="font-bold text-xs bg-primary text-white gap-1.5 shadow-sm"
+                  className="rounded-xl font-black text-xs h-10 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] gap-1.5 shadow-sm cursor-pointer uppercase tracking-wider disabled:opacity-50"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <ShieldCheck className="h-3.5 w-3.5 text-[#072418]" />
                   <span>Review & Lock Qualification</span>
                 </Button>
               )}
@@ -324,24 +335,27 @@ export function LeagueQualificationModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
               <Button
-                variant="outline"
+                type="button"
+                variant="ghost"
                 size="sm"
                 onClick={() => setStep('configure')}
                 disabled={loading}
-                className="font-bold text-xs"
+                className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 cursor-pointer shadow-xs"
               >
                 Back to Edit
               </Button>
 
               <Button
+                type="button"
+                variant="ghost"
                 size="sm"
                 onClick={handleSaveAndLock}
                 disabled={loading}
-                className="font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white gap-1.5 shadow-sm"
+                className="rounded-xl font-black text-xs h-10 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] gap-1.5 shadow-sm cursor-pointer uppercase tracking-wider"
               >
-                {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#072418]" /> : <Lock className="h-3.5 w-3.5 text-[#072418]" />}
                 <span>Confirm & Lock Qualification Status</span>
               </Button>
             </div>

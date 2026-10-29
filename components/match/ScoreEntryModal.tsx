@@ -153,7 +153,7 @@ export function ScoreEntryModal({
       title={isLive ? '🔴 Live Match Score' : 'Record Match Score'}
       description={`Manage match between ${participantA} and ${participantB}`}
     >
-      <div className="space-[#0B3323] space-y-4 pt-1">
+      <div className="space-y-4 pt-1">
         {errorMessage && (
           <div className="p-3 text-xs bg-destructive/10 border border-destructive/20 text-destructive rounded-xl font-medium flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -162,22 +162,22 @@ export function ScoreEntryModal({
         )}
 
         {isLive && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F4F8F5] border border-border text-xs font-bold">
-            <div className="flex items-center gap-1.5 text-rose-700">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-bold">
+            <div className="flex items-center gap-1.5 text-rose-400">
               <Radio className="h-3.5 w-3.5 animate-pulse" />
               <span>Match is LIVE</span>
             </div>
-            <div className="flex items-center gap-1 font-semibold text-muted-foreground">
+            <div className="flex items-center gap-1 font-semibold text-white/70">
               {saveState === 'saving' && (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
-                  <span className="text-amber-700">Saving...</span>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FFFF00]" />
+                  <span className="text-[#FFFF00]">Saving...</span>
                 </>
               )}
               {saveState === 'saved' && (
                 <>
-                  <Check className="h-3.5 w-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Saved ✓</span>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-emerald-300">Saved ✓</span>
                 </>
               )}
               {saveState === 'error' && <span className="text-destructive font-bold">Save Error</span>}
@@ -188,7 +188,7 @@ export function ScoreEntryModal({
         {/* Score Inputs */}
         <div className="grid grid-cols-2 gap-4 items-center">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#0B3323] truncate block">
+            <label className="text-xs font-bold text-white/90 truncate block">
               {participantA} (Score)
             </label>
             <Input
@@ -196,12 +196,12 @@ export function ScoreEntryModal({
               min={0}
               value={scoreA}
               onChange={(e) => setScoreA(Math.max(0, parseInt(e.target.value, 10) || 0))}
-              className="text-center font-mono font-bold text-xl h-14"
+              className="text-center font-mono font-bold text-xl h-14 bg-white/10 border-white/20 text-white"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#0B3323] truncate block text-right">
+            <label className="text-xs font-bold text-white/90 truncate block text-right">
               {participantB} (Score)
             </label>
             <Input
@@ -209,24 +209,24 @@ export function ScoreEntryModal({
               min={0}
               value={scoreB}
               onChange={(e) => setScoreB(Math.max(0, parseInt(e.target.value, 10) || 0))}
-              className="text-center font-mono font-bold text-xl h-14"
+              className="text-center font-mono font-bold text-xl h-14 bg-white/10 border-white/20 text-white"
             />
           </div>
         </div>
 
         {/* Penalty Shootout Section - Revealed strictly when knockout match is tied */}
         {isKnockoutDraw && (
-          <div className="p-3 bg-[#F4F8F5] rounded-2xl border border-emerald-300/80 space-y-3">
+          <div className="p-3 bg-[#0A0A7A] rounded-2xl border border-white/20 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#0B3323] flex items-center gap-1.5">
-                <Trophy className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-black text-[#FFFF00] flex items-center gap-1.5">
+                <Trophy className="h-4 w-4 text-[#FFFF00]" />
                 <span>Knockout Tie — Enter Penalty Shootout Scores</span>
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-emerald-200/60">
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#0B3323] block truncate">
+                <label className="text-[11px] font-bold text-white/80 block truncate">
                   {participantA} Penalty PK
                 </label>
                 <Input
@@ -235,12 +235,12 @@ export function ScoreEntryModal({
                   placeholder="e.g. 4"
                   value={penScoreA}
                   onChange={(e) => setPenScoreA(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="text-center font-mono font-bold text-base h-10 border-emerald-400 bg-white"
+                  className="text-center font-mono font-bold text-base h-10 border-white/20 bg-white/10 text-white"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#0B3323] block truncate text-right">
+                <label className="text-[11px] font-bold text-white/80 block truncate text-right">
                   {participantB} Penalty PK
                 </label>
                 <Input
@@ -249,12 +249,12 @@ export function ScoreEntryModal({
                   placeholder="e.g. 3"
                   value={penScoreB}
                   onChange={(e) => setPenScoreB(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="text-center font-mono font-bold text-base h-10 border-emerald-400 bg-white"
+                  className="text-center font-mono font-bold text-base h-10 border-white/20 bg-white/10 text-white"
                 />
               </div>
 
               {penScoreA !== '' && penScoreB !== '' && (
-                <div className="col-span-2 p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-center text-xs font-black text-emerald-950 font-mono">
+                <div className="col-span-2 p-2 bg-[#FFFF00]/15 border border-[#FFFF00]/30 rounded-xl text-center text-xs font-black text-[#FFFF00] font-mono">
                   Final Result Preview: {scoreA} ({penScoreA})–({penScoreB}) {scoreB}
                 </div>
               )}
@@ -264,34 +264,34 @@ export function ScoreEntryModal({
 
         {/* Draw Info for Group matches */}
         {scoreA === scoreB && canDraw && (
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
             League / Group Match Draw — 1 point each upon completion.
           </div>
         )}
 
         {/* Confirmation State overlay */}
         {showConfirmComplete && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
-            <p className="font-bold text-sm">Complete this match?</p>
+          <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-[#FFFF00]/30 text-white text-xs space-y-2">
+            <p className="font-bold text-sm text-[#FFFF00]">Complete this match?</p>
             <p>
               Final Result:{' '}
-              <strong className="text-[#0B3323] font-mono">
+              <strong className="text-[#FFFF00] font-mono">
                 {participantA} {scoreA}
                 {isPenalties && penScoreA !== '' ? ` (${penScoreA})` : ''} —{' '}
                 {isPenalties && penScoreB !== '' ? `(${penScoreB}) ` : ''}
                 {scoreB} {participantB}
               </strong>
             </p>
-            <p className="text-amber-800/80">
-              Winner: <strong>{winnerPreview}</strong>
+            <p className="text-white/80">
+              Winner: <strong className="text-white">{winnerPreview}</strong>
             </p>
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setShowConfirmComplete(false)}
                 disabled={isLoading}
-                className="text-xs font-bold bg-white"
+                className="text-xs font-bold border-white/20 text-white hover:bg-white/10"
               >
                 Cancel
               </Button>
@@ -299,7 +299,7 @@ export function ScoreEntryModal({
                 size="sm"
                 onClick={handleConfirmComplete}
                 disabled={isLoading}
-                className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
+                className="text-xs font-bold bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] gap-1"
               >
                 {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
                 <span>Confirm & Lock Final Result</span>
@@ -310,8 +310,8 @@ export function ScoreEntryModal({
 
         {/* Actions */}
         {!showConfirmComplete && (
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <Button variant="outline" size="sm" onClick={onClose} className="font-bold text-xs">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-white/15">
+            <Button variant="outline" size="sm" onClick={onClose} className="font-bold text-xs border-white/20 text-white hover:bg-white/10">
               Cancel
             </Button>
             <div className="flex items-center gap-2">
@@ -319,7 +319,7 @@ export function ScoreEntryModal({
                 size="sm"
                 onClick={() => setShowConfirmComplete(true)}
                 disabled={isLoading || (!canDraw && !isPenalties && scoreA === scoreB)}
-                className="font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white gap-1"
+                className="w-full sm:w-auto font-black text-xs bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] gap-1 shadow-md"
               >
                 <Trophy className="h-3.5 w-3.5" />
                 <span>Complete Match</span>

@@ -44,45 +44,45 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200"
+        className="fixed inset-0 bg-[#08088F]/85 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl border border-border shadow-2xl p-6 z-10 space-y-4 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-[#1818D4] rounded-[32px] border border-white/20 shadow-2xl p-6 sm:p-8 z-10 space-y-5 animate-in zoom-in-95 duration-200 text-white">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                 variant === 'destructive'
-                  ? 'bg-destructive/10 text-destructive'
-                  : 'bg-secondary text-primary'
+                  ? 'bg-[#FF2E56]/20 text-[#FF2E56]'
+                  : 'bg-[#FFFF00]/20 text-[#FFFF00]'
               }`}
             >
-              <AlertTriangle className="h-5 w-5" />
+              <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[#0B3323]">{title}</h3>
+              <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight font-display">{title}</h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-[#0B3323] p-1 rounded-lg transition-colors"
+            className="text-[#D9DCFF] hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFFF00]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        <p className="text-xs sm:text-sm text-[#D9DCFF] leading-relaxed">{description}</p>
 
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3 pt-3">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isLoading}
-            className="rounded-xl border-border text-xs"
+            className="rounded-full border-white/40 text-xs font-bold"
           >
             {cancelText}
           </Button>
@@ -92,10 +92,10 @@ export function ConfirmModal({
             size="sm"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`rounded-xl font-bold text-xs ${
+            className={`rounded-full text-xs font-black shadow-md ${
               variant === 'destructive'
-                ? 'bg-destructive text-white hover:bg-destructive/90'
-                : 'bg-primary text-white hover:bg-primary/90'
+                ? 'bg-[#FF2E56] text-white hover:bg-red-600'
+                : 'bg-[#FFFF00] text-[#08088F] hover:bg-yellow-300'
             }`}
           >
             {isLoading ? 'Processing...' : confirmText}
@@ -138,20 +138,20 @@ export function BaseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200"
+        className="fixed inset-0 bg-[#08088F]/85 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl border border-border shadow-2xl p-6 z-10 space-y-4 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-[#1818D4] rounded-[32px] border border-white/20 shadow-2xl p-6 sm:p-8 z-10 space-y-5 animate-in zoom-in-95 duration-200 text-white">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[#0B3323]">{title}</h3>
-            {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight font-display">{title}</h3>
+            {description && <p className="text-xs sm:text-sm text-[#D9DCFF] mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-[#0B3323] p-1 rounded-lg transition-colors"
+            className="text-[#D9DCFF] hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFFF00]"
           >
             <X className="h-5 w-5" />
           </button>

@@ -152,7 +152,7 @@ export function ShareModal({ isOpen, onClose, tournamentId, tournamentName }: Sh
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-200">
             <input
               type="text"
               readOnly
@@ -163,7 +163,7 @@ export function ShareModal({ isOpen, onClose, tournamentId, tournamentName }: Sh
               size="sm"
               onClick={handleCopyLink}
               className={cn(
-                'h-8 px-3 text-xs font-bold gap-1.5 rounded-xl transition-all shadow-2xs shrink-0',
+                'h-8 px-3 text-xs font-bold gap-1.5 rounded-xl transition-all shadow-2xs shrink-0 justify-center',
                 copied
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                   : 'bg-[#0B3323] hover:bg-[#0B3323]/90 text-white'
@@ -193,12 +193,12 @@ export function ShareModal({ isOpen, onClose, tournamentId, tournamentName }: Sh
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-1">
             <Button
               variant="outline"
               size="sm"
               onClick={handleDownloadQR}
-              className="flex-1 h-8 text-xs font-bold gap-1.5 border-slate-300 text-[#0B3323] rounded-xl hover:bg-emerald-50"
+              className="w-full sm:flex-1 h-8 text-xs font-bold gap-1.5 border-slate-300 text-[#0B3323] rounded-xl hover:bg-emerald-50 justify-center"
             >
               <Download className="h-3.5 w-3.5 text-emerald-600" />
               <span>Download QR</span>
@@ -208,7 +208,7 @@ export function ShareModal({ isOpen, onClose, tournamentId, tournamentName }: Sh
               <Button
                 size="sm"
                 onClick={handleNativeShare}
-                className="flex-1 h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs"
+                className="w-full sm:flex-1 h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs justify-center"
               >
                 <Share2 className="h-3.5 w-3.5" />
                 <span>Share App</span>

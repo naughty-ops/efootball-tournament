@@ -34,7 +34,11 @@ export default function LoginPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          router.replace('/admin/dashboard');
+          if (user.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+            router.replace('/admin/dashboard');
+          } else {
+            router.replace('/dashboard');
+          }
           return;
         }
       } catch (err) {
@@ -51,7 +55,7 @@ export default function LoginPage() {
     setErrorMessage(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
@@ -67,7 +71,11 @@ export default function LoginPage() {
         return;
       }
 
-      router.replace('/admin/dashboard');
+      if (authData.user?.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/dashboard');
+      }
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred during login.';
@@ -77,20 +85,21 @@ export default function LoginPage() {
 
   if (isCheckingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F4F8F5]">
-        <div className="flex flex-col items-center gap-3 text-[#0B3323]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xs font-semibold">Verifying Admin Session...</span>
+      <div className="min-h-screen flex items-center justify-center bg-[#08088F] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
+          <span className="text-xs font-black font-display uppercase tracking-widest text-[#D9DCFF]">Verifying Session...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4F8F5] via-white to-[#E8F5E9] p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#08088F] p-4 relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 sm:w-96 h-64 sm:h-96 max-w-full bg-[#3434FF]/25 rounded-full blur-3xl pointer-events-none" />
+      <div className="w-full max-w-md space-y-6 relative z-10">
         {/* Back Link */}
-        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full font-bold">
           <Link href="/">
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Public Website</span>
@@ -98,9 +107,9 @@ export default function LoginPage() {
         </Button>
 
         {/* Login Card */}
-        <Card className="border-border shadow-xl shadow-primary/5">
+        <Card className="bg-[#1818D4] border-white/20 text-white rounded-[32px] shadow-2xl overflow-hidden">
           <CardHeader className="text-center space-y-3 pb-6">
-            <div className="relative mx-auto h-14 w-14 rounded-2xl overflow-hidden bg-[#0B3323] p-1 flex items-center justify-center shadow-md border border-[#0B3323]/20">
+            <div className="relative mx-auto h-14 w-14 rounded-2xl overflow-hidden bg-[#0A0A7A] p-1 flex items-center justify-center shadow-lg border border-white/20">
               <Image
                 src="/logos/logo-mark-transparent.png"
                 alt="eFootball Logo Mark"
@@ -111,8 +120,8 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <CardTitle className="text-2xl font-extrabold text-[#0B3323]">Admin Portal</CardTitle>
-              <CardDescription className="text-xs mt-1">
+              <CardTitle className="text-2xl font-black font-display uppercase tracking-wider text-white">Admin Portal</CardTitle>
+              <CardDescription className="text-xs mt-1 text-[#D9DCFF]/80">
                 Enter your credentials to access tournament management controls.
               </CardDescription>
             </div>
@@ -121,15 +130,15 @@ export default function LoginPage() {
           <CardContent className="space-y-4">
             {/* Error Message Banner */}
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-start gap-2.5 animate-in fade-in">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-2xl bg-[#FF168B]/15 border border-[#FF168B]/30 text-white text-xs font-bold flex items-start gap-2.5 animate-in fade-in">
+                <AlertCircle className="h-4 w-4 text-[#FF168B] shrink-0 mt-0.5" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[#0B3323] block mb-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-[#D9DCFF] block mb-1.5">
                   Email Address
                 </label>
                 <Input
@@ -137,17 +146,18 @@ export default function LoginPage() {
                   placeholder="admin@efootball.com"
                   autoComplete="email"
                   disabled={isSubmitting}
+                  className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-[#D9DCFF]/40 rounded-2xl"
                   {...register('email')}
                 />
                 {errors.email && (
-                  <p className="text-xs text-destructive mt-1 font-medium">
+                  <p className="text-xs text-[#FF168B] mt-1 font-bold">
                     {errors.email.message}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#0B3323] block mb-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-[#D9DCFF] block mb-1.5">
                   Password
                 </label>
                 <div className="relative">
@@ -156,14 +166,14 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     disabled={isSubmitting}
-                    className="pr-10"
+                    className="pr-10 bg-[#0A0A7A] border-white/20 text-white placeholder:text-[#D9DCFF]/40 rounded-2xl"
                     {...register('password')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide Password' : 'Show Password'}
-                    className="absolute right-3 top-2.5 text-muted-foreground hover:text-[#0B3323] transition-colors"
+                    className="absolute right-3.5 top-3 text-[#D9DCFF]/60 hover:text-white transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -173,7 +183,7 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-destructive mt-1 font-medium">
+                  <p className="text-xs text-[#FF168B] mt-1 font-bold">
                     {errors.password.message}
                   </p>
                 )}
@@ -181,12 +191,12 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full font-bold h-11 gap-2 shadow-md shadow-primary/20"
+                className="w-full font-black uppercase tracking-wider h-12 gap-2 bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] rounded-full shadow-[0_0_20px_rgba(255,255,0,0.35)]"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-[#08088F]" />
                     <span>Signing In...</span>
                   </>
                 ) : (
@@ -199,7 +209,7 @@ export default function LoginPage() {
             </form>
           </CardContent>
 
-          <CardFooter className="justify-center border-t border-border/50 pt-4 text-xs text-muted-foreground">
+          <CardFooter className="justify-center border-t border-white/15 pt-4 text-xs text-[#D9DCFF]/70 font-medium">
             Protected Admin Route • eFootball Tournament System
           </CardFooter>
         </Card>

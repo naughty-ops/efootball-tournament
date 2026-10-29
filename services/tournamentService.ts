@@ -5,6 +5,7 @@ import { getTournamentSubStage, isKnockoutRoundName } from '@/lib/lifecycle/life
 import { FullMatchData } from '@/services/matchService';
 import { generateKnockoutBracket, getTournamentBracket } from '@/services/bracketService';
 import { getTournamentGroups, setupTournamentGroups } from '@/services/groupService';
+import { generateLeagueFixtures } from '@/services/leagueService';
 
 export interface TournamentWithStats extends Tournament {
   participant_count: number;
@@ -15,13 +16,14 @@ export interface TournamentWithStats extends Tournament {
 export interface GetTournamentsParams {
   search?: string;
   status?: string;
+  includeDrafts?: boolean;
   sort?: 'newest' | 'oldest' | 'start_date';
 }
 
 export const ALLOWED_STATUS_TRANSITIONS: Record<TournamentStatus, TournamentStatus[]> = {
   draft: ['registration', 'ongoing'],
   registration: ['ongoing', 'draft'],
-  ongoing: ['completed', 'draft', 'registration'],
+  ongoing: ['completed', 'registration'],
   completed: ['ongoing'],
 };
 
@@ -35,6 +37,7 @@ type UnknownQuery = {
   select: (columns: string) => UnknownQuery;
   ilike: (column: string, pattern: string) => UnknownQuery;
   eq: (column: string, value: unknown) => UnknownQuery;
+  neq: (column: string, value: unknown) => UnknownQuery;
   in: (column: string, values: unknown[]) => UnknownQuery;
   order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => UnknownQuery;
   single: () => Promise<{ data: unknown; error: { code?: string; message?: string; details?: string; hint?: string } | null }>;
@@ -74,7 +77,12 @@ export async function getTournaments(params?: GetTournamentsParams): Promise<Tou
   }
 
   if (params?.status && params.status !== 'all') {
+    if (params.status === 'draft' && !params.includeDrafts) {
+      return [];
+    }
     query = query.eq('status', params.status as TournamentStatus);
+  } else if (!params?.includeDrafts) {
+    query = query.neq('status', 'draft');
   }
 
   if (params?.sort === 'oldest') {
@@ -140,6 +148,20 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
 
   const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
 
+  const entryFeePaise = input.is_paid
+    ? typeof input.entry_fee_paise === 'number'
+      ? input.entry_fee_paise
+      : typeof input.entry_fee_rupees === 'number'
+      ? Math.round(input.entry_fee_rupees * 100)
+      : 0
+    : 0;
+
+  const prizePoolPaise = typeof input.prize_pool_paise === 'number'
+    ? input.prize_pool_paise
+    : typeof input.prize_pool_rupees === 'number'
+    ? Math.round(input.prize_pool_rupees * 100)
+    : 0;
+
   const insertPayload = {
     name: input.name,
     description: input.description || null,
@@ -147,9 +169,16 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
     status: input.status as TournamentStatus,
     start_date: input.start_date ? new Date(input.start_date).toISOString() : null,
     end_date: input.end_date ? new Date(input.end_date).toISOString() : null,
+    registration_deadline: input.registration_deadline ? new Date(input.registration_deadline).toISOString() : null,
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
+    rounds_per_pair: input.rounds_per_pair || 1,
+    qualifiers_per_group: input.qualifiers_per_group || 2,
+    is_paid: Boolean(input.is_paid),
+    entry_fee_paise: entryFeePaise,
+    prize_pool_paise: prizePoolPaise,
+    currency: input.currency?.trim() || 'INR',
   };
 
   const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
@@ -173,6 +202,20 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
 
   const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
 
+  const entryFeePaise = input.is_paid
+    ? typeof input.entry_fee_paise === 'number'
+      ? input.entry_fee_paise
+      : typeof input.entry_fee_rupees === 'number'
+      ? Math.round(input.entry_fee_rupees * 100)
+      : 0
+    : 0;
+
+  const prizePoolPaise = typeof input.prize_pool_paise === 'number'
+    ? input.prize_pool_paise
+    : typeof input.prize_pool_rupees === 'number'
+    ? Math.round(input.prize_pool_rupees * 100)
+    : 0;
+
   const updatePayload = {
     name: input.name,
     description: input.description || null,
@@ -180,9 +223,16 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
     status: input.status as TournamentStatus,
     start_date: input.start_date ? new Date(input.start_date).toISOString() : null,
     end_date: input.end_date ? new Date(input.end_date).toISOString() : null,
+    registration_deadline: input.registration_deadline ? new Date(input.registration_deadline).toISOString() : null,
     rules_text: input.rules_text || null,
     banner_image: input.banner_image || null,
     max_participants: input.max_participants,
+    rounds_per_pair: input.rounds_per_pair || 1,
+    qualifiers_per_group: input.qualifiers_per_group || 2,
+    is_paid: Boolean(input.is_paid),
+    entry_fee_paise: entryFeePaise,
+    prize_pool_paise: prizePoolPaise,
+    currency: input.currency?.trim() || 'INR',
     updated_at: new Date().toISOString(),
   };
 
@@ -269,14 +319,24 @@ export async function getTournamentStageInfo(tournamentId: string) {
   if (!t) throw new Error('Tournament not found');
 
   const [
-    { data: participants },
+    participantsRes,
     { data: groups },
     { data: rounds },
   ] = await Promise.all([
-    supabase.from('participants').select('*').eq('tournament_id', tournamentId),
+    supabase
+      .from('tournament_participants_public')
+      .select('id, tournament_id, username, seed_number, status')
+      .eq('tournament_id', tournamentId)
+      .then((res) =>
+        res.error || !res.data
+          ? supabase.from('participants').select('id, tournament_id, username, seed_number, status').eq('tournament_id', tournamentId)
+          : res
+      ),
     supabase.from('groups').select('*').eq('tournament_id', tournamentId),
     supabase.from('rounds').select('*').eq('tournament_id', tournamentId),
   ]);
+
+  const participants = participantsRes.data;
 
   const psList = (participants || []) as Participant[];
   const gList = (groups || []) as Group[];
@@ -423,6 +483,17 @@ export async function startTournament(tournamentId: string): Promise<Tournament>
     if (groupOverview.groups.length === 0) {
       const groupCount = Math.max(2, Math.min(8, Math.floor(info.participantsCount / 4) || 2));
       await setupTournamentGroups(tournamentId, groupCount, 2, 1);
+    }
+  } else if (info.tournament.format === 'league') {
+    const supabase = createClient();
+    const { count: existingRoundsCount } = await (supabase.from('rounds') as any)
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId);
+
+    // Only generate fixtures if no rounds exist yet (idempotent, prevents overwriting on retry)
+    if (!existingRoundsCount || existingRoundsCount === 0) {
+      const roundsPerPair = info.tournament.rounds_per_pair || 1;
+      await generateLeagueFixtures(tournamentId, roundsPerPair);
     }
   }
 

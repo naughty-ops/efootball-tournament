@@ -281,33 +281,33 @@ export default function AdminMatchCenterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
               Match Center & Live Scoring
             </h1>
-            <Badge variant="efootball" className="gap-1.5 py-1 px-3">
+            <Badge className="bg-[#0A0A7A] border border-white/20 text-[#FFFF00] gap-1.5 py-1 px-3 rounded-full text-xs font-black uppercase tracking-wider">
               <Radio className="h-3 w-3 animate-pulse text-emerald-400" />
               <span>Realtime Connected</span>
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-white/70 mt-1">
             Centralized tournament fixture control, live score updates, and match results.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+          <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-bold gap-1.5 border-white/20 bg-[#0A0A7A] text-white hover:bg-white/10">
             <Link href="/admin/matches/analytics">
               <span>Live Analytics</span>
             </Link>
           </Button>
 
-          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+          <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-bold gap-1.5 border-white/20 bg-[#0A0A7A] text-white hover:bg-white/10">
             <Link href="/admin/matches/viewers">
               <span>Viewer History</span>
             </Link>
           </Button>
 
-          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 border-border">
+          <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-bold gap-1.5 border-white/20 bg-[#0A0A7A] text-white hover:bg-white/10">
             <Link href="/admin/matches/predictions">
               <span>Predictions</span>
             </Link>

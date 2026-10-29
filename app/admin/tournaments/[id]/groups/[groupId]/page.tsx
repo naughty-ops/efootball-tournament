@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EditGroupParticipantsModal } from '@/components/group/EditGroupParticipantsModal';
 import { UserCog } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SingleGroupDetailsPage({
   params,
@@ -131,8 +132,8 @@ export default function SingleGroupDetailsPage({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-bold text-[#0B3323]">{error || 'Group Not Found'}</h2>
-        <Button asChild variant="outline" size="sm">
+        <h2 className="text-2xl font-black text-[#0A0D14]">{error || 'Group Not Found'}</h2>
+        <Button asChild variant="ghost" size="sm" className="rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 font-bold">
           <Link href={`/admin/tournaments/${tournamentId}/groups`}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Groups Dashboard
@@ -149,7 +150,7 @@ export default function SingleGroupDetailsPage({
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
       {/* Back Link & Header */}
       <div className="space-y-1">
-        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary -ml-2 mb-1">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-[#334155] hover:text-[#0A0D14] -ml-2 mb-1 font-bold">
           <Link href={`/admin/tournaments/${tournamentId}/groups`}>
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Groups Dashboard</span>
@@ -158,29 +159,30 @@ export default function SingleGroupDetailsPage({
 
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+            <h1 className="text-3xl font-black text-[#0A0D14] tracking-tight">
               {group.name} Details & Standings
             </h1>
-            <Badge variant={isComplete ? 'default' : 'outline'} className="text-xs py-1 px-3 font-bold font-mono">
+            <Badge className={cn('text-xs py-1 px-3 font-bold font-mono', isComplete ? 'bg-[#00C853] text-[#072418]' : 'bg-slate-100 text-[#0A0D14] border border-slate-300')}>
               {completedMatchesCount} / {totalMatchesCount} Completed
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              type="button"
+              variant="ghost"
               size="sm"
               onClick={() => setIsEditModalOpen(true)}
               disabled={overview?.isFinalized || actionLoading}
-              className="rounded-xl text-xs font-bold border-border gap-1.5"
+              className="rounded-xl text-xs font-black border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 gap-1.5 cursor-pointer shadow-xs"
             >
-              <UserCog className="h-3.5 w-3.5" />
+              <UserCog className="h-3.5 w-3.5 text-[#1D1DE0]" />
               <span>Edit Group Players</span>
             </Button>
 
-            <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold border-border">
+            <Button asChild variant="ghost" size="sm" className="rounded-xl text-xs font-black border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 shadow-xs cursor-pointer">
               <Link href={`/admin/tournaments/${tournamentId}/matches`}>
-                <Swords className="h-3.5 w-3.5 mr-1" />
+                <Swords className="h-3.5 w-3.5 mr-1 text-[#1D1DE0]" />
                 <span>All Tournament Matches</span>
               </Link>
             </Button>
@@ -189,10 +191,10 @@ export default function SingleGroupDetailsPage({
       </div>
 
       {/* Standings Table Card */}
-      <Card className="border-border bg-white shadow-md overflow-hidden space-y-4 p-6">
-        <div className="flex items-center justify-between border-b border-border pb-3">
+      <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl overflow-hidden space-y-4 p-6">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div>
-            <h3 className="text-xl font-extrabold text-[#0B3323] flex items-center gap-2">
+            <h3 className="text-xl font-black text-[#0A0D14] flex items-center gap-2">
               <Trophy className="h-5 w-5 text-primary" />
               <span>Group Standings Table</span>
             </h3>
@@ -299,7 +301,7 @@ export default function SingleGroupDetailsPage({
                   <span>Match #{m.match_position}</span>
                   <div className="flex items-center gap-1.5">
                     {isDraw && (
-                      <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-800 border-amber-300 font-bold">
+                      <Badge className="text-[9px] bg-amber-100 text-amber-950 border border-amber-300 font-bold">
                         Draw (1 pt each)
                       </Badge>
                     )}
@@ -309,7 +311,7 @@ export default function SingleGroupDetailsPage({
                   </div>
                 </div>
 
-                <div className="space-y-1.5 font-bold text-[#0B3323]">
+                <div className="space-y-1.5 font-bold text-[#0A0D14]">
                   <div className={`flex items-center justify-between p-2 rounded-xl border ${winner?.id === playerA?.id ? 'bg-emerald-100/70 border-emerald-300' : 'bg-white border-border'}`}>
                     <div className="flex items-center gap-2 truncate">
                       {playerA?.seed_number && (

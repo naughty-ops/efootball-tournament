@@ -107,10 +107,14 @@ export function parseAndValidateParticipantCsv(
   }
 
   // Sets to track duplicates
-  const existingUsernamesSet = new Set(existingParticipants.map((p) => p.username.toLowerCase()));
+  const existingUsernamesSet = new Set(
+    existingParticipants
+      .filter((p) => Boolean(p?.username))
+      .map((p) => p.username.toLowerCase())
+  );
   const existingSeedsSet = new Set(
     existingParticipants
-      .filter((p) => p.seed_number !== null && p.seed_number !== undefined)
+      .filter((p) => p?.seed_number !== null && p?.seed_number !== undefined)
       .map((p) => p.seed_number as number)
   );
 

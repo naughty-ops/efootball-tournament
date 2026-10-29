@@ -87,8 +87,8 @@ export default function AdminGroupMatchesPage({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-bold text-[#0B3323]">{error || 'Groups Not Found'}</h2>
-        <Button asChild variant="outline" size="sm">
+        <h2 className="text-2xl font-black text-[#0A0D14]">{error || 'Groups Not Found'}</h2>
+        <Button asChild variant="ghost" size="sm" className="rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 font-bold">
           <Link href={`/admin/tournaments/${tournamentId}/groups`}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Groups Dashboard
@@ -197,7 +197,7 @@ export default function AdminGroupMatchesPage({
           </Button>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-extrabold text-[#0B3323] tracking-tight">
+            <h1 className="text-3xl font-black text-[#0A0D14] tracking-tight">
               Fixture Schedule & Score Center
             </h1>
             <Badge variant="efootball" className="text-xs py-1 px-3 gap-1 font-bold">
@@ -205,12 +205,12 @@ export default function AdminGroupMatchesPage({
               <span>{totalGroupMatches} Matches Total</span>
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Tournament: <span className="font-bold text-[#0B3323]">{tournament.name}</span>
+          <p className="text-xs text-[#334155]">
+            Tournament: <span className="font-extrabold text-[#0A0D14]">{tournament.name}</span>
           </p>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="font-bold gap-2 rounded-xl text-xs border-border">
+        <Button asChild variant="ghost" size="sm" className="font-bold gap-2 rounded-xl text-xs border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 shadow-xs cursor-pointer">
           <Link href={`/admin/tournaments/${tournamentId}/groups`}>
             <Trophy className="h-4 w-4 text-amber-500" />
             <span>View Points Table</span>
@@ -320,14 +320,15 @@ export default function AdminGroupMatchesPage({
             No fixtures matched your search query "{searchQuery}". Try searching for another player or clearing your filters.
           </p>
           <Button
-            variant="outline"
+            type="button"
+            variant="ghost"
             onClick={() => {
               setSelectedGroup('all');
               setSelectedRound('all');
               setSelectedStatus('all');
               setSearchQuery('');
             }}
-            className="font-bold gap-2 rounded-xl text-xs"
+            className="font-black gap-2 rounded-xl text-xs border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 cursor-pointer shadow-xs"
           >
             Clear Search & Filters
           </Button>
@@ -388,12 +389,12 @@ function AdminGroupMatchCard({
       {/* Header */}
       <div className="flex items-center justify-between font-mono text-xs pb-2 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-extrabold text-[10px]">
+          <Badge className="font-black text-[10px] bg-slate-100 text-[#0A0D14] border border-slate-300">
             {match.groupName}
           </Badge>
-          <span className="font-bold text-[#0B3323]">Match #{match.match_position}</span>
+          <span className="font-bold text-[#0A0D14]">Match #{match.match_position}</span>
           {match.scheduled_time && (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <span className="text-[11px] text-[#334155] flex items-center gap-1 font-sans">
               <Clock className="h-3 w-3" />
               {formatDate(match.scheduled_time)}
             </span>
@@ -402,7 +403,7 @@ function AdminGroupMatchCard({
 
         <div className="flex items-center gap-1.5">
           {isDraw && (
-            <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-800 border-amber-300 font-bold">
+            <Badge className="text-[9px] bg-amber-100 text-amber-950 border border-amber-300 font-bold">
               Draw (1 pt each)
             </Badge>
           )}

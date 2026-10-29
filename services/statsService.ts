@@ -41,10 +41,17 @@ type UnknownQuery = {
 export async function getTournamentSeasonRecords(tournamentId: string): Promise<SeasonRecordsOverview> {
   const supabase = createClient();
 
-  // 1. Fetch participants
-  const { data: ps } = await (supabase.from('participants') as unknown as UnknownQuery)
-    .select('*')
+  // 1. Fetch participants (safe public projection)
+  let { data: ps } = await (supabase.from('tournament_participants_public') as unknown as UnknownQuery)
+    .select('id, tournament_id, username, seed_number, status')
     .eq('tournament_id', tournamentId);
+
+  if (!ps) {
+    const fallback = await (supabase.from('participants') as unknown as UnknownQuery)
+      .select('id, tournament_id, username, seed_number, status')
+      .eq('tournament_id', tournamentId);
+    ps = fallback.data;
+  }
 
   const participants = (ps || []) as Participant[];
   if (participants.length === 0) {

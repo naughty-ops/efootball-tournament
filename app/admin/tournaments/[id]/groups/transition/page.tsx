@@ -99,8 +99,8 @@ export default function AdminGroupTransitionPage({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-bold text-[#0B3323]">{error || 'Transition Preview Failed'}</h2>
-        <Button asChild variant="outline" size="sm">
+        <h2 className="text-2xl font-black text-[#0A0D14]">{error || 'Transition Preview Failed'}</h2>
+        <Button asChild variant="ghost" size="sm" className="rounded-xl border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 font-bold">
           <Link href={`/admin/tournaments/${tournamentId}/groups`}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Groups Dashboard
@@ -186,7 +186,7 @@ export default function AdminGroupTransitionPage({
               <h3 className="font-extrabold text-sm">Group Stage Not Ready for Knockout</h3>
               <p className="text-xs">{validationError}</p>
               <div className="pt-2">
-                <Button asChild variant="outline" size="sm" className="h-8 text-xs font-bold border-amber-600/30">
+                <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-bold border-2 border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100 rounded-xl">
                   <Link href={`/admin/tournaments/${tournamentId}/groups`}>
                     Go to Groups Dashboard
                   </Link>
@@ -305,10 +305,10 @@ export default function AdminGroupTransitionPage({
           {proposedMatchups.map((m) => (
             <Card key={m.matchPosition} className="border-border bg-white shadow-xs p-4 space-y-3">
               <div className="flex items-center justify-between font-mono text-xs pb-2 border-b border-border/60">
-                <span className="font-extrabold text-[#0B3323]">
+                <span className="font-extrabold text-[#0A0D14]">
                   {bracketSize === 4 ? `Semi Final ${m.matchPosition}` : `Quarter Final ${m.matchPosition}`}
                 </span>
-                <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground">
+                <Badge className="text-[10px] font-bold bg-slate-100 text-[#0A0D14] border border-slate-300">
                   Match #{m.matchPosition}
                 </Badge>
               </div>
@@ -371,7 +371,7 @@ export default function AdminGroupTransitionPage({
                         {p.real_name && <span className="text-[11px] text-muted-foreground ml-1.5 font-normal">({p.real_name})</span>}
                       </td>
                       <td className="p-3 text-right">
-                        <Badge variant="outline" className="text-[9px] font-bold border-destructive/30 text-destructive gap-1">
+                        <Badge className="text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-300 gap-1">
                           <XCircle className="h-3 w-3" />
                           <span>ELIMINATED</span>
                         </Badge>

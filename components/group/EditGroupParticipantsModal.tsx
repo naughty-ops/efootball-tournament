@@ -88,12 +88,12 @@ export function EditGroupParticipantsModal({
         )}
 
         {/* Mode Selector */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-[#F4F8F5] rounded-xl border border-border">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
           <button
             type="button"
             onClick={() => setMode('swap')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-              mode === 'swap' ? 'bg-white text-[#0B3323] shadow-xs' : 'text-muted-foreground'
+            className={`py-2 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mode === 'swap' ? 'bg-white text-[#0A0D14] shadow-xs' : 'text-slate-600 hover:text-[#0A0D14]'
             }`}
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
@@ -102,8 +102,8 @@ export function EditGroupParticipantsModal({
           <button
             type="button"
             onClick={() => setMode('move')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-              mode === 'move' ? 'bg-white text-[#0B3323] shadow-xs' : 'text-muted-foreground'
+            className={`py-2 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mode === 'move' ? 'bg-white text-[#0A0D14] shadow-xs' : 'text-slate-600 hover:text-[#0A0D14]'
             }`}
           >
             <MoveRight className="h-3.5 w-3.5" />
@@ -113,13 +113,13 @@ export function EditGroupParticipantsModal({
 
         {/* Participant from current group */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-[#0B3323] block">
+          <label className="text-xs font-bold text-[#0A0D14] block">
             Select Player in {currentGroup.group.name}
           </label>
           <select
             value={selectedParticipantA}
             onChange={(e) => setSelectedParticipantA(e.target.value)}
-            className="w-full h-9 rounded-xl border border-border bg-white px-3 text-xs font-medium text-[#0B3323]"
+            className="w-full h-10 rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-bold text-[#0A0D14]"
             required
           >
             <option value="">-- Choose Player --</option>
@@ -133,7 +133,7 @@ export function EditGroupParticipantsModal({
 
         {/* Target Group */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-[#0B3323] block">
+          <label className="text-xs font-bold text-[#0A0D14] block">
             Target Group
           </label>
           <select
@@ -142,7 +142,7 @@ export function EditGroupParticipantsModal({
               setTargetGroupId(e.target.value);
               setSelectedParticipantB('');
             }}
-            className="w-full h-9 rounded-xl border border-border bg-white px-3 text-xs font-medium text-[#0B3323]"
+            className="w-full h-10 rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-bold text-[#0A0D14]"
             required
           >
             <option value="">-- Choose Target Group --</option>
@@ -157,13 +157,13 @@ export function EditGroupParticipantsModal({
         {/* Participant from Target Group (if mode === 'swap') */}
         {mode === 'swap' && targetGroupId && (
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-[#0B3323] block">
+            <label className="text-xs font-bold text-[#0A0D14] block">
               Swap With Player in {targetGroupDetails?.group.name}
             </label>
             <select
               value={selectedParticipantB}
               onChange={(e) => setSelectedParticipantB(e.target.value)}
-              className="w-full h-9 rounded-xl border border-border bg-white px-3 text-xs font-medium text-[#0B3323]"
+              className="w-full h-10 rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-bold text-[#0A0D14]"
               required
             >
               <option value="">-- Choose Player to Swap --</option>
@@ -176,11 +176,24 @@ export function EditGroupParticipantsModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-border">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-xl text-xs font-black h-10 px-5 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 cursor-pointer shadow-xs"
+          >
             Cancel
           </Button>
-          <Button type="submit" size="sm" disabled={isLoading} className="font-bold bg-primary text-white">
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
+            disabled={isLoading}
+            className="rounded-xl font-black text-xs h-10 px-6 bg-[#00C853] hover:bg-[#00B048] text-[#072418] gap-2 shadow-sm cursor-pointer uppercase tracking-wider"
+          >
             {isLoading ? 'Saving...' : mode === 'swap' ? 'Swap Players' : 'Move Player'}
           </Button>
         </div>

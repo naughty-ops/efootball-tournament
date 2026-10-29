@@ -2,114 +2,284 @@
 
 @layer base {
   :root {
-    --background: 140 25% 97%; /* #F4F8F5 - Light Greenish White */
-    --foreground: 155 50% 12%; /* #0B3323 - Deep Green Text */
+    /* =========================================================================
+       eFootball Reference Brand Design Tokens (Electric Blue & Navy Gaming Theme)
+       ========================================================================= */
+    --color-page: #08088F;           /* Deep navy-blue page background */
+    --color-surface: #1010C5;        /* Elevated sections & large containers */
+    --color-primary-blue: #3434FF;   /* Primary electric blue for cards & panels */
+    --color-primary-hover: #4848FF;  /* Bright electric blue hover state */
+    --color-accent-yellow: #FFFF00;  /* Neon yellow for primary CTAs & active pills */
+    --color-accent-pink: #FF168B;    /* Secondary accent for live & featured badges */
+    
+    --color-text-white: #FFFFFF;     /* Pure white high-contrast text */
+    --color-text-muted: #D9DCFF;     /* Readable soft lavender-white for metadata */
+    --color-border-subtle: rgba(255, 255, 255, 0.15); /* Subtle white glass borders */
 
-    --card: 0 0% 100%; /* #FFFFFF - Pure White Cards */
-    --card-foreground: 155 50% 12%;
+    /* Semantic mappings */
+    --background: var(--color-page);
+    --foreground: var(--color-text-white);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 155 50% 12%;
+    --card: var(--color-primary-blue);
+    --card-foreground: var(--color-text-white);
 
-    --primary: 150 100% 39%; /* #00C853 - Vibrant eFootball Green */
-    --primary-foreground: 0 0% 100%;
+    --popover: var(--color-surface);
+    --popover-foreground: var(--color-text-white);
 
-    --secondary: 138 45% 94%; /* #E8F5E9 - Soft Mint Background */
-    --secondary-foreground: 154 60% 20%; /* #0D5C3A */
+    --primary: var(--color-accent-yellow);
+    --primary-foreground: #08088F;
 
-    --muted: 140 20% 93%; /* #EDF4EE */
-    --muted-foreground: 152 20% 38%; /* #4A6B5D */
+    --secondary: var(--color-surface);
+    --secondary-foreground: var(--color-text-white);
 
-    --accent: 145 35% 88%; /* #D0EBD5 */
-    --accent-foreground: 154 60% 20%;
+    --muted: #0D0DB5;
+    --muted-foreground: var(--color-text-muted);
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: var(--color-primary-blue);
+    --accent-foreground: var(--color-text-white);
 
-    --border: 140 25% 88%; /* #D6E8DB */
-    --input: 140 25% 88%;
-    --ring: 150 100% 39%;
+    --destructive: #FF2E56;
+    --destructive-foreground: #FFFFFF;
 
-    --radius: 0.75rem;
+    --border: var(--color-border-subtle);
+    --input: rgba(255, 255, 255, 0.2);
+    --ring: var(--color-accent-yellow);
+
+    --radius-card: 28px;
+    --radius-panel: 36px;
+    --radius-pill: 9999px;
+    --radius: 1.25rem;
   }
 }
 
 @theme {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-  --color-efootball-darkgreen: #0b3323;
-  --color-efootball-green: #00c853;
-  --color-efootball-mint: #e8f5e9;
-  --color-efootball-lightbg: #f4f8f5;
+  /* Core eFootball Theme Palette */
+  --color-efootball-page: #08088F;
+  --color-efootball-surface: #1010C5;
+  --color-efootball-electric: #3434FF;
+  --color-efootball-hover: #4848FF;
+  --color-efootball-yellow: #FFFF00;
+  --color-efootball-pink: #FF168B;
+  --color-efootball-muted: #D9DCFF;
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  /* Athletic Display Typography */
+  --font-display: 'Barlow Condensed', 'DIN Alternate', 'Impact', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radius-card: var(--radius-card);
+  --radius-panel: var(--radius-panel);
+  --radius-pill: var(--radius-pill);
 }
 
 html, body {
-  max-width: 100vw;
-  overflow-x: hidden;
   touch-action: manipulation;
+  background-color: #08088F;
+  color: #FFFFFF;
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  background-color: #08088F;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(52, 52, 255, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(16, 16, 197, 0.4) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
-/* Custom Utilities for eFootball Theme */
-.efootball-glass {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 200, 83, 0.18);
+/* Headings use bold athletic gaming typography */
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
 }
 
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #08088F;
+}
+::-webkit-scrollbar-thumb {
+  background: #3434FF;
+  border-radius: 9999px;
+  border: 2px solid #08088F;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FFFF00;
+}
+
+/* Text Selection */
+::selection {
+  background-color: #FFFF00;
+  color: #08088F;
+}
+
+/* =========================================================================
+   Reusable eFootball Gaming Panels, Cards & Buttons
+   ========================================================================= */
+
+/* Large Electric-Blue Hero and Section Panels */
+.panel-electric,
+.efootball-panel-electric {
+  background: linear-gradient(135deg, #2A2AFF 0%, #3434FF 60%, #2020E8 100%);
+  color: #FFFFFF;
+  border-radius: var(--radius-panel);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 40px -10px rgba(8, 8, 143, 0.6);
+}
+
+/* Deep Navy Elevated Panels */
+.panel-navy,
+.efootball-panel-royal {
+  background: #1010C5;
+  color: #FFFFFF;
+  border-radius: var(--radius-panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 80, 0.5);
+}
+
+/* Primary Electric Blue Content Cards */
+.card-efootball,
+.esports-card,
 .efootball-card {
-  background-color: #ffffff;
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  box-shadow: 0 4px 20px -2px rgba(11, 51, 35, 0.05);
+  background-color: #3434FF;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-card);
+  box-shadow: 0 10px 30px -5px rgba(8, 8, 143, 0.4);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.card-efootball:hover,
+.esports-card:hover,
 .efootball-card:hover {
-  border-color: rgba(0, 200, 83, 0.4);
-  box-shadow: 0 10px 25px -5px rgba(0, 200, 83, 0.12);
+  border-color: rgba(255, 255, 0, 0.6);
+  box-shadow: 0 16px 36px -5px rgba(52, 52, 255, 0.35);
   transform: translateY(-2px);
 }
 
+/* Neon Yellow Action Pill Button */
+.btn-yellow {
+  background-color: #FFFF00;
+  color: #08088F;
+  font-weight: 900;
+  border-radius: 9999px;
+  padding: 0.625rem 1.75rem;
+  box-shadow: 0 6px 20px rgba(255, 255, 0, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.btn-yellow:hover {
+  background-color: #FFFF44;
+  box-shadow: 0 8px 25px rgba(255, 255, 0, 0.55);
+  transform: translateY(-1px);
+}
+.btn-yellow:active {
+  transform: scale(0.97);
+}
+
+/* Outline Pill Button */
+.btn-pill-outline {
+  background-color: transparent;
+  color: #FFFFFF;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  font-weight: 800;
+  border-radius: 9999px;
+  padding: 0.625rem 1.75rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.btn-pill-outline:hover {
+  border-color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+.btn-pill-outline:active {
+  transform: scale(0.97);
+}
+
+/* Top Yellow Announcement Banner Strip */
+.banner-announcement {
+  background: #FFFF00;
+  color: #08088F;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(255, 255, 0, 0.3);
+}
+
+/* Angular Decorative Yellow Stripes matching the reference sides */
+.yellow-angle-left {
+  position: absolute;
+  left: 0;
+  width: 24px;
+  height: 90px;
+  background: #FFFF00;
+  clip-path: polygon(0 0, 100% 25%, 0 100%);
+  z-index: 10;
+}
+.yellow-angle-right {
+  position: absolute;
+  right: 0;
+  width: 24px;
+  height: 90px;
+  background: #FFFF00;
+  clip-path: polygon(100% 0, 0 25%, 100% 100%);
+  z-index: 10;
+}
+
+/* Glassmorphism tuned to deep blue stadium overlay */
+.esports-glass,
+.efootball-glass {
+  background: rgba(16, 16, 197, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+}
+
+/* Gradient and Banner Text */
 .efootball-gradient-text {
-  background: linear-gradient(135deg, #0b3323 0%, #00c853 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFFF00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.efootball-badge {
-  background: linear-gradient(135deg, #e8f5e9 0%, #d0ebd5 100%);
-  color: #0b3323;
-  border: 1px solid rgba(0, 200, 83, 0.2);
+/* Stencil-cut football headline effect */
+.headline-stencil {
+  text-transform: uppercase;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+  text-shadow: 0 4px 12px rgba(8, 8, 143, 0.5);
 }
 
 /* Utility to hide scrollbars for smooth touch scroll containers */
@@ -128,4 +298,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
