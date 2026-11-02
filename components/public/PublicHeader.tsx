@@ -58,7 +58,7 @@ export default function PublicHeader() {
   const isDashboardActive = pathname.startsWith('/dashboard');
 
   return (
-    <header className="sticky top-0 z-50 w-full px-2 sm:px-6 pt-2 sm:pt-4 transition-all">
+    <header className="sticky top-0 z-50 w-full px-2 sm:px-6 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:pt-4 transition-all">
       {/* Centered Pill Container */}
       <div className="mx-auto max-w-6xl rounded-3xl sm:rounded-full bg-[#1A1AE8]/95 sm:bg-[#2020EE]/95 backdrop-blur-xl border border-white/20 shadow-2xl p-2 sm:px-6 sm:py-2.5 flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-4 transition-all">
         

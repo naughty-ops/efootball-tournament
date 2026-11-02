@@ -3,7 +3,17 @@ export type TournamentStatus = 'draft' | 'registration' | 'ongoing' | 'completed
 export type ParticipantStatus = 'active' | 'eliminated' | 'disqualified';
 export type MatchStatus = 'pending' | 'ready' | 'scheduled' | 'live' | 'completed' | 'walkover' | 'cancelled';
 export type RegistrationStatus = 'pending_payment' | 'confirmed' | 'expired' | 'cancelled' | 'refunded';
-export type PaymentOrderStatus = 'created' | 'attempted' | 'paid' | 'failed' | 'expired';
+export type PaymentOrderStatus =
+  | 'created'
+  | 'attempted'
+  | 'pending_verification'
+  | 'paid'
+  | 'failed'
+  | 'expired'
+  | 'cancelled'
+  | 'refund_pending'
+  | 'refunded'
+  | 'manual_review_required';
 export type PaymentTransactionStatus = 'captured' | 'failed' | 'refunded' | 'partially_refunded';
 export type RefundRequestStatus = 'pending_review' | 'approved' | 'rejected' | 'processed' | 'failed';
 
@@ -573,6 +583,29 @@ export interface Database {
           updated_at?: string;
         };
       };
+      payment_utr_claims: {
+        Row: {
+          normalized_utr: string;
+          order_id: string;
+          transaction_id: string;
+          claimed_by: string;
+          claimed_at: string;
+        };
+        Insert: {
+          normalized_utr: string;
+          order_id: string;
+          transaction_id: string;
+          claimed_by: string;
+          claimed_at?: string;
+        };
+        Update: {
+          normalized_utr?: string;
+          order_id?: string;
+          transaction_id?: string;
+          claimed_by?: string;
+          claimed_at?: string;
+        };
+      };
       payment_orders: {
         Row: {
           id: string;
@@ -589,6 +622,11 @@ export interface Database {
           status: PaymentOrderStatus;
           receipt: string;
           attempts: number;
+          verification_level?: number | null;
+          observation_utr?: string | null;
+          manual_review_notes?: string | null;
+          reconciled_at?: string | null;
+          reconciled_by?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -607,6 +645,11 @@ export interface Database {
           status?: PaymentOrderStatus;
           receipt: string;
           attempts?: number;
+          verification_level?: number | null;
+          observation_utr?: string | null;
+          manual_review_notes?: string | null;
+          reconciled_at?: string | null;
+          reconciled_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -625,6 +668,11 @@ export interface Database {
           status?: PaymentOrderStatus;
           receipt?: string;
           attempts?: number;
+          verification_level?: number | null;
+          observation_utr?: string | null;
+          manual_review_notes?: string | null;
+          reconciled_at?: string | null;
+          reconciled_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -757,6 +805,8 @@ export interface Database {
           event_type: string;
           payload: Record<string, unknown>;
           status: string;
+          worker_token?: string | null;
+          lease_expires_at?: string | null;
           processed_at: string;
         };
         Insert: {
@@ -765,6 +815,8 @@ export interface Database {
           event_type: string;
           payload: Record<string, unknown>;
           status?: string;
+          worker_token?: string | null;
+          lease_expires_at?: string | null;
           processed_at?: string;
         };
         Update: {
@@ -773,7 +825,82 @@ export interface Database {
           event_type?: string;
           payload?: Record<string, unknown>;
           status?: string;
+          worker_token?: string | null;
+          lease_expires_at?: string | null;
           processed_at?: string;
+        };
+      };
+      site_settings: {
+        Row: {
+          key: string;
+          value: Record<string, unknown> | Array<unknown>;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: Record<string, unknown> | Array<unknown>;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: Record<string, unknown> | Array<unknown>;
+          updated_at?: string;
+        };
+      };
+      analytics_events: {
+        Row: {
+          id: string;
+          event_name: string;
+          page_path: string;
+          tournament_id?: string | null;
+          session_id: string;
+          anonymous_visitor_id: string;
+          referrer?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          country?: string | null;
+          region?: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_name: string;
+          page_path: string;
+          tournament_id?: string | null;
+          session_id: string;
+          anonymous_visitor_id: string;
+          referrer?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          country?: string | null;
+          region?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_name?: string;
+          page_path?: string;
+          tournament_id?: string | null;
+          session_id?: string;
+          anonymous_visitor_id?: string;
+          referrer?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          device_type?: string | null;
+          browser?: string | null;
+          os?: string | null;
+          country?: string | null;
+          region?: string | null;
+          created_at?: string;
         };
       };
     };

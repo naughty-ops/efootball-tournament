@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate } from '@/lib/utils';
+import { SwipeableTabBar, SwipeableTabContainer } from '@/components/ui/SwipeableTabs';
 import type { PlayerMatchItem } from '@/services/playerDashboardService';
 import OpponentWhatsAppButton from '@/components/dashboard/OpponentWhatsAppButton';
 
@@ -66,6 +67,17 @@ export default function PlayerMatchesClient({
 
     return { total, liveCount, upcomingCount, completedCount, wins, draws, losses, winRate };
   }, [initialMatches]);
+
+  const tabItems = useMemo(
+    () => [
+      { id: 'all', label: 'All', icon: Filter, badge: stats.total },
+      { id: 'upcoming', label: 'Upcoming', icon: Clock, badge: stats.upcomingCount > 0 ? stats.upcomingCount : undefined },
+      { id: 'live', label: 'Live Now', icon: Flame, badge: stats.liveCount > 0 ? stats.liveCount : undefined },
+      { id: 'completed', label: 'Completed', icon: CheckCircle2, badge: stats.completedCount > 0 ? stats.completedCount : undefined },
+    ],
+    [stats]
+  );
+  const tabIds = useMemo(() => ['all', 'upcoming', 'live', 'completed'], []);
 
   const filteredMatches = useMemo(() => {
     return initialMatches.filter((m) => {
@@ -175,47 +187,36 @@ export default function PlayerMatchesClient({
 
       {/* 2. Controls: Search & Tabs Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setSelectedTab(key)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider border transition-all whitespace-nowrap cursor-pointer',
-                selectedTab === key
-                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-md'
-                  : 'bg-[#1010C5] text-white/80 border-white/20 hover:border-white/40 hover:text-white'
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{label}</span>
-              {key === 'all' && (
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-[#08088F] text-[#FFFF00]">
-                  {stats.total}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Swipeable Tabs Bar */}
+        <SwipeableTabBar
+          tabs={tabItems}
+          activeTab={selectedTab}
+          onTabChange={setSelectedTab}
+          className="w-full md:w-auto"
+        />
 
         {/* Search Bar */}
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-white/50" />
+          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-white/50" />
           <Input
             placeholder="Search opponent or tournament..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 text-xs bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-full"
+            className="pl-10 h-11 sm:h-10 text-base sm:text-xs bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-full"
           />
         </div>
       </div>
 
       {/* 3. Matches Grid */}
+      <SwipeableTabContainer
+        activeTab={selectedTab}
+        onTabChange={setSelectedTab}
+        tabs={tabIds}
+      >
       {filteredMatches.length === 0 ? (
-        <Card className="p-12 text-center bg-[#1818D4] border border-white/20 rounded-[32px] space-y-4 text-white">
+        <Card className="p-8 sm:p-12 text-center bg-[#1818D4] border border-white/20 rounded-[32px] space-y-4 text-white">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00]">
-            <Swords className="h-8 w-8 text-[#FFFF00]" />
+            {selectedTab === 'live' ? <Radio className="h-8 w-8 text-[#FF168B]" /> : <Swords className="h-8 w-8 text-[#FFFF00]" />}
           </div>
           <div>
             <h3 className="text-lg font-black text-white font-display uppercase tracking-wider">
@@ -223,17 +224,34 @@ export default function PlayerMatchesClient({
                 ? `No fixtures matching "${searchQuery}"`
                 : selectedTab === 'all'
                 ? 'No Matches Scheduled Yet'
+                : selectedTab === 'live'
+                ? 'No Live Matches Currently in Progress'
                 : `No ${selectedTab} matches found`}
             </h3>
             <p className="text-xs text-white/70 max-w-md mx-auto mt-1 leading-relaxed">
               {searchQuery
                 ? 'Try adjusting your search query or switching tabs.'
+                : selectedTab === 'live'
+                ? 'None of your registered tournament fixtures are currently live on field. Check public tournament broadcasts or wait for your round kickoff.'
                 : 'When tournament administrators generate pairings and brackets, your matches and live game rooms will be displayed here.'}
             </p>
           </div>
-          <Button asChild className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs rounded-full shadow-lg uppercase tracking-wider px-6 cursor-pointer">
-            <Link href="/dashboard/tournaments">Check Tournament Status</Link>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {selectedTab === 'live' ? (
+              <>
+                <Button asChild className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs rounded-full shadow-lg uppercase tracking-wider px-6 cursor-pointer">
+                  <Link href="/live">Browse Live Broadcasts</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-white/20 hover:bg-white/10 text-white font-black text-xs rounded-full uppercase tracking-wider px-6 cursor-pointer">
+                  <Link href="/dashboard/tournaments">My Tournaments</Link>
+                </Button>
+              </>
+            ) : (
+              <Button asChild className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs rounded-full shadow-lg uppercase tracking-wider px-6 cursor-pointer">
+                <Link href="/dashboard/tournaments">Check Tournament Status</Link>
+              </Button>
+            )}
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -247,7 +265,7 @@ export default function PlayerMatchesClient({
               <Card
                 key={m.id}
                 className={cn(
-                  'p-5 bg-[#1818D4] border rounded-[28px] shadow-xl transition-all space-y-4 flex flex-col justify-between text-white',
+                  'p-4 sm:p-5 bg-[#1818D4] border rounded-[28px] shadow-xl transition-all space-y-4 flex flex-col justify-between text-white min-h-[220px]',
                   m.isLive
                     ? 'border-[#FF168B] ring-2 ring-[#FF168B]/40 shadow-[0_0_20px_rgba(255,22,139,0.25)]'
                     : 'border-white/20 hover:border-[#FFFF00]/50'
@@ -298,7 +316,7 @@ export default function PlayerMatchesClient({
                 </div>
 
                 {/* Score / Matchup Display */}
-                <div className="grid grid-cols-7 items-center gap-2 py-3 bg-[#0A0A7A]/60 rounded-2xl px-4 border border-white/10">
+                <div className="grid grid-cols-7 items-center gap-1.5 sm:gap-2 py-3.5 bg-[#0A0A7A]/70 rounded-2xl px-3 sm:px-4 border border-white/10 min-h-[76px]">
                   {/* You */}
                   <div className="col-span-3 min-w-0 flex items-center gap-2.5">
                     <div className="h-9 w-9 rounded-full bg-[#1818D4] border border-[#FFFF00]/60 flex items-center justify-center font-black text-xs text-[#FFFF00] shrink-0">
@@ -385,6 +403,7 @@ export default function PlayerMatchesClient({
           })}
         </div>
       )}
+      </SwipeableTabContainer>
     </div>
   );
 }

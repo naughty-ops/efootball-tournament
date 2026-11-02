@@ -388,7 +388,7 @@ export default function PlayerProfileForm({
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="e.g. Cristiano Player"
-                className="h-10 text-xs bg-[#1818D4] border-white/30 text-white rounded-xl font-bold mt-1 focus-visible:ring-[#FFFF00]"
+                className="h-11 sm:h-10 text-base sm:text-xs bg-[#1818D4] border-white/30 text-white rounded-xl font-bold mt-1 focus-visible:ring-[#FFFF00]"
               />
             ) : (
               <div className="text-sm font-black text-white truncate py-1">{displayName}</div>
@@ -469,7 +469,7 @@ export default function PlayerProfileForm({
                 value={editEfootballId}
                 onChange={(e) => setEditEfootballId(e.target.value.toUpperCase())}
                 placeholder="ABCD-123-456-789"
-                className="font-mono text-lg font-black bg-[#1818D4] border-white/30 text-[#FFFF00] rounded-xl tracking-wider focus-visible:ring-[#FFFF00]"
+                className="h-11 sm:h-10 font-mono text-base sm:text-lg font-black bg-[#1818D4] border-white/30 text-[#FFFF00] rounded-xl tracking-wider focus-visible:ring-[#FFFF00]"
               />
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-white/60">Pattern: 4 uppercase letters, then 9 digits in groups of 3</span>
@@ -540,7 +540,7 @@ export default function PlayerProfileForm({
                 value={editWhatsapp}
                 onChange={(e) => setEditWhatsapp(e.target.value)}
                 placeholder="+919207516227"
-                className="font-mono text-base font-bold bg-[#1818D4] border-white/30 text-white rounded-xl focus-visible:ring-[#FFFF00]"
+                className="h-11 sm:h-10 font-mono text-base font-bold bg-[#1818D4] border-white/30 text-white rounded-xl focus-visible:ring-[#FFFF00]"
               />
               <span className="text-[11px] text-white/60 block">Include country code with plus prefix (e.g. +919876543210)</span>
             </div>

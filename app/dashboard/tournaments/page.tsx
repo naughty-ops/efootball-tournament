@@ -5,6 +5,7 @@ import { Compass } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
+import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerTournamentsClient from './PlayerTournamentsClient';
 import { getPlayerProfile, getPlayerTournaments } from '@/services/playerDashboardService';
 import type { Metadata } from 'next';
@@ -44,7 +45,8 @@ export default async function PlayerTournamentsPage() {
         isVerified={isVerified}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <PlayerDashboardSwipeWrapper currentSection="tournaments">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
           <div>
@@ -71,6 +73,7 @@ export default async function PlayerTournamentsPage() {
           initialTournaments={tournamentsResult.data}
           initialError={tournamentsResult.error}
         />
+        </PlayerDashboardSwipeWrapper>
       </main>
     </div>
   );

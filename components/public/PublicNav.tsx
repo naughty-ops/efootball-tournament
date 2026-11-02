@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PUBLIC_NAV_ITEMS } from '@/lib/constants';
@@ -26,6 +26,7 @@ interface PublicNavProps {
 export default function PublicNav({ onItemClick, className }: PublicNavProps) {
   const pathname = usePathname();
   const [liveCount, setLiveCount] = useState<number>(0);
+  const activeTabRef = useRef<HTMLAnchorElement>(null);
 
   const fetchLiveCount = useCallback(async () => {
     try {
@@ -48,6 +49,17 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
 
   useRealtimeMatches(fetchLiveCount);
 
+  // Auto-scroll active item into view on mobile
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [pathname]);
+
   return (
     <nav className={cn('flex items-center justify-start sm:justify-center max-w-full overflow-x-auto no-scrollbar px-1', className)}>
       <div className="inline-flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 rounded-full bg-[#1212B8]/80 sm:bg-white/10 backdrop-blur-md p-1 sm:p-1.5 border border-white/15 shrink-0">
@@ -59,10 +71,11 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
           return (
             <Link
               key={item.href}
+              ref={isActive ? activeTabRef : undefined}
               href={item.href}
               onClick={onItemClick}
               className={cn(
-                'transition-all duration-200 ease-out whitespace-nowrap flex items-center justify-center gap-1.5 rounded-full font-black tracking-wide active:scale-95 touch-target px-2.5 sm:px-4 py-1.5 sm:py-2 shrink-0',
+                'transition-all duration-200 ease-out whitespace-nowrap flex items-center justify-center gap-1.5 rounded-full font-black tracking-wide active:scale-95 touch-target min-h-[40px] px-2.5 sm:px-4 py-1.5 sm:py-2 shrink-0',
                 isActive
                   ? 'bg-[#FFFF00] text-[#08088F] shadow-md'
                   : 'text-white hover:text-[#FFFF00] hover:bg-white/10'

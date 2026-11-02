@@ -43,6 +43,7 @@ import PublicBracketTab from '@/components/public/tournament/PublicBracketTab';
 import PublicOverviewTab from '@/components/public/tournament/PublicOverviewTab';
 import PublicParticipantsTab from '@/components/public/tournament/PublicParticipantsTab';
 import PublicChampionBanner from '@/components/public/tournament/PublicChampionBanner';
+import { SwipeableTabBar, SwipeableTabContainer, type TabItem } from '@/components/ui/SwipeableTabs';
 import { ShareModal } from '@/components/share/ShareModal';
 import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 
@@ -289,102 +290,66 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
 
       {/* 3. PUBLIC TABS NAVIGATION */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 border-b border-white/20">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={cn(
-              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
-              activeTab === 'overview'
-                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span>Overview</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('participants')}
-            className={cn(
-              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
-              activeTab === 'participants'
-                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
-            )}
-          >
-            <Users className="h-3.5 w-3.5" />
-            <span>Participants ({participants.length})</span>
-          </button>
-
-          {showGroups && (
-            <button
-              onClick={() => setActiveTab('groups')}
-              className={cn(
-                'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
-                activeTab === 'groups'
-                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                  : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
-              )}
-            >
-              <Target className="h-3.5 w-3.5" />
-              <span>{groupStage?.groups.length === 1 ? 'Points Table' : 'Groups & Standings'}</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveTab('matches')}
-            className={cn(
-              'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
-              activeTab === 'matches'
-                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
-            )}
-          >
-            <Swords className="h-3.5 w-3.5" />
-            <span>Fixtures & Results</span>
-          </button>
-
-          {showBracket && (
-            <button
-              onClick={() => setActiveTab('bracket')}
-              className={cn(
-                'px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all whitespace-nowrap flex items-center gap-2 border',
-                activeTab === 'bracket'
-                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
-              )}
-            >
-              <GitBranch className="h-3.5 w-3.5" />
-              <span>Playoff Bracket</span>
-            </button>
-          )}
+        <div className="pb-3 border-b border-white/20">
+          <SwipeableTabBar
+            tabs={[
+              { id: 'overview', label: 'Overview', icon: LayoutGrid },
+              { id: 'participants', label: `Participants (${participants.length})`, icon: Users },
+              ...(showGroups
+                ? [
+                    {
+                      id: 'groups',
+                      label: groupStage?.groups.length === 1 ? 'Points Table' : 'Groups & Standings',
+                      icon: Target,
+                    },
+                  ]
+                : []),
+              { id: 'matches', label: 'Fixtures & Results', icon: Swords },
+              ...(showBracket ? [{ id: 'bracket', label: 'Playoff Bracket', icon: GitBranch }] : []),
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as TabKey)}
+            ariaLabel="Tournament Stage Navigation"
+          />
         </div>
 
-        {/* 4. TAB CONTENT PANELS */}
+        {/* 4. TAB CONTENT PANELS WITH MOBILE SWIPE NAVIGATION */}
         <div className="mt-6">
-          {activeTab === 'overview' && (
-            <PublicOverviewTab
-              tournament={tournament}
-              groupStage={groupStage}
-              bracket={bracket}
-            />
-          )}
+          <SwipeableTabContainer
+            tabs={[
+              { id: 'overview', label: 'Overview' },
+              { id: 'participants', label: 'Participants' },
+              ...(showGroups ? [{ id: 'groups', label: 'Groups' }] : []),
+              { id: 'matches', label: 'Matches' },
+              ...(showBracket ? [{ id: 'bracket', label: 'Bracket' }] : []),
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as TabKey)}
+          >
+            {activeTab === 'overview' && (
+              <PublicOverviewTab
+                tournament={tournament}
+                groupStage={groupStage}
+                bracket={bracket}
+              />
+            )}
 
-          {activeTab === 'participants' && (
-            <PublicParticipantsTab participants={participants} />
-          )}
+            {activeTab === 'participants' && (
+              <PublicParticipantsTab participants={participants} />
+            )}
 
-          {activeTab === 'groups' && showGroups && (
-            <PublicGroupsTab groupStage={groupStage} />
-          )}
+            {activeTab === 'groups' && showGroups && (
+              <PublicGroupsTab groupStage={groupStage} />
+            )}
 
-          {activeTab === 'matches' && (
-            <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
-          )}
+            {activeTab === 'matches' && (
+              <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
+            )}
 
-          {activeTab === 'bracket' && showBracket && (
-            <PublicBracketTab bracket={bracket} />
-          )}
+            {activeTab === 'bracket' && showBracket && (
+              <PublicBracketTab bracket={bracket} />
+            )}
+          </SwipeableTabContainer>
         </div>
       </div>
 

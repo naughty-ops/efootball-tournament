@@ -90,7 +90,7 @@ export async function getPublicParticipants(tournamentId: string): Promise<Publi
   try {
     const { data: viewData, error: viewError } = await (supabase
       .from('tournament_participants_public') as any)
-      .select('id, username, real_name, seed_number, status')
+      .select('id, username, seed_number, status')
       .eq('tournament_id', tournamentId)
       .order('seed_number', { ascending: true });
 

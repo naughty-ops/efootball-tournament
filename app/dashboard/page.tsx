@@ -19,6 +19,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import PlayerDashboardHeader from './PlayerDashboardHeader';
+import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import OpponentWhatsAppButton from '@/components/dashboard/OpponentWhatsAppButton';
 import {
   getPlayerProfile,
@@ -87,7 +88,8 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         isVerified={isVerified}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <PlayerDashboardSwipeWrapper currentSection="overview">
         {/* Admin Unauthorized Alert */}
         {showAdminDeniedAlert && (
           <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-[#FFFF00]/40 text-[#FFFF00] text-xs font-bold flex items-center justify-between shadow-md animate-in fade-in">
@@ -164,97 +166,97 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         </div>
 
         {/* 4 Primary Metric KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {/* 1. Registered Tournaments */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-[28px] p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#D9DCFF] uppercase tracking-wider">
+              <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Tournaments
               </span>
-              <div className="h-9 w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Trophy className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-black font-display text-[#FFFF00]">
+            <div className="mt-2 sm:mt-3">
+              <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.registeredTournamentsCount}
               </span>
-              <span className="text-xs text-[#D9DCFF]/70 ml-2 font-medium">Registered</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Joined</span>
             </div>
-            <p className="text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FFFF00]" />
-              {stats.activeTournamentsCount} Active / In Progress
+            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1.5 truncate">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FFFF00] shrink-0" />
+              <span>{stats.activeTournamentsCount} Active</span>
             </p>
           </Card>
 
           {/* 2. Upcoming / Live Matches */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-[28px] p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#D9DCFF] uppercase tracking-wider">
-                Matches Queued
+              <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
+                Matches
               </span>
-              <div className="h-9 w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Swords className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-black font-display text-[#FFFF00]">
+            <div className="mt-2 sm:mt-3">
+              <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.upcomingMatchesCount + stats.liveMatchesCount}
               </span>
-              <span className="text-xs text-[#D9DCFF]/70 ml-2 font-medium">Fixtures</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Queued</span>
             </div>
-            <p className="text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1">
+            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1 truncate">
               {stats.liveMatchesCount > 0 ? (
                 <span className="text-[#FF168B] font-black flex items-center gap-1 animate-pulse">
-                  <Flame className="h-3 w-3" />
-                  {stats.liveMatchesCount} Match Currently Live!
+                  <Flame className="h-3 w-3 shrink-0" />
+                  <span>{stats.liveMatchesCount} Live!</span>
                 </span>
               ) : (
-                <span>Next match ready when scheduled</span>
+                <span>Next match ready</span>
               )}
             </p>
           </Card>
 
           {/* 3. Matches Completed */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-[28px] p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#D9DCFF] uppercase tracking-wider">
-                Matches Played
+              <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
+                Played
               </span>
-              <div className="h-9 w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Calendar className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-3xl font-black font-display text-[#FFFF00]">
+            <div className="mt-2 sm:mt-3">
+              <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.matchesPlayedCount}
               </span>
-              <span className="text-xs text-[#D9DCFF]/70 ml-2 font-medium">Official games</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Games</span>
             </div>
-            <p className="text-[11px] text-[#D9DCFF]/80 font-medium mt-1">
+            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/80 font-medium mt-1 truncate">
               {stats.matchesWonCount}W - {stats.matchesDrawnCount}D - {stats.matchesLostCount}L
             </p>
           </Card>
 
           {/* 4. Win Rate */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-[28px] p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#D9DCFF] uppercase tracking-wider">
+              <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Win Rate
               </span>
-              <div className="h-9 w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <TrendingUp className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black font-display text-[#FFFF00]">
+            <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+              <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.winRate}%
               </span>
-              <span className="text-xs text-[#D9DCFF]/70 font-medium">
-                ({stats.matchesWonCount} Wins)
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 font-medium truncate">
+                ({stats.matchesWonCount}W)
               </span>
             </div>
-            <div className="w-full bg-[#0A0A7A] rounded-full h-2 mt-2 overflow-hidden border border-white/10">
+            <div className="w-full bg-[#0A0A7A] rounded-full h-1.5 sm:h-2 mt-2 overflow-hidden border border-white/10">
               <div
                 className="bg-[#FFFF00] h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(255,255,0,0.5)]"
                 style={{ width: `${Math.min(100, Math.max(0, stats.winRate))}%` }}
@@ -485,6 +487,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
+        </PlayerDashboardSwipeWrapper>
       </main>
     </div>
   );

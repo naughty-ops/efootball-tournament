@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate } from '@/lib/utils';
+import { SwipeableTabBar, SwipeableTabContainer } from '@/components/ui/SwipeableTabs';
 import type { PlayerTournamentItem } from '@/services/playerDashboardService';
 import { cancelRegistrationAction } from '@/app/actions/playerActions';
 
@@ -61,6 +62,17 @@ export default function PlayerTournamentsClient({
 
     return { totalJoined, activeCount, upcomingCount, completedCount, approvedCount };
   }, [tournaments]);
+
+  const tabItems = useMemo(
+    () => [
+      { id: 'all', label: 'All', icon: Filter, badge: stats.totalJoined },
+      { id: 'ongoing', label: 'In Progress', icon: Flame, badge: stats.activeCount > 0 ? stats.activeCount : undefined },
+      { id: 'registration', label: 'Upcoming', icon: Clock, badge: stats.upcomingCount > 0 ? stats.upcomingCount : undefined },
+      { id: 'completed', label: 'Completed', icon: CheckCircle2, badge: stats.completedCount > 0 ? stats.completedCount : undefined },
+    ],
+    [stats]
+  );
+  const tabIds = useMemo(() => ['all', 'ongoing', 'registration', 'completed'], []);
 
   const filteredTournaments = useMemo(() => {
     return tournaments.filter((t) => {
@@ -197,43 +209,32 @@ export default function PlayerTournamentsClient({
 
       {/* 2. Controls: Search & Tabs Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setSelectedTab(key)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider border transition-all whitespace-nowrap cursor-pointer',
-                selectedTab === key
-                  ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-md'
-                  : 'bg-[#1010C5] text-white/80 border-white/20 hover:border-white/40 hover:text-white'
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{label}</span>
-              {key === 'all' && (
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-[#08088F] text-[#FFFF00]">
-                  {stats.totalJoined}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Swipeable Tabs Bar */}
+        <SwipeableTabBar
+          tabs={tabItems}
+          activeTab={selectedTab}
+          onTabChange={setSelectedTab}
+          className="w-full md:w-auto"
+        />
 
         {/* Search Bar */}
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-white/50" />
+          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-white/50" />
           <Input
             placeholder="Search my tournaments..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 text-xs bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-full"
+            className="pl-10 h-11 sm:h-10 text-base sm:text-xs bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-full"
           />
         </div>
       </div>
 
       {/* 3. Tournaments Grid */}
+      <SwipeableTabContainer
+        activeTab={selectedTab}
+        onTabChange={setSelectedTab}
+        tabs={tabIds}
+      >
       {filteredTournaments.length === 0 ? (
         <Card className="p-12 text-center bg-[#1818D4] border border-white/20 rounded-[32px] space-y-4 text-white">
           <div className="mx-auto h-16 w-16 rounded-2xl bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00]">
@@ -407,6 +408,7 @@ export default function PlayerTournamentsClient({
           ))}
         </div>
       )}
+      </SwipeableTabContainer>
     </div>
   );
 }

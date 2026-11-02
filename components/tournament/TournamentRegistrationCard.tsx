@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -12,7 +12,6 @@ import {
   Loader2,
   Sparkles,
   Gamepad2,
-  CreditCard,
   ArrowRight,
   Clock,
   ShieldAlert,
@@ -23,8 +22,6 @@ import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { registerForTournamentAction } from '@/app/actions/playerActions';
 import type { TournamentWithStats } from '@/services/tournamentService';
-import { loadRazorpayScript, type RazorpaySuccessResponse } from '@/lib/razorpay/client';
-import { loadCashfreeScript, getClientCashfreeMode } from '@/lib/cashfree/client';
 
 interface TournamentRegistrationCardProps {
   tournament: TournamentWithStats;
@@ -44,14 +41,7 @@ export function TournamentRegistrationCard({
   const [isRegistering, setIsRegistering] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-  const [rulesAccepted, setRulesAccepted] = useState(true);
 
-  // Active checkout state tracking to prevent duplicate orders or modal launches
-  const [isCheckoutActive, setIsCheckoutActive] = useState(false);
-  const isCheckoutActiveRef = useRef(false);
-
-  const isPaidTournament = Boolean(tournament.is_paid && tournament.entry_fee_paise && Number(tournament.entry_fee_paise) > 0);
-  const entryFeeRupees = isPaidTournament ? Number(tournament.entry_fee_paise) / 100 : 0;
   const isRegistrationOpen = tournament.status === 'registration';
   const participantCount = tournament.participant_count ?? 0;
   const maxParticipants = tournament.max_participants || 32;
@@ -104,9 +94,9 @@ export function TournamentRegistrationCard({
   }, [tournament.id]);
 
   /**
-   * Flow A: Free tournament standard self-registration
+   * Direct standard self-registration
    */
-  const handleFreeRegistration = async () => {
+  const handleRegistration = async () => {
     setIsRegistering(true);
     setFeedback(null);
     setConfirmModalOpen(false);
@@ -133,313 +123,6 @@ export function TournamentRegistrationCard({
     }
   };
 
-  /**
-   * Flow B: Paid tournament Razorpay checkout
-   * 1. Check duplicate lock
-   * 2. Request order from POST /api/registrations with tournamentId
-   * 3. Load official Razorpay checkout script
-   * 4. Open Razorpay modal with server-provided order ID, amount, and public key
-   * 5. Handle success callback, user dismiss, and errors safely
-   */
-  const handlePaidCheckout = async () => {
-    if (isCheckoutActiveRef.current || isRegistering) {
-      return;
-    }
-
-    isCheckoutActiveRef.current = true;
-    setIsCheckoutActive(true);
-    setIsRegistering(true);
-    setFeedback(null);
-    setConfirmModalOpen(false);
-
-    try {
-      // 1. Request order creation from server endpoint
-      const response = await fetch('/api/registrations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tournamentId: tournament.id,
-          rulesAccepted: true,
-        }),
-      });
-
-      const orderData = await response.json();
-
-      if (!response.ok || !orderData.success) {
-        setFeedback({
-          message: orderData.error || 'Failed to initiate tournament registration order. Please retry.',
-          type: 'error',
-        });
-        isCheckoutActiveRef.current = false;
-        setIsCheckoutActive(false);
-        setIsRegistering(false);
-        return;
-      }
-
-      // 2. Gateway Dispatch: Cashfree vs Razorpay
-      if (orderData.gateway === 'cashfree') {
-        const isMockSession = orderData.paymentSessionId?.startsWith('session_mock_');
-
-        if (isMockSession) {
-          // Automated testing mode: simulate sandbox payment verification without external network dependency
-          setFeedback({
-            message: 'Cashfree Sandbox Test Mode: Verifying simulated transaction...',
-            type: 'info',
-          });
-
-          const verifyRes = await fetch('/api/registrations/verify-payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              gateway: 'cashfree',
-              order_id: orderData.orderId,
-              cf_payment_id: `cf_mock_pay_${Date.now()}`,
-            }),
-          });
-
-          const verifyData = await verifyRes.json();
-          if (verifyRes.ok && verifyData.success) {
-            setIsRegistered(true);
-            setFeedback({
-              message: verifyData.message || `Congratulations! You are officially registered for ${tournament.name}.`,
-              type: 'success',
-            });
-            if (onRegisteredSuccess) onRegisteredSuccess();
-            router.refresh();
-          } else {
-            setFeedback({
-              message: verifyData.error || 'Payment verification failed.',
-              type: 'error',
-            });
-          }
-          isCheckoutActiveRef.current = false;
-          setIsCheckoutActive(false);
-          setIsRegistering(false);
-          return;
-        }
-
-        // Live Cashfree Checkout SDK v3
-        const scriptLoaded = await loadCashfreeScript();
-        if (!scriptLoaded || !window.Cashfree) {
-          setFeedback({
-            message: 'Unable to load Cashfree payment gateway. Please check your internet connection.',
-            type: 'error',
-          });
-          isCheckoutActiveRef.current = false;
-          setIsCheckoutActive(false);
-          setIsRegistering(false);
-          return;
-        }
-
-        const cashfree = window.Cashfree({ mode: getClientCashfreeMode() });
-
-        cashfree
-          .checkout({
-            paymentSessionId: orderData.paymentSessionId,
-            redirectTarget: '_modal',
-          })
-          .then(async (result: any) => {
-            if (result?.error) {
-              console.warn('[Cashfree Checkout] Payment dismissed or error:', result.error);
-              setFeedback({
-                message: result.error?.message || 'Checkout closed. Your slot reservation will be held for up to 12 minutes.',
-                type: 'info',
-              });
-              isCheckoutActiveRef.current = false;
-              setIsCheckoutActive(false);
-              setIsRegistering(false);
-              return;
-            }
-
-            // Payment completed in modal: Verify with server
-            setFeedback({
-              message: 'Payment received by Cashfree. Verifying transaction with platform...',
-              type: 'info',
-            });
-
-            try {
-              const verifyRes = await fetch('/api/registrations/verify-payment', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  gateway: 'cashfree',
-                  order_id: orderData.orderId,
-                }),
-              });
-
-              const verifyData = await verifyRes.json();
-
-              if (verifyRes.ok && verifyData.success) {
-                setIsRegistered(true);
-                setFeedback({
-                  message: verifyData.message || `Congratulations! You are officially registered for ${tournament.name}.`,
-                  type: 'success',
-                });
-                if (onRegisteredSuccess) onRegisteredSuccess();
-                router.refresh();
-              } else {
-                setFeedback({
-                  message: verifyData.error || 'Payment verification failed. Please contact support.',
-                  type: 'error',
-                });
-              }
-            } catch (err) {
-              console.error('[Cashfree Checkout] Verification error:', err);
-              setFeedback({
-                message: 'Network error during verification. Your payment was received; please refresh to check status.',
-                type: 'info',
-              });
-            } finally {
-              isCheckoutActiveRef.current = false;
-              setIsCheckoutActive(false);
-              setIsRegistering(false);
-            }
-          })
-          .catch((err: any) => {
-            console.error('[Cashfree Checkout] Launch error:', err);
-            setFeedback({
-              message: err?.message || 'Error launching Cashfree checkout.',
-              type: 'error',
-            });
-            isCheckoutActiveRef.current = false;
-            setIsCheckoutActive(false);
-            setIsRegistering(false);
-          });
-
-        return;
-      }
-
-      // 2B. Razorpay Flow (Fallback)
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded || !window.Razorpay) {
-        setFeedback({
-          message: 'Unable to load payment gateway. Please verify your internet connection and try again.',
-          type: 'error',
-        });
-        isCheckoutActiveRef.current = false;
-        setIsCheckoutActive(false);
-        setIsRegistering(false);
-        return;
-      }
-
-      // 3. Configure Razorpay modal options
-      const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
-        currency: orderData.currency || 'INR',
-        name: 'eFootball Tournament Platform',
-        description: `Entry Fee for ${tournament.name}`,
-        order_id: orderData.orderId,
-        prefill: {
-          name: userProfile?.display_name || currentUser?.user_metadata?.full_name || '',
-          email: currentUser?.email || '',
-          contact: userProfile?.whatsapp_number || currentUser?.user_metadata?.whatsapp_number || '',
-        },
-        notes: {
-          tournament_id: tournament.id,
-          registration_id: orderData.registrationId,
-        },
-        theme: {
-          color: '#1D1DE0',
-        },
-        modal: {
-          backdropclose: false,
-          escape: false,
-          ondismiss: () => {
-            console.log('[Razorpay Checkout] Checkout dismissed by user');
-            isCheckoutActiveRef.current = false;
-            setIsCheckoutActive(false);
-            setIsRegistering(false);
-            setFeedback({
-              message: 'Checkout closed. Your slot reservation will be held for up to 12 minutes.',
-              type: 'info',
-            });
-          },
-        },
-        handler: async (response: RazorpaySuccessResponse) => {
-          // Checkout complete callback: Call server-side verification endpoint
-          setFeedback({
-            message: 'Payment received by gateway. Verifying transaction with platform...',
-            type: 'info',
-          });
-
-          try {
-            const verifyRes = await fetch('/api/registrations/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-
-            const verifyData = await verifyRes.json();
-
-            if (verifyRes.ok && verifyData.success) {
-              setIsRegistered(true);
-              setFeedback({
-                message: verifyData.message || `Congratulations! You are officially registered for ${tournament.name}.`,
-                type: 'success',
-              });
-              if (onRegisteredSuccess) {
-                onRegisteredSuccess();
-              }
-              router.refresh();
-            } else {
-              setFeedback({
-                message: verifyData.error || 'Payment verification failed or could not be completed. Please contact support.',
-                type: 'error',
-              });
-            }
-          } catch (verifyErr: any) {
-            console.error('[Razorpay Checkout] Verification request error:', verifyErr);
-            setFeedback({
-              message: 'Network error during verification. Your payment was received; please refresh in a moment to check your registration status.',
-              type: 'info',
-            });
-          } finally {
-            isCheckoutActiveRef.current = false;
-            setIsCheckoutActive(false);
-            setIsRegistering(false);
-          }
-        },
-      };
-
-      const razorpayInstance = new window.Razorpay(options);
-
-      razorpayInstance.on('payment.failed', (failedRes: any) => {
-        console.error('[Razorpay Checkout] Payment failed event:', failedRes?.error);
-        isCheckoutActiveRef.current = false;
-        setIsCheckoutActive(false);
-        setIsRegistering(false);
-        setFeedback({
-          message: failedRes?.error?.description || 'Payment failed or was declined. You may retry your checkout.',
-          type: 'error',
-        });
-      });
-
-      razorpayInstance.open();
-    } catch (err: any) {
-      console.error('[Razorpay Checkout] Unexpected error during checkout initialization:', err);
-      isCheckoutActiveRef.current = false;
-      setIsCheckoutActive(false);
-      setIsRegistering(false);
-      setFeedback({
-        message: err.message || 'An unexpected error occurred launching checkout. Please try again.',
-        type: 'error',
-      });
-    }
-  };
-
   const handleRegisterClick = () => {
     setConfirmModalOpen(true);
   };
@@ -459,16 +142,9 @@ export function TournamentRegistrationCard({
             <Badge className="bg-[#08088F] text-[#FFFF00] font-black text-[10px] tracking-wider uppercase px-3 py-1 rounded-full">
               TOURNAMENT ENTRY
             </Badge>
-            {isPaidTournament ? (
-              <Badge className="bg-[#FFFF00] text-[#08088F] font-black text-[10px] uppercase px-3 py-1 rounded-full border-0 flex items-center gap-1">
-                <CreditCard className="h-3 w-3" />
-                <span>₹{entryFeeRupees} ENTRY FEE</span>
-              </Badge>
-            ) : (
-              <Badge className="bg-emerald-400 text-emerald-950 font-black text-[10px] uppercase px-3 py-1 rounded-full border-0">
-                FREE ENTRY
-              </Badge>
-            )}
+            <Badge className="bg-emerald-400 text-emerald-950 font-black text-[10px] uppercase px-3 py-1 rounded-full border-0">
+              FREE ENTRY
+            </Badge>
             {isRegistrationOpen ? (
               <Badge className="bg-white/20 text-white font-black text-[10px] uppercase px-3 py-1 rounded-full border-0">
                 REGISTRATION OPEN
@@ -480,7 +156,7 @@ export function TournamentRegistrationCard({
             )}
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white uppercase font-display tracking-tight">
-            {isRegistrationOpen ? (isPaidTournament ? 'Join Paid Tournament' : 'Reserve Your Competitor Slot') : 'Tournament Registration'}
+            {isRegistrationOpen ? 'Reserve Your Competitor Slot' : 'Tournament Registration'}
           </h2>
         </div>
 
@@ -612,7 +288,7 @@ export function TournamentRegistrationCard({
           </Button>
         </div>
       ) : (
-        /* State 6: Eligible to Register / Pay */
+        /* State 6: Eligible to Register */
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-[#1010C5] border border-white/20">
             <div className="space-y-1">
@@ -623,27 +299,22 @@ export function TournamentRegistrationCard({
               <p className="text-xs text-[#D9DCFF] font-mono">
                 eFootball ID: <strong className="text-white font-bold">{efootballId}</strong>
               </p>
-              {isPaidTournament && (
-                <p className="text-xs text-[#FFFF00] font-black">
-                  Entry Fee: ₹{entryFeeRupees} INR (Non-refundable after bracket generation)
-                </p>
-              )}
             </div>
 
             <Button
               onClick={handleRegisterClick}
-              disabled={isRegistering || isCheckoutActive}
+              disabled={isRegistering}
               className="bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] font-black text-xs rounded-full h-11 px-6 shadow-xl gap-2 shrink-0 uppercase tracking-wider"
             >
-              {isRegistering || isCheckoutActive ? (
+              {isRegistering ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{isPaidTournament ? 'Opening Checkout...' : 'Registering...'}</span>
+                  <span>Registering...</span>
                 </>
               ) : (
                 <>
-                  {isPaidTournament ? <CreditCard className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                  <span>{isPaidTournament ? `Pay ₹${entryFeeRupees} & Enter` : 'Register for Tournament'}</span>
+                  <Sparkles className="h-4 w-4" />
+                  <span>Register for Tournament</span>
                 </>
               )}
             </Button>
@@ -657,10 +328,10 @@ export function TournamentRegistrationCard({
           <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 border border-slate-200 text-[#0A0D14] animate-in zoom-in-95 duration-200">
             <div className="space-y-2">
               <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-[#00C853] flex items-center justify-center border border-emerald-100">
-                {isPaidTournament ? <CreditCard className="h-6 w-6 text-[#1D1DE0]" /> : <Trophy className="h-6 w-6 text-[#00C853]" />}
+                <Trophy className="h-6 w-6 text-[#00C853]" />
               </div>
               <h3 className="text-xl font-black text-[#0A0D14] uppercase tracking-tight font-display">
-                {isPaidTournament ? 'Confirm Tournament Entry & Payment' : 'Confirm Tournament Registration'}
+                Confirm Tournament Registration
               </h3>
               <p className="text-xs text-[#1E232E] font-medium leading-relaxed">
                 You are about to register for <strong className="text-[#0A0D14] font-black">{tournament.name}</strong>.
@@ -686,12 +357,10 @@ export function TournamentRegistrationCard({
                   {tournament.format?.replace(/_/g, ' ')}
                 </span>
               </div>
-              {isPaidTournament && (
-                <div className="flex justify-between items-center border-t border-[#E2E8F0] pt-2.5 text-sm font-black text-[#0A0D14]">
-                  <span>Total Amount:</span>
-                  <span className="text-[#1D1DE0] font-black">₹{entryFeeRupees} INR</span>
-                </div>
-              )}
+              <div className="flex justify-between items-center border-t border-[#E2E8F0] pt-2.5 text-sm font-black text-[#0A0D14]">
+                <span>Entry:</span>
+                <span className="text-emerald-600 font-black">Free</span>
+              </div>
             </div>
 
             {tournament.rules_text && (
@@ -702,9 +371,7 @@ export function TournamentRegistrationCard({
             )}
 
             <p className="text-[11px] text-[#334155] font-medium leading-relaxed">
-              {isPaidTournament
-                ? 'Clicking Proceed will open the secure Cashfree Checkout modal. Your slot will be reserved for 12 minutes while completing payment.'
-                : 'By confirming, you agree to attend scheduled matches on time. Matches without attendance will be recorded as walkovers.'}
+              By confirming, you agree to attend scheduled matches on time. Matches without attendance will be recorded as walkovers.
             </p>
 
             <div className="flex items-center gap-3 pt-2">
@@ -712,25 +379,19 @@ export function TournamentRegistrationCard({
                 type="button"
                 variant="ghost"
                 onClick={() => setConfirmModalOpen(false)}
-                disabled={isRegistering || isCheckoutActive}
+                disabled={isRegistering}
                 className="flex-1 rounded-xl text-xs font-black h-11 border-2 border-slate-300 bg-white text-[#0A0D14] hover:bg-slate-100 hover:border-slate-400 hover:text-black transition-all shadow-xs"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
-                onClick={isPaidTournament ? handlePaidCheckout : handleFreeRegistration}
-                disabled={isRegistering || isCheckoutActive}
-                className={`flex-1 font-black text-xs rounded-xl h-11 shadow-sm uppercase tracking-wider transition-all disabled:opacity-50 ${
-                  isPaidTournament
-                    ? 'bg-[#1D1DE0] hover:bg-[#1515B0] text-white shadow-md'
-                    : 'bg-[#00C853] hover:bg-[#00B048] text-[#072418]'
-                }`}
+                onClick={handleRegistration}
+                disabled={isRegistering}
+                className="flex-1 font-black text-xs rounded-xl h-11 shadow-sm uppercase tracking-wider transition-all disabled:opacity-50 bg-[#00C853] hover:bg-[#00B048] text-[#072418]"
               >
-                {isRegistering || isCheckoutActive ? (
+                {isRegistering ? (
                   <Loader2 className="h-4 w-4 animate-spin text-current" />
-                ) : isPaidTournament ? (
-                  `Pay ₹${entryFeeRupees} Now`
                 ) : (
                   'Confirm & Join'
                 )}

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2, RefreshCw, Tv, Users } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, RefreshCw, Tv, Users, Play, ArrowRight, Swords, Trophy, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
@@ -10,7 +10,6 @@ import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMat
 type LiveMatchEntry = Awaited<ReturnType<typeof getPublicLiveMatches>>[number];
 
 export default function LivePage() {
-  const router = useRouter();
   const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,8 +106,8 @@ export default function LivePage() {
       {/* Content Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="h-32 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
-          <div className="h-32 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
+          <div className="h-48 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
+          <div className="h-48 rounded-[28px] bg-[#1818D4]/60 animate-pulse border border-white/10" />
         </div>
       ) : error ? (
         <div className="p-8 text-center bg-[#1818D4] rounded-[28px] border border-white/20 text-white space-y-3">
@@ -118,71 +117,113 @@ export default function LivePage() {
           </Button>
         </div>
       ) : liveMatches.length === 0 ? (
-        <div className="p-12 text-center border border-white/20 rounded-[28px] bg-[#1818D4] text-white shadow-xl space-y-3">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#3434FF] text-[#FFFF00] shadow-md">
-            <Tv className="h-7 w-7" />
+        <div className="p-8 sm:p-12 text-center border border-white/20 rounded-[32px] bg-[#1818D4] text-white shadow-xl space-y-4 max-w-xl mx-auto">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0A0A7A] border border-white/20 text-[#FFFF00] shadow-md">
+            <Tv className="h-8 w-8 text-[#FFFF00]" />
           </div>
-          <h3 className="text-lg font-black font-display uppercase tracking-wide text-white">No matches currently live</h3>
-          <p className="text-xs text-[#D9DCFF]/80 max-w-sm mx-auto font-medium">
-            Active broadcasts will stream here in real time as soon as a match begins.
-          </p>
+          <div>
+            <h3 className="text-xl font-black font-display uppercase tracking-wider text-white">
+              No Matches Currently Live
+            </h3>
+            <p className="text-xs text-[#D9DCFF]/80 max-w-md mx-auto mt-1 leading-relaxed">
+              When tournament competitors begin their scheduled fixtures, real-time broadcasts and live interactive scoreboards will stream directly here.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button asChild className="bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] font-black text-xs rounded-full h-10 px-5 shadow-lg uppercase tracking-wider">
+              <Link href="/tournaments">Explore Tournaments</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-white/20 hover:bg-white/10 text-white font-black text-xs rounded-full h-10 px-5 uppercase tracking-wider">
+              <Link href="/dashboard/matches">View My Fixtures</Link>
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           {liveMatches.map(({ match, round }) => (
-            <div
+            <Link
               key={match.id}
-              onClick={() => router.push(`/live/${match.id}`)}
-              className="bg-[#1818D4] border border-white/20 hover:border-[#FFFF00] shadow-xl hover:shadow-[0_0_20px_rgba(52,52,255,0.4)] transition-all duration-200 rounded-[28px] p-4 sm:p-5 cursor-pointer select-none space-y-3 touch-target active:scale-[0.99] text-white"
+              href={`/live/${match.id}`}
+              className="bg-gradient-to-br from-[#1818D4] to-[#1212B8] border border-white/20 hover:border-[#FFFF00] shadow-2xl hover:shadow-[0_0_25px_rgba(255,255,0,0.3)] transition-all duration-300 rounded-[28px] p-5 sm:p-6 cursor-pointer select-none flex flex-col justify-between gap-5 touch-target active:scale-[0.99] text-white group"
             >
-              {/* Header Row */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#FF168B] text-white font-black text-[9px] uppercase px-2.5 py-0.5 rounded-full tracking-wider gap-1 shadow-sm flex items-center">
-                    <span className="relative flex h-1.5 w-1.5 mr-1">
+              {/* Top Row: Tournament Title + LIVE pulse badge + Match Number */}
+              <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="bg-[#FF168B] text-white font-black text-[10px] uppercase px-3 py-1 rounded-full tracking-wider shadow-sm flex items-center gap-1.5 shrink-0">
+                    <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                     </span>
                     LIVE
                   </span>
-
-                  <span className="text-[10px] font-black text-[#D9DCFF]/80 uppercase">
-                    Match #{match.match_position}
+                  <span className="text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
+                    {match.tournamentName || 'eFootball Championship'}
                   </span>
                 </div>
 
-                <span className="text-[10px] font-black text-[#FFFF00] flex items-center gap-1 bg-[#0A0A7A] px-2.5 py-0.5 rounded-full border border-white/10">
-                  <Users className="h-3 w-3 text-[#FFFF00]" />
-                  <span>BROADCAST</span>
+                <span className="text-[10px] font-black text-[#FFFF00] uppercase tracking-wider bg-[#0A0A7A] px-2.5 py-1 rounded-full border border-white/15 shrink-0">
+                  {round.name || `Match #${match.match_position}`}
                 </span>
               </div>
 
-              {/* Tournament & Round Subtitle */}
-              <p className="text-xs font-black font-display text-white truncate leading-tight uppercase tracking-wider">
-                {match.tournamentName ? `${match.tournamentName} • ` : ''}{round.name}
-              </p>
+              {/* Center Matchup Area: Competitor A vs Competitor B with Avatars and Big Scoreboard */}
+              <div className="grid grid-cols-7 items-center gap-2 py-4 px-3 sm:px-4 rounded-2xl bg-[#0A0A7A]/70 border border-white/15">
+                {/* Player A */}
+                <div className="col-span-3 flex items-center gap-2.5 min-w-0">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-[#1818D4] border-2 border-[#FFFF00]/70 flex items-center justify-center font-black text-sm sm:text-base text-[#FFFF00] shadow-md shrink-0 font-display">
+                    {(match.participantAName || 'P1').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider block">Home</span>
+                    <p className="text-xs sm:text-sm font-black text-white truncate font-display">
+                      {match.participantAName || 'Player 1'}
+                    </p>
+                  </div>
+                </div>
 
-              {/* Scoreboard Box */}
-              <div className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-2xl bg-[#0A0A7A] border border-white/15">
-                <p className="text-xs sm:text-sm font-bold text-white truncate flex-1 text-left">
-                  {match.participantAName || 'Player 1'}
-                </p>
-
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-[#1818D4] rounded-xl border border-white/20 shadow-sm shrink-0 font-mono">
-                  <span className="text-base sm:text-lg font-black font-display text-[#FFFF00] tabular-nums">
-                    {match.score_a ?? 0}
-                  </span>
-                  <span className="text-xs font-bold text-white/40">—</span>
-                  <span className="text-base sm:text-lg font-black font-display text-[#FFFF00] tabular-nums">
-                    {match.score_b ?? 0}
+                {/* Center Live Scoreboard */}
+                <div className="col-span-1 text-center shrink-0 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1818D4] rounded-2xl border border-white/25 shadow-inner font-mono">
+                    <span className="text-xl sm:text-2xl font-black font-display text-[#FFFF00] tabular-nums">
+                      {match.score_a ?? 0}
+                    </span>
+                    <span className="text-sm font-black text-white/40">—</span>
+                    <span className="text-xl sm:text-2xl font-black font-display text-[#FFFF00] tabular-nums">
+                      {match.score_b ?? 0}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-[#FF168B] mt-1 animate-pulse">
+                    Playing
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm font-bold text-white truncate flex-1 text-right">
-                  {match.participantBName || 'Player 2'}
-                </p>
+                {/* Player B */}
+                <div className="col-span-3 flex items-center justify-end gap-2.5 min-w-0 text-right">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider block">Away</span>
+                    <p className="text-xs sm:text-sm font-black text-white truncate font-display">
+                      {match.participantBName || 'Player 2'}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-[#08088F] border-2 border-white/25 flex items-center justify-center font-black text-sm sm:text-base text-white/90 shadow-md shrink-0 font-display">
+                    {(match.participantBName || 'P2').charAt(0).toUpperCase()}
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* Card Action Footer: Broadcast Status & "Watch Live Stream" Button */}
+              <div className="flex items-center justify-between pt-1 border-t border-white/10 gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-[#D9DCFF]/80">
+                  <Users className="h-3.5 w-3.5 text-[#FFFF00]" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Live Broadcast Stream</span>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 bg-[#FFFF00] group-hover:bg-yellow-300 text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full h-9 px-4 shadow-lg shrink-0 transition-transform group-hover:scale-105">
+                  <Play className="h-3 w-3 fill-current text-[#08088F]" />
+                  <span>Watch Stream</span>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}

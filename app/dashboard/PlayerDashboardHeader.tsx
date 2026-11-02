@@ -120,7 +120,7 @@ export default function PlayerDashboardHeader({
   const playerPrimaryName = displayName || userEmail.split('@')[0] || 'Competitor';
 
   return (
-    <header className="sticky top-0 z-50 w-full px-2 sm:px-6 pt-2 sm:pt-4 transition-all">
+    <header className="sticky top-0 z-50 w-full px-2 sm:px-6 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:pt-4 transition-all">
       {/* Centered Floating Pill Container */}
       <div className="mx-auto max-w-6xl rounded-3xl xl:rounded-full bg-gradient-to-r from-[#1616C0]/95 via-[#1A1AE8]/95 to-[#1616C0]/95 backdrop-blur-2xl border border-white/20 hover:border-white/30 shadow-[0_12px_40px_rgba(8,8,143,0.55)] p-2 sm:px-4 xl:px-6 sm:py-2.5 flex flex-col xl:flex-row items-center justify-between gap-2.5 xl:gap-4 transition-all">
         
@@ -271,7 +271,7 @@ export default function PlayerDashboardHeader({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'w-full xl:w-auto flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3.5 xl:px-4 rounded-full font-black tracking-wide transition-all duration-200 active:scale-95 touch-target select-none',
+                    'w-full xl:w-auto flex items-center justify-center gap-1 min-[360px]:gap-1.5 sm:gap-2 min-h-[44px] h-11 sm:h-10 px-1.5 min-[360px]:px-2.5 sm:px-3.5 xl:px-4 rounded-full font-black tracking-wide transition-all duration-200 active:scale-95 touch-target select-none',
                     active
                       ? 'bg-[#FFFF00] text-[#08088F] shadow-[0_2px_14px_rgba(255,255,0,0.45)]'
                       : 'text-white/80 hover:text-[#FFFF00] hover:bg-white/10'
@@ -286,7 +286,7 @@ export default function PlayerDashboardHeader({
                   <span className="hidden min-[380px]:inline text-[10px] min-[420px]:text-xs font-black whitespace-nowrap">
                     {item.label}
                   </span>
-                  <span className="inline min-[380px]:hidden text-[10px] font-black whitespace-nowrap">
+                  <span className="inline min-[380px]:hidden text-[9px] min-[340px]:text-[10px] font-black whitespace-nowrap">
                     {item.href.includes('tournament') ? 'Tours' : item.mobileLabel}
                   </span>
                 </Link>

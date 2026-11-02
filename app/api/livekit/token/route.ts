@@ -5,10 +5,6 @@ import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResp
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_LIVEKIT_URL = 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-const DEFAULT_API_KEY = 'API57Y48Vmbn4nm';
-const DEFAULT_API_SECRET = 'rkpn1ViaYdplx5TZzAc0NTlSQeSZimM7YYYMrghaY7C';
-
 function getCorsHeaders(rateLimitHeaders?: Record<string, string>) {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -38,9 +34,16 @@ export async function POST(request: Request) {
     const identity = body.identity || `user-${Math.random().toString(36).substring(2, 9)}`;
     const role = body.role || 'viewer';
 
-    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
+    if (!apiKey || !apiSecret || !wsUrl) {
+      return NextResponse.json(
+        { error: 'LiveKit server configuration is incomplete.' },
+        { status: 500, headers: getCorsHeaders(rateLimitHeaders) }
+      );
+    }
 
     const isBroadcaster = role === 'broadcaster';
 
@@ -92,9 +95,16 @@ export async function GET(request: Request) {
     const identity = searchParams.get('identity') || `user-${Math.random().toString(36).substring(2, 9)}`;
     const role = searchParams.get('role') || 'viewer';
 
-    const apiKey = process.env.LIVEKIT_API_KEY || DEFAULT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET || DEFAULT_API_SECRET;
-    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const wsUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
+    if (!apiKey || !apiSecret || !wsUrl) {
+      return NextResponse.json(
+        { error: 'LiveKit server configuration is incomplete.' },
+        { status: 500, headers: getCorsHeaders(rateLimitHeaders) }
+      );
+    }
 
     const isBroadcaster = role === 'broadcaster';
 
@@ -129,4 +139,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: message }, { status: 500, headers: getCorsHeaders(rateLimitHeaders) });
   }
 }
-
