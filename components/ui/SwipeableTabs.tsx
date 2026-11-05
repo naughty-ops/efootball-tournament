@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
+import { playTouch } from '@/src/lib/sounds/sound-manager';
 
 export interface TabItem {
   id: string;
@@ -125,6 +126,7 @@ export function SwipeableTabContainer({
     if (currentIndex < tabs.length - 1) {
       const nextTab = tabs[currentIndex + 1];
       if (!isTabDisabled(nextTab)) {
+        playTouch();
         setSlideDirection('left');
         onTabChange(getTabId(nextTab));
       }
@@ -135,6 +137,7 @@ export function SwipeableTabContainer({
     if (currentIndex > 0) {
       const prevTab = tabs[currentIndex - 1];
       if (!isTabDisabled(prevTab)) {
+        playTouch();
         setSlideDirection('right');
         onTabChange(getTabId(prevTab));
       }

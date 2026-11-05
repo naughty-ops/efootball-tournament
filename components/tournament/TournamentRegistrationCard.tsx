@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { registerForTournamentAction } from '@/app/actions/playerActions';
+import { playConnecting } from '@/src/lib/sounds/sound-manager';
 import type { TournamentWithStats } from '@/services/tournamentService';
 
 interface TournamentRegistrationCardProps {
@@ -94,7 +95,8 @@ export function TournamentRegistrationCard({
   }, [tournament.id]);
 
   /**
-   * Direct standard self-registration
+   * Free tournament registration handler
+   * Directly enrolls authenticated player and confirms their tournament slot.
    */
   const handleRegistration = async () => {
     setIsRegistering(true);
@@ -105,6 +107,7 @@ export function TournamentRegistrationCard({
       const res = await registerForTournamentAction(tournament.id, { rulesAccepted: true });
       if (res.success) {
         setIsRegistered(true);
+        playConnecting();
         setFeedback({
           message: `Congratulations! You are officially registered for ${tournament.name}.`,
           type: 'success',
@@ -359,7 +362,7 @@ export function TournamentRegistrationCard({
               </div>
               <div className="flex justify-between items-center border-t border-[#E2E8F0] pt-2.5 text-sm font-black text-[#0A0D14]">
                 <span>Entry:</span>
-                <span className="text-emerald-600 font-black">Free</span>
+                <span className="text-emerald-600 font-black">Free Entry</span>
               </div>
             </div>
 

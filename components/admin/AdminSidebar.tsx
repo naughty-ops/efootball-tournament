@@ -13,18 +13,46 @@ import {
   LogOut,
   X,
   GitBranch,
+  Globe,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-const navItems = [
-  { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Tournaments', href: '/admin/tournaments', icon: Trophy },
-  { label: 'Participants', href: '/admin/participants', icon: Users },
-  { label: 'Brackets', href: '/admin/brackets', icon: GitBranch },
-  { label: 'Matches', href: '/admin/matches', icon: Swords },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavSection {
+  title?: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    title: 'Tournament Operations',
+    items: [
+      { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Tournaments', href: '/admin/tournaments', icon: Trophy },
+      { label: 'Participants', href: '/admin/participants', icon: Users },
+      { label: 'Brackets', href: '/admin/brackets', icon: GitBranch },
+      { label: 'Matches', href: '/admin/matches', icon: Swords },
+    ],
+  },
+  {
+    title: 'Website Management',
+    items: [
+      { label: 'Homepage Control', href: '/admin/cms/homepage', icon: Globe },
+    ],
+  },
+  {
+    title: 'Configuration',
+    items: [
+      { label: 'Settings', href: '/admin/settings', icon: Settings },
+    ],
+  },
 ];
 
 interface AdminSidebarProps {
@@ -98,28 +126,39 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
             </Button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-1.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-150 touch-target',
-                    isActive
-                      ? 'bg-[#FFFF00] text-[#08088F] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
-                      : 'text-[#D9DCFF] hover:bg-white/10 hover:text-white'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+          {/* Navigation Sections */}
+          <nav className="flex flex-col gap-4 overflow-y-auto pr-1">
+            {navSections.map((section, idx) => (
+              <div key={section.title || idx} className="space-y-1.5">
+                {section.title && (
+                  <p className="px-4 text-[10px] font-black uppercase tracking-widest text-[#FFFF00]/70">
+                    {section.title}
+                  </p>
+                )}
+                <div className="flex flex-col gap-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          'flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-150 touch-target',
+                          isActive
+                            ? 'bg-[#FFFF00] text-[#08088F] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
+                            : 'text-[#D9DCFF] hover:bg-white/10 hover:text-white'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 

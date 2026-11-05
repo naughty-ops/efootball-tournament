@@ -2,20 +2,7 @@ export type TournamentFormat = 'knockout' | 'league' | 'group_knockout' | 'singl
 export type TournamentStatus = 'draft' | 'registration' | 'ongoing' | 'completed';
 export type ParticipantStatus = 'active' | 'eliminated' | 'disqualified';
 export type MatchStatus = 'pending' | 'ready' | 'scheduled' | 'live' | 'completed' | 'walkover' | 'cancelled';
-export type RegistrationStatus = 'pending_payment' | 'confirmed' | 'expired' | 'cancelled' | 'refunded';
-export type PaymentOrderStatus =
-  | 'created'
-  | 'attempted'
-  | 'pending_verification'
-  | 'paid'
-  | 'failed'
-  | 'expired'
-  | 'cancelled'
-  | 'refund_pending'
-  | 'refunded'
-  | 'manual_review_required';
-export type PaymentTransactionStatus = 'captured' | 'failed' | 'refunded' | 'partially_refunded';
-export type RefundRequestStatus = 'pending_review' | 'approved' | 'rejected' | 'processed' | 'failed';
+export type RegistrationStatus = 'confirmed' | 'cancelled' | 'pending';
 
 export interface Database {
   public: {
@@ -545,7 +532,6 @@ export interface Database {
           tournament_id: string;
           user_id: string;
           participant_id: string | null;
-          payment_transaction_id: string | null;
           status: RegistrationStatus;
           amount_paise: number;
           currency: string;
@@ -559,7 +545,6 @@ export interface Database {
           tournament_id: string;
           user_id: string;
           participant_id?: string | null;
-          payment_transaction_id?: string | null;
           status?: RegistrationStatus;
           amount_paise?: number;
           currency?: string;
@@ -573,7 +558,6 @@ export interface Database {
           tournament_id?: string;
           user_id?: string;
           participant_id?: string | null;
-          payment_transaction_id?: string | null;
           status?: RegistrationStatus;
           amount_paise?: number;
           currency?: string;
@@ -581,253 +565,6 @@ export interface Database {
           confirmed_at?: string | null;
           created_at?: string;
           updated_at?: string;
-        };
-      };
-      payment_utr_claims: {
-        Row: {
-          normalized_utr: string;
-          order_id: string;
-          transaction_id: string;
-          claimed_by: string;
-          claimed_at: string;
-        };
-        Insert: {
-          normalized_utr: string;
-          order_id: string;
-          transaction_id: string;
-          claimed_by: string;
-          claimed_at?: string;
-        };
-        Update: {
-          normalized_utr?: string;
-          order_id?: string;
-          transaction_id?: string;
-          claimed_by?: string;
-          claimed_at?: string;
-        };
-      };
-      payment_orders: {
-        Row: {
-          id: string;
-          registration_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_order_id?: string | null;
-          cf_order_id?: string | null;
-          payment_session_id?: string | null;
-          razorpay_order_id: string | null;
-          amount_paise: number;
-          currency: string;
-          status: PaymentOrderStatus;
-          receipt: string;
-          attempts: number;
-          verification_level?: number | null;
-          observation_utr?: string | null;
-          manual_review_notes?: string | null;
-          reconciled_at?: string | null;
-          reconciled_by?: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          registration_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_order_id?: string | null;
-          cf_order_id?: string | null;
-          payment_session_id?: string | null;
-          razorpay_order_id?: string | null;
-          amount_paise: number;
-          currency?: string;
-          status?: PaymentOrderStatus;
-          receipt: string;
-          attempts?: number;
-          verification_level?: number | null;
-          observation_utr?: string | null;
-          manual_review_notes?: string | null;
-          reconciled_at?: string | null;
-          reconciled_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          registration_id?: string;
-          tournament_id?: string;
-          user_id?: string;
-          gateway?: string;
-          gateway_order_id?: string | null;
-          cf_order_id?: string | null;
-          payment_session_id?: string | null;
-          razorpay_order_id?: string | null;
-          amount_paise?: number;
-          currency?: string;
-          status?: PaymentOrderStatus;
-          receipt?: string;
-          attempts?: number;
-          verification_level?: number | null;
-          observation_utr?: string | null;
-          manual_review_notes?: string | null;
-          reconciled_at?: string | null;
-          reconciled_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      payment_transactions: {
-        Row: {
-          id: string;
-          order_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_payment_id?: string | null;
-          gateway_signature?: string | null;
-          razorpay_payment_id: string | null;
-          razorpay_signature: string | null;
-          amount_paise: number;
-          currency: string;
-          status: PaymentTransactionStatus;
-          payment_method: string | null;
-          bank_reference: string | null;
-          error_code: string | null;
-          error_description: string | null;
-          verified_at: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_payment_id?: string | null;
-          gateway_signature?: string | null;
-          razorpay_payment_id?: string | null;
-          razorpay_signature?: string | null;
-          amount_paise: number;
-          currency?: string;
-          status?: PaymentTransactionStatus;
-          payment_method?: string | null;
-          bank_reference?: string | null;
-          error_code?: string | null;
-          error_description?: string | null;
-          verified_at?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          order_id?: string;
-          tournament_id?: string;
-          user_id?: string;
-          gateway?: string;
-          gateway_payment_id?: string | null;
-          gateway_signature?: string | null;
-          razorpay_payment_id?: string | null;
-          razorpay_signature?: string | null;
-          amount_paise?: number;
-          currency?: string;
-          status?: PaymentTransactionStatus;
-          payment_method?: string | null;
-          bank_reference?: string | null;
-          error_code?: string | null;
-          error_description?: string | null;
-          verified_at?: string;
-          created_at?: string;
-        };
-      };
-      payment_refund_requests: {
-        Row: {
-          id: string;
-          transaction_id: string;
-          order_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_refund_id?: string | null;
-          amount_paise: number;
-          currency: string;
-          reason: string;
-          status: RefundRequestStatus;
-          admin_notes: string | null;
-          reviewed_by: string | null;
-          reviewed_at: string | null;
-          razorpay_refund_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          transaction_id: string;
-          order_id: string;
-          tournament_id: string;
-          user_id: string;
-          gateway?: string;
-          gateway_refund_id?: string | null;
-          amount_paise: number;
-          currency?: string;
-          reason: string;
-          status?: RefundRequestStatus;
-          admin_notes?: string | null;
-          reviewed_by?: string | null;
-          reviewed_at?: string | null;
-          razorpay_refund_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          transaction_id?: string;
-          order_id?: string;
-          tournament_id?: string;
-          user_id?: string;
-          gateway?: string;
-          gateway_refund_id?: string | null;
-          amount_paise?: number;
-          currency?: string;
-          reason?: string;
-          status?: RefundRequestStatus;
-          admin_notes?: string | null;
-          reviewed_by?: string | null;
-          reviewed_at?: string | null;
-          razorpay_refund_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      payment_webhook_events: {
-        Row: {
-          id: string;
-          event_id: string;
-          event_type: string;
-          payload: Record<string, unknown>;
-          status: string;
-          worker_token?: string | null;
-          lease_expires_at?: string | null;
-          processed_at: string;
-        };
-        Insert: {
-          id?: string;
-          event_id: string;
-          event_type: string;
-          payload: Record<string, unknown>;
-          status?: string;
-          worker_token?: string | null;
-          lease_expires_at?: string | null;
-          processed_at?: string;
-        };
-        Update: {
-          id?: string;
-          event_id?: string;
-          event_type?: string;
-          payload?: Record<string, unknown>;
-          status?: string;
-          worker_token?: string | null;
-          lease_expires_at?: string | null;
-          processed_at?: string;
         };
       };
       site_settings: {
@@ -903,6 +640,94 @@ export interface Database {
           created_at?: string;
         };
       };
+      homepage_sections: {
+        Row: {
+          id: string;
+          section_key: string;
+          section_name: string;
+          description: string | null;
+          display_order: number;
+          is_enabled: boolean;
+          is_visible_desktop: boolean;
+          is_visible_mobile: boolean;
+          status: 'draft' | 'published' | 'archived';
+          draft_content: Record<string, any>;
+          published_content: Record<string, any>;
+          last_published_at: string | null;
+          published_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          section_key: string;
+          section_name: string;
+          description?: string | null;
+          display_order?: number;
+          is_enabled?: boolean;
+          is_visible_desktop?: boolean;
+          is_visible_mobile?: boolean;
+          status?: 'draft' | 'published' | 'archived';
+          draft_content?: Record<string, any>;
+          published_content?: Record<string, any>;
+          last_published_at?: string | null;
+          published_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          section_key?: string;
+          section_name?: string;
+          description?: string | null;
+          display_order?: number;
+          is_enabled?: boolean;
+          is_visible_desktop?: boolean;
+          is_visible_mobile?: boolean;
+          status?: 'draft' | 'published' | 'archived';
+          draft_content?: Record<string, any>;
+          published_content?: Record<string, any>;
+          last_published_at?: string | null;
+          published_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      homepage_audit_history: {
+        Row: {
+          id: string;
+          section_id: string;
+          action: 'created' | 'draft_saved' | 'published' | 'visibility_toggled' | 'reordered' | 'reverted';
+          performed_by: string | null;
+          performed_by_email: string | null;
+          changes: Record<string, any>;
+          snapshot: Record<string, any>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          section_id: string;
+          action: 'created' | 'draft_saved' | 'published' | 'visibility_toggled' | 'reordered' | 'reverted';
+          performed_by?: string | null;
+          performed_by_email?: string | null;
+          changes?: Record<string, any>;
+          snapshot?: Record<string, any>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          section_id?: string;
+          action?: 'created' | 'draft_saved' | 'published' | 'visibility_toggled' | 'reordered' | 'reverted';
+          performed_by?: string | null;
+          performed_by_email?: string | null;
+          changes?: Record<string, any>;
+          snapshot?: Record<string, any>;
+          created_at?: string;
+        };
+      };
     };
   };
 }
@@ -922,10 +747,33 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type AdminUser = Database['public']['Tables']['admin_users']['Row'];
 export type AdminAuditLog = Database['public']['Tables']['admin_audit_logs']['Row'];
 export type TournamentRegistration = Database['public']['Tables']['tournament_registrations']['Row'];
-export type PaymentOrder = Database['public']['Tables']['payment_orders']['Row'];
-export type PaymentTransaction = Database['public']['Tables']['payment_transactions']['Row'];
-export type PaymentRefundRequest = Database['public']['Tables']['payment_refund_requests']['Row'];
-export type PaymentWebhookEvent = Database['public']['Tables']['payment_webhook_events']['Row'];
+export type HomepageSection = Database['public']['Tables']['homepage_sections']['Row'];
+export type HomepageSectionInsert = Database['public']['Tables']['homepage_sections']['Insert'];
+export type HomepageSectionUpdate = Database['public']['Tables']['homepage_sections']['Update'];
+export type HomepageAuditHistory = Database['public']['Tables']['homepage_audit_history']['Row'];
+
+export type HomepageSectionKey =
+  | 'navbar'
+  | 'announcements'
+  | 'hero_banner'
+  | 'featured_tournament'
+  | 'live_matches'
+  | 'upcoming_tournaments'
+  | 'leaderboard'
+  | 'featured_players'
+  | 'platform_statistics'
+  | 'sponsors'
+  | 'footer';
+
+export type HomepageSectionStatus = 'draft' | 'published' | 'archived';
+
+export interface HomepageOverviewStats {
+  totalSections: number;
+  publishedCount: number;
+  hiddenCount: number;
+  draftChangesCount: number;
+  lastPublishedAt: string | null;
+}
 
 export interface PredictionAggregateStats {
   totalPredictions: number;

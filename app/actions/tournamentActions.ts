@@ -194,7 +194,7 @@ export async function updateTournamentAction(
       };
     }
 
-    // 5. Protect financial terms if registrations or payments already exist (Task 3)
+    // 5. Protect tournament terms if registrations already exist
     const isPaid = Boolean(validData.is_paid);
     const entryFeePaise = isPaid
       ? computePaiseAmount(validData.entry_fee_rupees, validData.entry_fee_paise)
@@ -207,22 +207,16 @@ export async function updateTournamentAction(
       (existing.currency || 'INR') !== targetCurrency;
 
     if (financialTermsChanged) {
-      const { count: regCount } = await (supabase.from('tournament_registrations') as any)
+      const { count: participantCount } = await (supabase.from('participants') as any)
         .select('id', { count: 'exact', head: true })
-        .eq('tournament_id', id)
-        .in('status', ['confirmed', 'pending_payment']);
+        .eq('tournament_id', id);
 
-      const { count: paymentCount } = await (supabase.from('payment_transactions') as any)
-        .select('id', { count: 'exact', head: true })
-        .eq('tournament_id', id)
-        .neq('status', 'failed');
+      const hasSlots = (existing.confirmed_slots_count || 0) > 0;
 
-      const hasSlots = (existing.confirmed_slots_count || 0) > 0 || (existing.reserved_slots_count || 0) > 0;
-
-      if ((regCount && regCount > 0) || (paymentCount && paymentCount > 0) || hasSlots) {
+      if ((participantCount && participantCount > 0) || hasSlots) {
         return {
           success: false,
-          message: 'Cannot modify financial terms (paid status, entry fee, or currency) because registrations or payment transactions already exist for this tournament.',
+          message: 'Cannot modify tournament terms because participants have already registered for this tournament.',
         };
       }
     }

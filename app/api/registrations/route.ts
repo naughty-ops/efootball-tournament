@@ -15,8 +15,15 @@ const registerSchema = z.object({
 /**
  * POST /api/registrations
  * 
- * Authenticated endpoint for tournament self-registration.
- * Free, direct competitor registration with player verification and duplicate prevention.
+ * Authenticated endpoint for tournament registration.
+ * Clean, direct registration workflow validating:
+ * - Authentication
+ * - Active player profile
+ * - Verified eFootball ID
+ * - WhatsApp verification
+ * - Rules acceptance
+ * - Available tournament capacity
+ * - Duplicate registration prevention
  */
 export async function POST(request: NextRequest) {
   // 1. Rate limiting
@@ -51,14 +58,15 @@ export async function POST(request: NextRequest) {
 
     const { tournamentId, rulesAccepted } = parseResult.data;
 
-    // 4. Perform self-registration
+    // 4. Perform direct tournament registration
     const result = await selfRegisterTournament(supabase, user.id, tournamentId, {
       rulesAccepted: rulesAccepted ?? true,
     });
 
     if (!result.success) {
-      const status = result.message.includes('already registered') || result.message.includes('full') ? 409 : 400;
-      return NextResponse.json({ error: result.message }, { status });
+      const msg = result.message || 'Registration failed.';
+      const status = msg.includes('already registered') || msg.includes('full') ? 409 : 400;
+      return NextResponse.json({ error: msg }, { status });
     }
 
     return NextResponse.json({

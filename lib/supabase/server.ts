@@ -47,7 +47,7 @@ export async function createClient() {
 /**
  * Creates a privileged Supabase client using the SUPABASE_SERVICE_ROLE_KEY.
  * STRICTLY SERVER-SIDE: Never call this from client components or expose to browser.
- * Only use for authorized internal server operations (e.g. creating payment order records
+ * Only use for authorized internal server operations (e.g. administrative tasks
  * that bypass RLS after authentication has been independently established).
  */
 export function createAdminClient() {

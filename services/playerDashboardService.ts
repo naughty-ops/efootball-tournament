@@ -688,14 +688,34 @@ export async function selfRegisterTournament(
     return { success: false, message: 'Profile not found. Please complete your registration details.' };
   }
 
-  if (profile.account_status && profile.account_status !== 'active') {
-    return { success: false, message: `Your account is currently ${profile.account_status}. Registration is restricted.` };
+  const effectiveStatus = profile.account_status || (profile as any).status;
+  if (effectiveStatus && effectiveStatus !== 'active') {
+    return { success: false, message: `Your account is currently ${effectiveStatus}. Registration is restricted.` };
   }
 
   // Ensure user has configured their eFootball ID
   const rawEfootballId = (profile.efootball_id || profile.display_name || '').trim();
   if (!rawEfootballId) {
     return { success: false, message: 'Please update your profile with a valid eFootball ID before registering.' };
+  }
+
+  // Ensure user has completed WhatsApp verification
+  const isWhatsappVerified = Boolean(
+    profile.whatsapp_verified === true || profile.whatsapp_verification_status === 'verified'
+  );
+  if (!isWhatsappVerified) {
+    return {
+      success: false,
+      message: 'WhatsApp verification required. Please verify your WhatsApp number on your profile before registering.',
+    };
+  }
+
+  // Ensure rules acceptance
+  if (options && options.rulesAccepted === false) {
+    return {
+      success: false,
+      message: 'You must accept the tournament rules to register.',
+    };
   }
 
   const normalizedEfootballId = normalizeEfootballId(rawEfootballId);
@@ -775,6 +795,33 @@ export async function selfRegisterTournament(
       return { success: false, message: 'You or this eFootball ID are already registered in this tournament.' };
     }
     return { success: false, message: insertErr.message || 'Failed to complete registration.' };
+  }
+
+  // 7. Update tournament confirmed slots count & create registration record
+  try {
+    await Promise.all([
+      supabase
+        .from('tournaments')
+        .update({
+          confirmed_slots_count: (currentCount + 1),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', tournamentId),
+      supabase
+        .from('tournament_registrations')
+        .insert({
+          tournament_id: tournamentId,
+          user_id: userId,
+          participant_id: newParticipant?.id,
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString(),
+          terms_accepted: true,
+          terms_accepted_at: new Date().toISOString(),
+          rules_version: '1.0',
+        } as any),
+    ]);
+  } catch (slotErr) {
+    console.warn('Non-fatal error updating slot counters or registrations:', slotErr);
   }
 
   return {
