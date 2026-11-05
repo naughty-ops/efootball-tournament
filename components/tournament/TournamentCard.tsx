@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Trophy, Medal, Users, Calendar, ChevronRight, Edit, Trash2, Share2, Check, Image as ImageIcon } from 'lucide-react';
 import type { TournamentWithStats } from '@/services/tournamentService';
@@ -15,6 +16,7 @@ import { EditCoverImageModal } from '@/components/tournament/EditCoverImageModal
 interface TournamentCardProps {
   tournament: TournamentWithStats;
   isAdmin?: boolean;
+  priority?: boolean;
   onDelete?: (id: string) => void;
 }
 
@@ -31,11 +33,11 @@ export function formatTournamentFormat(format: string): string {
   }
 }
 
-export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: TournamentCardProps) {
+export function TournamentCard({ tournament: t, isAdmin = false, priority = false, onDelete }: TournamentCardProps) {
   const router = useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
-  const [currentBanner, setCurrentBanner] = useState<string>(t.banner_image || '/images/banner1.jpg');
+  const [currentBanner, setCurrentBanner] = useState<string>(t.banner_image || '/images/banner1.webp');
   const [copiedLink, setCopiedLink] = useState(false);
 
   const isCompleted = t.status === 'completed';
@@ -74,12 +76,16 @@ export function TournamentCard({ tournament: t, isAdmin = false, onDelete }: Tou
       >
         {/* Full Card Cover Background Image */}
         <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-950">
-          <img
+          <Image
             src={currentBanner}
             alt={t.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-100"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/images/banner1.jpg';
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={priority}
+            loading={priority ? undefined : 'lazy'}
+            className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-100"
+            onError={() => {
+              setCurrentBanner('/images/banner1.webp');
             }}
           />
           {/* Vibrant eFootball Electric Navy Overlay */}

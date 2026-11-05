@@ -1,0 +1,373 @@
+[
+  {
+    "persona": "Anonymous Visitor",
+    "targetPath": "/dashboard",
+    "description": "Player Dashboard Guard (Redirect to /login)",
+    "finalPath": "/login",
+    "redirectDetected": true,
+    "medianTtfb": 5,
+    "medianFcp": 64,
+    "medianLoad": 143,
+    "medianRequests": 24,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 5,
+        "fcp": 64,
+        "loadTime": 143,
+        "domContentLoaded": 46,
+        "requests": 24,
+        "transferKb": 30
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 4,
+        "fcp": 64,
+        "loadTime": 154,
+        "domContentLoaded": 46,
+        "requests": 24,
+        "transferKb": 30
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 5,
+        "fcp": 60,
+        "loadTime": 141,
+        "domContentLoaded": 42,
+        "requests": 24,
+        "transferKb": 30
+      }
+    ]
+  },
+  {
+    "persona": "Anonymous Visitor",
+    "targetPath": "/admin/dashboard",
+    "description": "Admin Dashboard Guard (Redirect to /login)",
+    "finalPath": "/login",
+    "redirectDetected": true,
+    "medianTtfb": 4,
+    "medianFcp": 108,
+    "medianLoad": 141,
+    "medianRequests": 24,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 4,
+        "fcp": 64,
+        "loadTime": 153,
+        "domContentLoaded": 38,
+        "requests": 24,
+        "transferKb": 30
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 4,
+        "fcp": 108,
+        "loadTime": 141,
+        "domContentLoaded": 42,
+        "requests": 24,
+        "transferKb": 30
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/login",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 3,
+        "fcp": 108,
+        "loadTime": 135,
+        "domContentLoaded": 40,
+        "requests": 24,
+        "transferKb": 30
+      }
+    ]
+  },
+  {
+    "persona": "Anonymous Visitor",
+    "targetPath": "/",
+    "description": "Public Homepage (Zero Auth Overhead)",
+    "finalPath": "/",
+    "redirectDetected": false,
+    "medianTtfb": 6,
+    "medianFcp": 176,
+    "medianLoad": 172,
+    "medianRequests": 42,
+    "medianTransferKb": 149,
+    "runs": [
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/",
+        "finalUrl": "http://localhost:3000/",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 6,
+        "fcp": 172,
+        "loadTime": 172,
+        "domContentLoaded": 41,
+        "requests": 43,
+        "transferKb": 149
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/",
+        "finalUrl": "http://localhost:3000/",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 7,
+        "fcp": 228,
+        "loadTime": 232,
+        "domContentLoaded": 61,
+        "requests": 42,
+        "transferKb": 149
+      },
+      {
+        "persona": "Anonymous Visitor",
+        "targetPath": "/",
+        "finalUrl": "http://localhost:3000/",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 6,
+        "fcp": 176,
+        "loadTime": 171,
+        "domContentLoaded": 39,
+        "requests": 41,
+        "transferKb": 149
+      }
+    ]
+  },
+  {
+    "persona": "Authenticated Player",
+    "targetPath": "/dashboard",
+    "description": "Player Dashboard (Real Player Profile & Tournaments)",
+    "finalPath": "/dashboard",
+    "redirectDetected": false,
+    "medianTtfb": 429,
+    "medianFcp": 576,
+    "medianLoad": 570,
+    "medianRequests": 33,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 1073,
+        "fcp": 1192,
+        "loadTime": 1203,
+        "domContentLoaded": 1105,
+        "requests": 33,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 423,
+        "fcp": 552,
+        "loadTime": 570,
+        "domContentLoaded": 522,
+        "requests": 33,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 429,
+        "fcp": 576,
+        "loadTime": 558,
+        "domContentLoaded": 462,
+        "requests": 33,
+        "transferKb": 30
+      }
+    ]
+  },
+  {
+    "persona": "Authenticated Player",
+    "targetPath": "/admin/dashboard",
+    "description": "Player Attempting Admin Dashboard (Blocked / Route Guard)",
+    "finalPath": "/dashboard",
+    "redirectDetected": true,
+    "medianTtfb": 457,
+    "medianFcp": 728,
+    "medianLoad": 754,
+    "medianRequests": 34,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard?error=admin_unauthorized",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 428,
+        "fcp": 728,
+        "loadTime": 709,
+        "domContentLoaded": 607,
+        "requests": 34,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard?error=admin_unauthorized",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 457,
+        "fcp": 720,
+        "loadTime": 754,
+        "domContentLoaded": 631,
+        "requests": 34,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Player",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard?error=admin_unauthorized",
+        "status": 200,
+        "redirectDetected": true,
+        "ttfb": 475,
+        "fcp": 744,
+        "loadTime": 758,
+        "domContentLoaded": 710,
+        "requests": 34,
+        "transferKb": 30
+      }
+    ]
+  },
+  {
+    "persona": "Authenticated Administrator",
+    "targetPath": "/admin/dashboard",
+    "description": "Admin Dashboard (Metrics, Verification Queue, Audit Logs)",
+    "finalPath": "/admin/dashboard",
+    "redirectDetected": false,
+    "medianTtfb": 972,
+    "medianFcp": 1080,
+    "medianLoad": 1104,
+    "medianRequests": 37,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/admin/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 972,
+        "fcp": 1080,
+        "loadTime": 1104,
+        "domContentLoaded": 1007,
+        "requests": 25,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/admin/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 590,
+        "fcp": 700,
+        "loadTime": 710,
+        "domContentLoaded": 623,
+        "requests": 37,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/admin/dashboard",
+        "finalUrl": "http://localhost:3000/admin/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 1617,
+        "fcp": 1712,
+        "loadTime": 1741,
+        "domContentLoaded": 1651,
+        "requests": 37,
+        "transferKb": 30
+      }
+    ]
+  },
+  {
+    "persona": "Authenticated Administrator",
+    "targetPath": "/dashboard",
+    "description": "Admin Viewing Player Dashboard",
+    "finalPath": "/dashboard",
+    "redirectDetected": false,
+    "medianTtfb": 1247,
+    "medianFcp": 1360,
+    "medianLoad": 1398,
+    "medianRequests": 33,
+    "medianTransferKb": 30,
+    "runs": [
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 1247,
+        "fcp": 1360,
+        "loadTime": 1398,
+        "domContentLoaded": 1281,
+        "requests": 33,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 967,
+        "fcp": 1092,
+        "loadTime": 1101,
+        "domContentLoaded": 1001,
+        "requests": 33,
+        "transferKb": 30
+      },
+      {
+        "persona": "Authenticated Administrator",
+        "targetPath": "/dashboard",
+        "finalUrl": "http://localhost:3000/dashboard",
+        "status": 200,
+        "redirectDetected": false,
+        "ttfb": 1912,
+        "fcp": 2372,
+        "loadTime": 2526,
+        "domContentLoaded": 1945,
+        "requests": 21,
+        "transferKb": 30
+      }
+    ]
+  }
+]

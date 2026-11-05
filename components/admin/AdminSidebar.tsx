@@ -102,7 +102,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
             <Link href="/admin/dashboard" onClick={onClose} className="flex items-center gap-2.5">
               <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-[#0A0A7A] p-0.5 flex items-center justify-center shrink-0 shadow-md border border-white/20">
                 <Image
-                  src="/logos/logo-mark-transparent.png"
+                  src="/logos/logo-mark-transparent.webp"
                   alt="eFootball Admin Mark"
                   width={40}
                   height={40}

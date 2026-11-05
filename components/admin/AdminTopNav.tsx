@@ -10,14 +10,20 @@ import { Button } from '@/components/ui/button';
 
 interface AdminTopNavProps {
   onMenuClick?: () => void;
+  adminEmail?: string | null;
 }
 
-export default function AdminTopNav({ onMenuClick }: AdminTopNavProps) {
+export default function AdminTopNav({ onMenuClick, adminEmail: propAdminEmail }: AdminTopNavProps) {
   const router = useRouter();
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(propAdminEmail || null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
+    if (propAdminEmail) {
+      setAdminEmail(propAdminEmail);
+      return;
+    }
+
     async function fetchUser() {
       try {
         const supabase = createClient();
@@ -31,7 +37,7 @@ export default function AdminTopNav({ onMenuClick }: AdminTopNavProps) {
     }
 
     fetchUser();
-  }, []);
+  }, [propAdminEmail]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

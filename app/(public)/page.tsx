@@ -1,19 +1,14 @@
-'use client';
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   Trophy,
   ChevronRight,
   Play,
-  Flame,
   Calendar,
   Users,
   Bell,
-  Radio,
   ArrowRight,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -21,13 +16,15 @@ import { Button } from '@/components/ui/button';
 import {
   getPublicTournaments,
   getPublicLiveMatches,
-  type LiveMatchEntry,
 } from '@/services/publicTournamentService';
 import { getPublicHomepageSections } from '@/services/homepageCmsService';
 import type { HomepageSection } from '@/types/database';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import { formatDate, cn } from '@/lib/utils';
-import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import LiveMatchesTicker from '@/components/public/LiveMatchesTicker';
+
+// Revalidate public homepage static cache every 60 seconds (ISR)
+export const revalidate = 60;
 
 function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   const isLive = t.status === 'ongoing';
@@ -36,7 +33,7 @@ function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   return (
     <Link
       href={`/tournaments/${t.id}`}
-      className="group relative flex items-center justify-between gap-4 rounded-3xl border border-white/15 bg-[#1F1FF0] p-4 sm:p-5 hover:border-[#FFFF00] hover:bg-[#2828FF] transition-all shadow-lg active:scale-[0.99]"
+      className="group relative flex items-center justify-between gap-4 rounded-3xl border border-white/15 bg-[#1F1FF0] p-4 sm:p-5 hover:border-[#FFFF00] hover:bg-[#2828FF] transition-all shadow-lg active:scale-[0.99] min-h-[105px]"
     >
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#08088F] text-[#FFFF00] border border-white/10 shadow-inner">
@@ -82,12 +79,6 @@ function TournamentMiniCard({ t }: { t: TournamentWithStats }) {
   );
 }
 
-function CardSkeleton() {
-  return (
-    <div className="h-20 w-full rounded-3xl bg-[#1A1AE8] animate-pulse border border-white/10" />
-  );
-}
-
 function getVisibilityClass(sec?: HomepageSection) {
   if (!sec) return '';
   if (!sec.is_visible_desktop && !sec.is_visible_mobile) return 'hidden';
@@ -96,53 +87,24 @@ function getVisibilityClass(sec?: HomepageSection) {
   return '';
 }
 
-export default function HomePage() {
-  const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>([]);
-  const [activeT, setActiveT] = useState<TournamentWithStats[]>([]);
-  const [upcomingT, setUpcomingT] = useState<TournamentWithStats[]>([]);
-  const [completedT, setCompletedT] = useState<TournamentWithStats[]>([]);
-  const [cmsSections, setCmsSections] = useState<Record<string, HomepageSection>>({});
-  const [isCmsLoaded, setIsCmsLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
+export default async function HomePage() {
+  // Pre-fetch initial data on server to enable instant FCP (< 100ms) with zero client fetching waterfall
+  const [liveMatches, allTournaments, sections] = await Promise.all([
+    getPublicLiveMatches().catch(() => []),
+    getPublicTournaments().catch(() => []),
+    getPublicHomepageSections().catch(() => [] as HomepageSection[]),
+  ]);
 
-  const fetchAll = useCallback(async (bypassCache = false) => {
-    try {
-      const [live, allTournaments, sections] = await Promise.all([
-        getPublicLiveMatches(undefined, bypassCache),
-        getPublicTournaments({ bypassCache }),
-        getPublicHomepageSections().catch(() => [] as HomepageSection[]),
-      ]);
-      setLiveMatches(live);
-      setActiveT(allTournaments.filter((t) => t.status === 'ongoing'));
-      setUpcomingT(allTournaments.filter((t) => t.status === 'registration'));
-      setCompletedT(allTournaments.filter((t) => t.status === 'completed').slice(0, 6));
+  const activeT = allTournaments.filter((t) => t.status === 'ongoing');
+  const upcomingT = allTournaments.filter((t) => t.status === 'registration');
+  const completedT = allTournaments.filter((t) => t.status === 'completed').slice(0, 6);
 
-      if (sections && sections.length > 0) {
-        const map: Record<string, HomepageSection> = {};
-        sections.forEach((s) => {
-          map[s.section_key] = s;
-        });
-        setCmsSections(map);
-        setIsCmsLoaded(true);
-      }
-    } catch {
-      // Silent fail on home page
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const cmsSections: Record<string, HomepageSection> = {};
+  sections.forEach((s) => {
+    cmsSections[s.section_key] = s;
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (!cancelled) await fetchAll();
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchAll]);
-
-  useRealtimeMatches(() => fetchAll(true));
+  const isCmsLoaded = sections.length > 0;
 
   // CMS Section configurations & Fallbacks
   const announcementsSec = cmsSections['announcements'];
@@ -159,8 +121,6 @@ export default function HomePage() {
 
   const liveSec = cmsSections['live_matches'];
   const isLiveVisible = !isCmsLoaded || Boolean(liveSec);
-  const liveData = liveSec?.published_content || {};
-  const maxLiveDisplay = (liveData.max_display_count as number) || 3;
 
   const upcomingSec = cmsSections['upcoming_tournaments'];
   const isTournamentsVisible = !isCmsLoaded || Boolean(upcomingSec);
@@ -279,9 +239,11 @@ export default function HomePage() {
                     {/* Banner Artwork Area */}
                     <div className="relative h-32 w-full overflow-hidden bg-slate-900">
                       <Image
-                        src={featTournData.image || '/images/banners/efootball-championship.jpg'}
+                        src={featTournData.image || '/images/banners/efootball-championship.webp'}
                         alt={featTournData.title || 'eFootball Championship Spotlight'}
                         fill
+                        sizes="(max-width: 1024px) 100vw, 500px"
+                        loading="lazy"
                         className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1010A8] via-transparent to-transparent" />
@@ -306,9 +268,10 @@ export default function HomePage() {
             <div className="lg:col-span-5 space-y-4">
               <div className="relative rounded-3xl overflow-hidden border border-white/20 bg-slate-900 shadow-2xl aspect-[4/3] group">
                 <Image
-                  src={heroData.stadium_image || '/images/banners/efootball-stadium.jpg'}
+                  src={heroData.stadium_image || '/images/banners/efootball-stadium.webp'}
                   alt="eFootball Live Arena Visual"
                   fill
+                  sizes="(max-width: 1024px) 100vw, 500px"
                   className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-85"
                   priority
                 />
@@ -345,9 +308,11 @@ export default function HomePage() {
                   className="relative rounded-2xl overflow-hidden border border-white/15 bg-[#1010C5] p-3 aspect-[16/10] flex flex-col justify-end group hover:border-[#FFFF00] transition-all shadow-md"
                 >
                   <Image
-                    src="/images/banner1.jpg"
+                    src="/images/banner1.webp"
                     alt="Season 2 Elevate"
                     fill
+                    sizes="(max-width: 768px) 50vw, 250px"
+                    loading="lazy"
                     className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#08088F] via-[#08088F]/50 to-transparent" />
@@ -366,9 +331,11 @@ export default function HomePage() {
                   className="relative rounded-2xl overflow-hidden border border-white/15 bg-[#1010C5] p-3 aspect-[16/10] flex flex-col justify-end group hover:border-[#FFFF00] transition-all shadow-md"
                 >
                   <Image
-                    src="/images/banner2.jpg"
+                    src="/images/banner2.webp"
                     alt="Match Pass"
                     fill
+                    sizes="(max-width: 768px) 50vw, 250px"
+                    loading="lazy"
                     className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#08088F] via-[#08088F]/50 to-transparent" />
@@ -388,76 +355,14 @@ export default function HomePage() {
       )}
 
       {/* =========================================================================
-          3. LIVE NOW MATCHES SECTION
+          3. LIVE NOW MATCHES SECTION (ISOLATED CLIENT TICKER)
           ========================================================================= */}
-      {isLiveVisible && (loading || liveMatches.length > 0) && (
-        <section className={cn('space-y-5', getVisibilityClass(liveSec))}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF168B] opacity-75" />
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#FF168B]" />
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase font-display tracking-tight">
-                {(liveData.title as string) || 'Live Broadcasts'}
-              </h2>
-            </div>
-            <Button asChild variant="ghost" size="sm" className="text-xs font-black text-[#FFFF00] hover:text-white gap-1 rounded-full">
-              <Link href={(liveData.view_all_url as string) || '/live'}>
-                {(liveData.view_all_label as string) || 'View All Live'}
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {liveMatches.slice(0, maxLiveDisplay).map(({ match, round }) => (
-                <Link
-                  key={match.id}
-                  href={`/live/${match.id}`}
-                  className="group rounded-3xl border border-white/20 bg-[#1D1DE0] p-5 hover:border-[#FFFF00] hover:bg-[#2525F0] transition-all shadow-xl space-y-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <Badge variant="live" className="text-[10px] py-0.5 px-2.5">
-                      LIVE STREAM
-                    </Badge>
-                    <span className="text-[11px] font-black text-[#D9DCFF] uppercase tracking-wider">
-                      {round.name}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 bg-[#0E0EB5] p-3.5 rounded-2xl border border-white/10">
-                    <span className="text-sm font-black text-white truncate flex-1 font-display">
-                      {match.participantAName ?? 'TBD'}
-                    </span>
-                    <span className="text-xl font-black text-[#FFFF00] tabular-nums shrink-0 font-display">
-                      {match.score_a ?? 0} — {match.score_b ?? 0}
-                    </span>
-                    <span className="text-sm font-black text-white truncate flex-1 text-right font-display">
-                      {match.participantBName ?? 'TBD'}
-                    </span>
-                  </div>
-
-                  {match.tournamentName && (
-                    <div className="flex items-center justify-between text-xs text-[#D9DCFF]">
-                      <span className="truncate">{match.tournamentName}</span>
-                      <span className="text-[#FFFF00] font-black text-[11px] group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                        Watch <ArrowRight className="h-3 w-3" />
-                      </span>
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
+      {isLiveVisible && (
+        <LiveMatchesTicker
+          initialLiveMatches={liveMatches}
+          liveSec={liveSec}
+          visibilityClass={getVisibilityClass(liveSec)}
+        />
       )}
 
       {/* =========================================================================
@@ -484,13 +389,7 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {loading ? (
-                <div className="space-y-3">
-                  <CardSkeleton />
-                  <CardSkeleton />
-                  <CardSkeleton />
-                </div>
-              ) : activeT.length === 0 ? (
+              {activeT.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-white/20 bg-[#1414C8]/60 p-8 text-center space-y-3">
                   <Trophy className="h-10 w-10 text-[#FFFF00] mx-auto opacity-70" />
                   <p className="text-sm text-[#D9DCFF] font-medium">No live active tournaments right now.</p>
@@ -523,12 +422,7 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {loading ? (
-                <div className="space-y-3">
-                  <CardSkeleton />
-                  <CardSkeleton />
-                </div>
-              ) : upcomingT.length === 0 ? (
+              {upcomingT.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-white/20 bg-[#1414C8]/60 p-6 text-center">
                   <p className="text-xs text-[#D9DCFF]">No upcoming registrations at the moment.</p>
                 </div>
@@ -569,7 +463,7 @@ export default function HomePage() {
       )}
 
       {/* =========================================================================
-          5. ANNOUNCEMENTS SECTION (Matching reference bottom announcement section)
+          5. ANNOUNCEMENTS SECTION
           ========================================================================= */}
       {isAnnouncementsVisible && (
         <section className={cn('space-y-4', getVisibilityClass(announcementsSec))}>
@@ -579,7 +473,7 @@ export default function HomePage() {
 
           <div className="rounded-[32px] bg-gradient-to-r from-[#1818D4] via-[#2A2AFF] to-[#1818D4] p-6 sm:p-8 border border-white/20 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-start sm:items-center gap-4 sm:gap-6 min-w-0">
-              {/* Date Box matching reference */}
+              {/* Date Box */}
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-[#08088F] text-center flex flex-col items-center justify-center p-2 border border-white/10 shrink-0">
                 <span className="text-2xl sm:text-3xl font-black text-[#FFFF00] leading-none font-display">
                   12

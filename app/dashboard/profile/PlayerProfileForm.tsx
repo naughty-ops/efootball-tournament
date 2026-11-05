@@ -156,14 +156,26 @@ export default function PlayerProfileForm({
     }
   };
 
-  // Send WhatsApp verification greeting to administrator
+  // Send WhatsApp verification greeting to administrator with reference code
   const handleSendWhatsAppGreeting = async () => {
+    if (profile?.account_status === 'suspended') {
+      setFeedback({
+        message: 'Account is suspended. You cannot request WhatsApp verification at this time.',
+        type: 'error',
+      });
+      return;
+    }
+
     setIsRequestingWhatsApp(true);
     setFeedback(null);
 
     const sanitizedAdmin = ADMIN_WHATSAPP_NUMBER.replace(/\D/g, '');
+    const shortId = profile?.id ? profile.id.slice(0, 8).toUpperCase() : 'USER';
+    const refCode = `REF-WA-${shortId}-${Date.now().toString(36).toUpperCase()}`;
+
     const greetingText = `Hello Admin! I am verifying my WhatsApp number for the eFootball Tournament Platform.
 
+📋 Verification Ref: ${refCode}
 👤 Player Name: ${displayName}
 🎮 eFootball ID: ${efootballId} (Format Verified)
 📧 Registered Email: ${userEmail}
@@ -177,22 +189,22 @@ export default function PlayerProfileForm({
     }
 
     try {
-      const res = await requestWhatsAppVerificationAction();
+      const res = await requestWhatsAppVerificationAction(refCode);
       if (res.success) {
-        setProfile((prev) => (prev ? { ...prev, whatsapp_verification_status: 'pending' } : prev));
+        setProfile((prev) => (prev ? { ...prev, whatsapp_verification_status: 'pending', whatsapp_rejection_reason: null } : prev));
         setFeedback({
-          message: `WhatsApp greeting message opened! Please press Send in WhatsApp to contact the administrator (${ADMIN_WHATSAPP_NUMBER}).`,
+          message: `WhatsApp opened with Ref ${refCode}! Please press Send in WhatsApp to contact admin (${ADMIN_WHATSAPP_NUMBER}).`,
           type: 'success',
         });
       } else {
         setFeedback({
-          message: `WhatsApp opened! Message: ${res.message}`,
+          message: `WhatsApp opened! (${res.message})`,
           type: 'success',
         });
       }
     } catch {
       setFeedback({
-        message: `WhatsApp greeting opened! Please deliver the message to the administrator (${ADMIN_WHATSAPP_NUMBER}).`,
+        message: `WhatsApp greeting opened! Please send the message to the administrator (${ADMIN_WHATSAPP_NUMBER}).`,
         type: 'success',
       });
     } finally {
@@ -216,6 +228,21 @@ export default function PlayerProfileForm({
 
   return (
     <div className="space-y-8 max-w-4xl text-white">
+      {/* Suspension Alert Banner */}
+      {profile?.account_status === 'suspended' && (
+        <div className="p-4 rounded-2xl text-xs font-black bg-red-600/25 border-2 border-red-500 text-red-200 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white">Account Suspended</h4>
+            <p>
+              Your account has been placed under administrative suspension.
+              {profile.suspension_reason ? ` Reason: "${profile.suspension_reason}".` : ''}
+              {' '}Tournament registrations and match actions are disabled until resolved. Please contact support via WhatsApp.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Feedback Notification Banner */}
       {feedback && (
         <div

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   Trophy,
   Users,
@@ -17,12 +18,9 @@ import {
   Sparkles,
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { cn, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import {
   getPublicTournament,
   getPublicTournamentStageInfo,
@@ -37,15 +35,36 @@ import type { GroupStageOverview } from '@/services/groupService';
 import type { BracketOverview } from '@/services/bracketService';
 import type { RoundWithMatches } from '@/services/matchService';
 import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
-import PublicGroupsTab from '@/components/public/tournament/PublicGroupsTab';
-import PublicMatchesTab from '@/components/public/tournament/PublicMatchesTab';
-import PublicBracketTab from '@/components/public/tournament/PublicBracketTab';
 import PublicOverviewTab from '@/components/public/tournament/PublicOverviewTab';
 import PublicParticipantsTab from '@/components/public/tournament/PublicParticipantsTab';
+import PublicMatchesTab from '@/components/public/tournament/PublicMatchesTab';
 import PublicChampionBanner from '@/components/public/tournament/PublicChampionBanner';
 import { SwipeableTabBar, SwipeableTabContainer, type TabItem } from '@/components/ui/SwipeableTabs';
-import { ShareModal } from '@/components/share/ShareModal';
-import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
+
+// Dynamically import heavy visual components and modal overlays
+const PublicGroupsTab = dynamic(() => import('@/components/public/tournament/PublicGroupsTab'), {
+  loading: () => <TabLoadingSkeleton text="Loading Groups..." />,
+});
+const PublicBracketTab = dynamic(() => import('@/components/public/tournament/PublicBracketTab'), {
+  loading: () => <TabLoadingSkeleton text="Loading Bracket..." />,
+});
+const ShareModal = dynamic(
+  () => import('@/components/share/ShareModal').then((mod) => mod.ShareModal),
+  { ssr: false }
+);
+const WinnerCelebrationOverlay = dynamic(
+  () => import('@/components/tournament/WinnerCelebrationOverlay').then((mod) => mod.WinnerCelebrationOverlay),
+  { ssr: false }
+);
+
+function TabLoadingSkeleton({ text }: { text: string }) {
+  return (
+    <div className="min-h-[300px] flex flex-col items-center justify-center p-6 text-center space-y-3">
+      <Loader2 className="h-7 w-7 animate-spin text-[#FFFF00]" />
+      <p className="text-xs font-black font-display uppercase tracking-widest text-white/80">{text}</p>
+    </div>
+  );
+}
 
 type TabKey = 'overview' | 'participants' | 'groups' | 'matches' | 'bracket';
 
@@ -62,78 +81,151 @@ function formatTournamentFormat(format: string) {
   }
 }
 
-export default function PublicTournamentClientView({ tournamentId }: { tournamentId: string }) {
-  const [tournament, setTournament] = useState<TournamentWithStats | null>(null);
-  const [participants, setParticipants] = useState<PublicParticipant[]>([]);
+interface PublicTournamentClientViewProps {
+  tournamentId: string;
+  initialTournament?: TournamentWithStats | null;
+  initialParticipants?: PublicParticipant[];
+  initialStageInfo?: Record<string, any> | null;
+}
+
+export default function PublicTournamentClientView({
+  tournamentId,
+  initialTournament = null,
+  initialParticipants = [],
+  initialStageInfo = null,
+}: PublicTournamentClientViewProps) {
+  const [tournament, setTournament] = useState<TournamentWithStats | null>(initialTournament);
+  const [participants, setParticipants] = useState<PublicParticipant[]>(initialParticipants);
   const [groupStage, setGroupStage] = useState<GroupStageOverview | null>(null);
   const [bracket, setBracket] = useState<BracketOverview | null>(null);
   const [rounds, setRounds] = useState<RoundWithMatches[]>([]);
-  const [subStage, setSubStage] = useState<string | undefined>(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [stageInfo, setStageInfo] = useState<Record<string, any> | null>(null);
+  const [subStage, setSubStage] = useState<string | undefined>(initialStageInfo?.subStage);
+  const [stageInfo, setStageInfo] = useState<Record<string, any> | null>(initialStageInfo);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialTournament);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
 
-  const fetchAll = useCallback(async () => {
+  // Lazy tab data loading tracking
+  const loadedTabsRef = useRef<Set<string>>(new Set(['overview', 'participants']));
+  const [loadingTabData, setLoadingTabData] = useState(false);
+
+  // 1. Initial Overview Fetch (Only fetches overview essentials, not all 5 datasets at once)
+  const fetchOverview = useCallback(async () => {
     if (!tournamentId) return;
     try {
-      const t = await getPublicTournament(tournamentId);
+      const [t, pRes, sInfo] = await Promise.all([
+        tournament ? Promise.resolve(tournament) : getPublicTournament(tournamentId),
+        participants.length > 0 ? Promise.resolve(participants) : getPublicParticipants(tournamentId).catch(() => []),
+        stageInfo ? Promise.resolve(stageInfo) : getPublicTournamentStageInfo(tournamentId).catch(() => null),
+      ]);
+
       if (!t) {
         setError('not_found');
         setLoading(false);
         return;
       }
+
       setTournament(t);
-
-      // Fetch everything in parallel
-      const [pRes, sInfo, gRes, bRes, mRes] = await Promise.all([
-        getPublicParticipants(tournamentId).catch(() => []),
-        getPublicTournamentStageInfo(tournamentId).catch(() => null),
-        getPublicGroupStage(tournamentId).catch(() => null),
-        getPublicBracket(tournamentId).catch(() => null),
-        getPublicMatches(tournamentId).catch(() => []),
-      ]);
-
       setParticipants(pRes);
       setStageInfo(sInfo);
       if (sInfo) setSubStage(sInfo.subStage);
-      setGroupStage(gRes);
-      setBracket(bRes);
-      setRounds(mRes);
 
-      // Auto trigger celebration if completed
       if (t.status === 'completed' && t.championUser) {
         setShowCelebration(true);
       }
       setError(null);
     } catch (err: unknown) {
-      console.error('Error fetching public tournament:', err);
+      console.error('Error fetching tournament overview:', err);
       setError('failed_load');
     } finally {
       setLoading(false);
     }
-  }, [tournamentId]);
+  }, [tournamentId, tournament, participants.length, stageInfo]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      if (!cancelled) await fetchAll();
+      if (!cancelled) await fetchOverview();
     })();
     return () => {
       cancelled = true;
     };
-  }, [fetchAll]);
+  }, [fetchOverview]);
 
-  // Realtime subscription callback
-  const handleRealtimeUpdate = useCallback(() => {
-    fetchAll();
-  }, [fetchAll]);
+  // 2. On-Demand Lazy Tab Loader: Loads tab dataset ONLY when user navigates to it
+  const loadTabDataOnDemand = useCallback(async (tab: TabKey) => {
+    if (!tournamentId) return;
 
-  useRealtimeMatches(handleRealtimeUpdate, tournamentId);
+    if (tab === 'groups' && !loadedTabsRef.current.has('groups')) {
+      setLoadingTabData(true);
+      try {
+        const gRes = await getPublicGroupStage(tournamentId).catch(() => null);
+        setGroupStage(gRes);
+        loadedTabsRef.current.add('groups');
+      } finally {
+        setLoadingTabData(false);
+      }
+    } else if (tab === 'matches' && !loadedTabsRef.current.has('matches')) {
+      setLoadingTabData(true);
+      try {
+        const mRes = await getPublicMatches(tournamentId).catch(() => []);
+        setRounds(mRes);
+        loadedTabsRef.current.add('matches');
+      } finally {
+        setLoadingTabData(false);
+      }
+    } else if (tab === 'bracket' && !loadedTabsRef.current.has('bracket')) {
+      setLoadingTabData(true);
+      try {
+        const bRes = await getPublicBracket(tournamentId).catch(() => null);
+        setBracket(bRes);
+        loadedTabsRef.current.add('bracket');
+      } finally {
+        setLoadingTabData(false);
+      }
+    }
+  }, [tournamentId]);
+
+  const handleTabChange = (newTab: TabKey) => {
+    setActiveTab(newTab);
+    loadTabDataOnDemand(newTab);
+  };
+
+  // Full refresh when requested by user button or realtime
+  const refreshAll = useCallback(async () => {
+    if (!tournamentId) return;
+    try {
+      const t = await getPublicTournament(tournamentId);
+      if (t) setTournament(t);
+
+      const promises: Promise<any>[] = [
+        getPublicParticipants(tournamentId).then(setParticipants).catch(() => {}),
+        getPublicTournamentStageInfo(tournamentId).then((s) => {
+          setStageInfo(s);
+          if (s) setSubStage(s.subStage);
+        }).catch(() => {}),
+      ];
+
+      if (loadedTabsRef.current.has('groups')) {
+        promises.push(getPublicGroupStage(tournamentId).then(setGroupStage).catch(() => {}));
+      }
+      if (loadedTabsRef.current.has('matches')) {
+        promises.push(getPublicMatches(tournamentId).then(setRounds).catch(() => {}));
+      }
+      if (loadedTabsRef.current.has('bracket')) {
+        promises.push(getPublicBracket(tournamentId).then(setBracket).catch(() => {}));
+      }
+
+      await Promise.all(promises);
+    } catch (err) {
+      console.error('Error refreshing tournament:', err);
+    }
+  }, [tournamentId]);
+
+  useRealtimeMatches(refreshAll, tournamentId);
 
   if (loading) {
     return (
@@ -171,7 +263,27 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
   const runnerUp = tournament.runnerUpUser;
 
   const showGroups = tournament.format !== 'knockout' || (groupStage?.groups?.length || 0) > 0;
-  const showBracket = tournament.format === 'knockout' || tournament.format === 'group_knockout' || (tournament.format as string) === 'single_league_knockout' || (bracket?.rounds?.length || 0) > 0;
+  const showBracket =
+    tournament.format === 'knockout' ||
+    tournament.format === 'group_knockout' ||
+    (tournament.format as string) === 'single_league_knockout' ||
+    (bracket?.rounds?.length || 0) > 0;
+
+  const tabItems: TabItem[] = [
+    { id: 'overview', label: 'Overview', icon: LayoutGrid },
+    { id: 'participants', label: `Players (${participants.length})`, icon: Users },
+    ...(showGroups
+      ? [
+          {
+            id: 'groups',
+            label: groupStage?.groups.length === 1 ? 'Points Table' : 'Groups & Standings',
+            icon: Target,
+          } as TabItem,
+        ]
+      : []),
+    { id: 'matches', label: 'Fixtures & Results', icon: Swords },
+    ...(showBracket ? [{ id: 'bracket', label: 'Playoff Bracket', icon: GitBranch } as TabItem] : []),
+  ];
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
@@ -211,7 +323,7 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={fetchAll}
+                onClick={refreshAll}
                 className="h-8 px-2.5 text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full"
                 title="Refresh Tournament Data"
               >
@@ -250,36 +362,41 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
             </h1>
 
             {tournament.description && (
-              <p className="text-sm text-[#D9DCFF]/90 max-w-2xl font-medium leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#D9DCFF]/90 max-w-3xl leading-relaxed">
                 {tournament.description}
               </p>
             )}
 
-            {/* Quick Metadata Stats */}
-            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-[#D9DCFF]/90 pt-3 border-t border-white/20">
-              <span className="flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-[#FFFF00]" />
-                <span>{tournament.participant_count} / {tournament.max_participants} Participants</span>
-              </span>
-              <span className="text-white/40">•</span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-[#FFFF00]" />
-                <span>Started {formatDate(tournament.start_date)}</span>
-              </span>
-              {tournament.end_date && (
-                <>
-                  <span className="text-white/40">•</span>
-                  <span>Ends {formatDate(tournament.end_date)}</span>
-                </>
+            {/* Quick Stat Pills */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-bold text-[#D9DCFF]">
+              <div className="flex items-center gap-2 bg-[#0A0A7A] border border-white/15 px-3 py-1.5 rounded-full">
+                <Users className="h-3.5 w-3.5 text-[#FFFF00]" />
+                <span>
+                  {participants.length} / {tournament.max_participants} Players
+                </span>
+              </div>
+
+              {tournament.start_date && (
+                <div className="flex items-center gap-2 bg-[#0A0A7A] border border-white/15 px-3 py-1.5 rounded-full">
+                  <Calendar className="h-3.5 w-3.5 text-[#FFFF00]" />
+                  <span>Starts: {formatDate(tournament.start_date)}</span>
+                </div>
+              )}
+
+              {subStage && (
+                <div className="flex items-center gap-2 bg-[#0A0A7A] border border-white/15 px-3 py-1.5 rounded-full text-[#FFFF00]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="capitalize">{subStage.replace(/_/g, ' ')} Stage</span>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. CHAMPION BANNER (IF COMPLETED) */}
+      {/* 2. CHAMPION BANNER (If Completed) */}
       {isCompleted && champion && (
-        <div className="max-w-6xl mx-auto px-4 mt-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 mb-6">
           <PublicChampionBanner
             champion={champion}
             runnerUp={runnerUp}
@@ -288,68 +405,57 @@ export default function PublicTournamentClientView({ tournamentId }: { tournamen
         </div>
       )}
 
-      {/* 3. PUBLIC TABS NAVIGATION */}
-      <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="pb-3 border-b border-white/20">
+      {/* 3. TOURNAMENT NAVIGATION TABS */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="mb-6">
           <SwipeableTabBar
-            tabs={[
-              { id: 'overview', label: 'Overview', icon: LayoutGrid },
-              { id: 'participants', label: `Participants (${participants.length})`, icon: Users },
-              ...(showGroups
-                ? [
-                    {
-                      id: 'groups',
-                      label: groupStage?.groups.length === 1 ? 'Points Table' : 'Groups & Standings',
-                      icon: Target,
-                    },
-                  ]
-                : []),
-              { id: 'matches', label: 'Fixtures & Results', icon: Swords },
-              ...(showBracket ? [{ id: 'bracket', label: 'Playoff Bracket', icon: GitBranch }] : []),
-            ]}
+            tabs={tabItems}
             activeTab={activeTab}
-            onTabChange={(tabId) => setActiveTab(tabId as TabKey)}
+            onTabChange={(tabId) => handleTabChange(tabId as TabKey)}
             ariaLabel="Tournament Stage Navigation"
           />
         </div>
 
         {/* 4. TAB CONTENT PANELS WITH MOBILE SWIPE NAVIGATION */}
         <div className="mt-6">
-          <SwipeableTabContainer
-            tabs={[
-              { id: 'overview', label: 'Overview' },
-              { id: 'participants', label: 'Participants' },
-              ...(showGroups ? [{ id: 'groups', label: 'Groups' }] : []),
-              { id: 'matches', label: 'Matches' },
-              ...(showBracket ? [{ id: 'bracket', label: 'Bracket' }] : []),
-            ]}
-            activeTab={activeTab}
-            onTabChange={(tabId) => setActiveTab(tabId as TabKey)}
-          >
-            {activeTab === 'overview' && (
-              <PublicOverviewTab
-                tournament={tournament}
-                groupStage={groupStage}
-                bracket={bracket}
-              />
-            )}
+          {loadingTabData ? (
+            <div className="min-h-[350px] flex flex-col items-center justify-center p-6 text-center space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
+              <p className="text-xs font-black font-display uppercase tracking-widest text-[#D9DCFF]">
+                Loading Tab Data...
+              </p>
+            </div>
+          ) : (
+            <SwipeableTabContainer
+              tabs={tabItems}
+              activeTab={activeTab}
+              onTabChange={(tabId) => handleTabChange(tabId as TabKey)}
+            >
+              {activeTab === 'overview' && (
+                <PublicOverviewTab
+                  tournament={tournament}
+                  groupStage={groupStage}
+                  bracket={bracket}
+                />
+              )}
 
-            {activeTab === 'participants' && (
-              <PublicParticipantsTab participants={participants} />
-            )}
+              {activeTab === 'participants' && (
+                <PublicParticipantsTab participants={participants} />
+              )}
 
-            {activeTab === 'groups' && showGroups && (
-              <PublicGroupsTab groupStage={groupStage} />
-            )}
+              {activeTab === 'groups' && showGroups && (
+                <PublicGroupsTab groupStage={groupStage} />
+              )}
 
-            {activeTab === 'matches' && (
-              <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
-            )}
+              {activeTab === 'matches' && (
+                <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
+              )}
 
-            {activeTab === 'bracket' && showBracket && (
-              <PublicBracketTab bracket={bracket} />
-            )}
-          </SwipeableTabContainer>
+              {activeTab === 'bracket' && showBracket && (
+                <PublicBracketTab bracket={bracket} />
+              )}
+            </SwipeableTabContainer>
+          )}
         </div>
       </div>
 

@@ -6,8 +6,10 @@ import AdminTopNav from '@/components/admin/AdminTopNav';
 
 export default function AdminLayoutClient({
   children,
+  adminEmail,
 }: {
   children: React.ReactNode;
+  adminEmail?: string | null;
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -22,7 +24,7 @@ export default function AdminLayoutClient({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navigation */}
-        <AdminTopNav onMenuClick={() => setMobileSidebarOpen(true)} />
+        <AdminTopNav adminEmail={adminEmail} onMenuClick={() => setMobileSidebarOpen(true)} />
 
         {/* Content Body */}
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">

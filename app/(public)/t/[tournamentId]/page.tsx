@@ -48,5 +48,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicTournamentPage({ params }: PageProps) {
   const { tournamentId } = await params;
-  return <PublicTournamentClientView tournamentId={tournamentId} />;
+  const initialTournament = await getPublicTournament(tournamentId).catch(() => null);
+  return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={initialTournament} />;
 }

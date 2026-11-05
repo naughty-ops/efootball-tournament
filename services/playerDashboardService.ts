@@ -1,5 +1,5 @@
 import type { Profile, Tournament, Participant, Match } from '@/types/database';
-import { normalizeEfootballId, isValidEfootballId } from '@/lib/validations';
+import { normalizeEfootballId, isValidEfootballId } from '@/lib/validations/efootball';
 
 export interface ServiceResult<T> {
   data: T;
@@ -118,6 +118,9 @@ export async function getPlayerProfile(
         suspended_at: null,
         suspended_by: null,
         admin_notes: null,
+        verification_revoked_at: null,
+        verification_revoked_by: null,
+        verification_revocation_reason: null,
         created_at: fallbackUser.created_at || new Date().toISOString(),
         updated_at: fallbackUser.updated_at || new Date().toISOString(),
       };
@@ -148,6 +151,9 @@ export async function getPlayerProfile(
         suspended_at: null,
         suspended_by: null,
         admin_notes: null,
+        verification_revoked_at: null,
+        verification_revoked_by: null,
+        verification_revocation_reason: null,
         created_at: fallbackUser.created_at || new Date().toISOString(),
         updated_at: fallbackUser.updated_at || new Date().toISOString(),
       };

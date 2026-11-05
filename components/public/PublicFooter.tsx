@@ -18,7 +18,7 @@ export default function PublicFooter() {
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative h-9 w-9 rounded-full flex items-center justify-center shadow-md overflow-hidden shrink-0">
                 <Image
-                  src="/logos/logo-mark-transparent.png"
+                  src="/logos/logo-mark-transparent.webp"
                   alt="eFootball Logo"
                   width={36}
                   height={36}

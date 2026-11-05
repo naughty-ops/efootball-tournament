@@ -70,14 +70,22 @@ export async function getTournamentSeasonRecords(tournamentId: string): Promise<
 
   const pMap = new Map<string, Participant>(participants.map((p) => [p.id, p]));
 
-  // 2. Fetch completed matches
-  const { data: matches } = await (supabase.from('matches') as unknown as UnknownQuery)
-    .select('*')
-    .order('created_at', { ascending: true });
+  // 2. Fetch completed matches for this tournament strictly
+  const { data: roundsData } = await (supabase.from('rounds') as unknown as UnknownQuery)
+    .select('id')
+    .eq('tournament_id', tournamentId);
 
-  const allMatches = ((matches || []) as Match[]).filter(
-    (m) => (m.status === 'completed' || m.status === 'walkover') && m.participant_a && m.participant_b
-  );
+  const roundIds = ((roundsData || []) as Array<{ id: string }>).map((r) => r.id);
+
+  let allMatches: Match[] = [];
+  if (roundIds.length > 0) {
+    const { data: matches } = await (supabase.from('matches') as unknown as UnknownQuery)
+      .select('*')
+      .in('round_id', roundIds)
+      .in('status', ['completed', 'walkover']);
+
+    allMatches = ((matches || []) as Match[]).filter((m) => m.participant_a && m.participant_b);
+  }
 
   // Initialize stats map
   const statsMap = new Map<string, PlayerStatsCard>();

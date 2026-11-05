@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -266,14 +267,13 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
       {/* Hero Banner Image if provided */}
       {tournament.banner_image && (
         <div className="relative w-full aspect-[21/8] min-h-[180px] max-h-[340px] rounded-2xl sm:rounded-3xl overflow-hidden border border-border shadow-lg bg-slate-950">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={tournament.banner_image}
+          <Image
+            src={tournament.banner_image || '/images/banner1.webp'}
             alt={tournament.name}
-            className="w-full h-full object-cover object-center"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/images/banner1.jpg';
-            }}
+            fill
+            sizes="(max-width: 1024px) 100vw, 1024px"
+            priority
+            className="object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B3323] via-[#0B3323]/50 to-transparent" />
           <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">

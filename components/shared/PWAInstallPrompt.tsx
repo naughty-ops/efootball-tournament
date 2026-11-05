@@ -98,7 +98,7 @@ export default function PWAInstallPrompt() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-emerald-500/20 border border-emerald-400/30 p-0.5 flex items-center justify-center shrink-0">
             <Image
-              src="/logos/logo-mark-transparent.png"
+              src="/logos/logo-mark-transparent.webp"
               alt="eFootball PWA Mark"
               width={40}
               height={40}

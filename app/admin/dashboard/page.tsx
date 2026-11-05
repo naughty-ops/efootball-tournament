@@ -1,80 +1,31 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Trophy, Users, Swords, Activity, Plus, ShieldCheck, LogOut, User, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { Trophy, Users, Swords, Activity, Plus, ShieldCheck, User } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminVerificationQueue } from '@/components/admin/AdminVerificationQueue';
+import AdminSignOutButton from '@/components/admin/AdminSignOutButton';
+import { requireAdmin } from '@/lib/auth/server';
 
-export default function AdminDashboardPage() {
-  const router = useRouter();
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [stats, setStats] = useState<{
-    tournaments: number;
-    participants: number;
-    matches: number;
-    loading: boolean;
-  }>({
-    tournaments: 0,
-    participants: 0,
-    matches: 0,
-    loading: true,
-  });
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    async function initDashboard() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          if (user.email.toLowerCase().trim() !== 'ye.agrajj@gmail.com') {
-            router.replace('/dashboard?error=admin_unauthorized');
-            return;
-          }
-          setAdminEmail(user.email);
+export default async function AdminDashboardPage() {
+  const admin = await requireAdmin();
+  const supabase = await createClient();
 
-          // Fetch real system statistics
-          const [tRes, pRes, mRes] = await Promise.all([
-            supabase.from('tournaments').select('*', { count: 'exact', head: true }),
-            supabase.from('participants').select('*', { count: 'exact', head: true }),
-            supabase.from('matches').select('*', { count: 'exact', head: true }),
-          ]);
+  // Fetch real system statistics on server in parallel
+  const [tRes, pRes, mRes] = await Promise.all([
+    supabase.from('tournaments').select('*', { count: 'exact', head: true }),
+    supabase.from('participants').select('*', { count: 'exact', head: true }),
+    supabase.from('matches').select('*', { count: 'exact', head: true }),
+  ]);
 
-          setStats({
-            tournaments: tRes.count ?? 0,
-            participants: pRes.count ?? 0,
-            matches: mRes.count ?? 0,
-            loading: false,
-          });
-        } else {
-          router.replace('/login');
-        }
-      } catch (err) {
-        console.error('Error fetching admin profile or stats:', err);
-        setStats((prev) => ({ ...prev, loading: false }));
-      }
-    }
-
-    initDashboard();
-  }, [router]);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      router.replace('/login');
-      router.refresh();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setIsLoggingOut(false);
-    }
+  const stats = {
+    tournaments: tRes.count ?? 0,
+    participants: pRes.count ?? 0,
+    matches: mRes.count ?? 0,
   };
 
   return (
@@ -92,20 +43,12 @@ export default function AdminDashboardPage() {
             Admin Overview
           </h1>
           <p className="text-xs sm:text-sm text-white/70 mt-1">
-            Logged in as: <span className="font-bold text-[#FFFF00]">{adminEmail || 'ye.agrajj@gmail.com'}</span>
+            Logged in as: <span className="font-bold text-[#FFFF00]">{admin.user.email}</span>
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full sm:w-auto justify-center font-black text-xs uppercase tracking-wider gap-2 text-red-300 border-red-400/30 hover:bg-red-500/20 hover:text-red-200 rounded-full cursor-pointer h-10 px-4"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
-          </Button>
+          <AdminSignOutButton />
 
           <Button asChild className="w-full sm:w-auto justify-center bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider gap-2 rounded-full h-10 px-6 shadow-lg cursor-pointer">
             <Link href="/admin/tournaments/new">
@@ -127,7 +70,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-[#FFFF00] font-display">
-              {stats.loading ? <Loader2 className="h-6 w-6 animate-spin text-[#FFFF00]" /> : stats.tournaments}
+              {stats.tournaments}
             </div>
             <p className="text-[11px] text-white/60 mt-1">Live database total</p>
           </CardContent>
@@ -142,7 +85,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-[#FFFF00] font-display">
-              {stats.loading ? <Loader2 className="h-6 w-6 animate-spin text-[#FFFF00]" /> : stats.participants}
+              {stats.participants}
             </div>
             <p className="text-[11px] text-white/60 mt-1">Verified platform registrations</p>
           </CardContent>
@@ -157,7 +100,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-[#FFFF00] font-display">
-              {stats.loading ? <Loader2 className="h-6 w-6 animate-spin text-[#FFFF00]" /> : stats.matches}
+              {stats.matches}
             </div>
             <p className="text-[11px] text-white/60 mt-1">Scheduled & completed fixtures</p>
           </CardContent>
@@ -199,7 +142,7 @@ export default function AdminDashboardPage() {
                 <User className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-base">{adminEmail || 'Admin User'}</h3>
+                <h3 className="font-bold text-white text-base">{admin.user.email}</h3>
                 <p className="text-xs text-[#FFFF00] font-bold uppercase tracking-wider">Lead Administrator • Full Control</p>
               </div>
             </div>

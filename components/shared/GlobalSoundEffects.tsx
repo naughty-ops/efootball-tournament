@@ -10,9 +10,27 @@ import { preloadSounds, playTouch } from '@/src/lib/sounds/sound-manager';
  */
 export default function GlobalSoundEffects() {
   useEffect(() => {
-    preloadSounds();
+    let initialized = false;
+
+    // Defer audio initialization until first user gesture (touch, click, keydown)
+    // to keep initial FCP/LCP network pipe completely clear of audio downloads
+    const initOnFirstGesture = () => {
+      if (initialized) return;
+      initialized = true;
+      preloadSounds();
+      window.removeEventListener('pointerdown', initOnFirstGesture);
+      window.removeEventListener('keydown', initOnFirstGesture);
+      window.removeEventListener('touchstart', initOnFirstGesture);
+    };
+
+    window.addEventListener('pointerdown', initOnFirstGesture, { passive: true, once: true });
+    window.addEventListener('keydown', initOnFirstGesture, { passive: true, once: true });
+    window.addEventListener('touchstart', initOnFirstGesture, { passive: true, once: true });
 
     const handleGlobalInteraction = (event: MouseEvent) => {
+      if (!initialized) {
+        initOnFirstGesture();
+      }
       // 1. Prevent duplicate playback within the same event dispatch (bubbling defense)
       if ((event as any).__efootballHandled) {
         return;

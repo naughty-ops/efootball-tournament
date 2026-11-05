@@ -46,6 +46,37 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Check if candidate Supabase auth cookies exist
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(
+    (c) => c.name.startsWith('sb-') && (c.name.includes('-auth-token') || c.name.endsWith('-token'))
+  );
+
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isDashboardRoute = pathname.startsWith('/dashboard');
+  const isAuthPage = pathname === '/login' || pathname === '/auth/login';
+
+  // Optimization: For public routes, if there is no auth cookie at all,
+  // there is no session to validate or refresh. Return immediately with security headers.
+  if (!hasAuthCookie && !isAdminRoute && !isDashboardRoute && !isAuthPage) {
+    return supabaseResponse;
+  }
+
+  // Fast redirect for protected routes when no candidate session cookie exists
+  if (!hasAuthCookie && (isAdminRoute || isDashboardRoute)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // If on login page with no auth cookie, user is definitely not logged in
+  if (!hasAuthCookie && isAuthPage) {
+    return supabaseResponse;
+  }
+
+  // Candidate session cookie exists (or edge case requiring cryptographic validation):
+  // Instantiate server client and execute full server-side verification.
+  // NEVER authenticate or authorize based on cookie presence alone.
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -65,21 +96,19 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: Use getUser() for verified cryptographic server-side validation
+  // Cryptographically verify session against Supabase Auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   // 2. Guard /admin/* routes:
-  if (pathname.startsWith('/admin')) {
-    // If not authenticated, redirect to /login
+  if (isAdminRoute) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);
     }
 
-    // If authenticated but email is NOT ye.agrajj@gmail.com, strictly deny access
     if (!isAllowlistedAdmin(user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
@@ -88,7 +117,16 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // 3. Guard /login route:
+  // 3. Guard /dashboard/* routes:
+  if (isDashboardRoute) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // 4. Guard /login route:
   if (pathname === '/login' && user) {
     const url = request.nextUrl.clone();
     if (isAllowlistedAdmin(user.email)) {
@@ -99,7 +137,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 4. Guard /auth/login route:
+  // 5. Guard /auth/login route:
   if (pathname === '/auth/login' && user) {
     const url = request.nextUrl.clone();
     if (isAllowlistedAdmin(user.email)) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Trophy,
   Calendar,
@@ -270,13 +271,13 @@ export default function PlayerTournamentsClient({
             >
               {/* Header Image with Gradient */}
               <div className="relative h-36 w-full bg-[#0A0A7A] overflow-hidden">
-                <img
-                  src={t.bannerImage || '/images/banner1.jpg'}
+                <Image
+                  src={t.bannerImage || '/images/banner1.webp'}
                   alt={t.tournamentName}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/banner1.jpg';
-                  }}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  loading="lazy"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1818D4] via-[#1818D4]/30 to-transparent" />
                 

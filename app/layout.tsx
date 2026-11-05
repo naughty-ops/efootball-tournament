@@ -1,9 +1,16 @@
 import type { Metadata, Viewport } from 'next';
+import { Geist } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/components/shared/QueryProvider';
 import PWAInstaller from '@/components/shared/PWAInstaller';
 import PWAInstallPrompt from '@/components/shared/PWAInstallPrompt';
 import GlobalSoundEffects from '@/components/shared/GlobalSoundEffects';
+
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const viewport: Viewport = {
   themeColor: '#08088F',
@@ -45,8 +52,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className={`h-full antialiased ${geistSans.variable}`}>
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <QueryProvider>
           <GlobalSoundEffects />
           <PWAInstaller />

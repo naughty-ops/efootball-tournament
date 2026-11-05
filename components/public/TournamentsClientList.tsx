@@ -1,0 +1,153 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Trophy,
+  Search,
+  Flame,
+  CheckCircle2,
+  Clock,
+  Filter,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { getPublicTournaments } from '@/services/publicTournamentService';
+import type { TournamentWithStats } from '@/services/tournamentService';
+import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { cn } from '@/lib/utils';
+import { TournamentCard } from '@/components/tournament/TournamentCard';
+
+const STATUS_FILTERS = [
+  { key: 'all', label: 'All', icon: Filter },
+  { key: 'ongoing', label: 'Live / Active', icon: Flame },
+  { key: 'registration', label: 'Upcoming', icon: Clock },
+  { key: 'completed', label: 'Completed', icon: CheckCircle2 },
+] as const;
+
+interface TournamentsClientListProps {
+  initialTournaments: TournamentWithStats[];
+}
+
+export default function TournamentsClientList({
+  initialTournaments,
+}: TournamentsClientListProps) {
+  const [tournaments, setTournaments] = useState<TournamentWithStats[]>(initialTournaments);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getPublicTournaments({ search, status: statusFilter });
+      setTournaments(data);
+    } catch {
+      setError('Unable to load tournaments. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, statusFilter]);
+
+  // Fetch only when search or statusFilter changes from initial state
+  useEffect(() => {
+    if (!search && statusFilter === 'all') {
+      return;
+    }
+    const timer = setTimeout(fetchData, search ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [fetchData, search, statusFilter]);
+
+  // Realtime subscription for tournament list updates
+  useRealtimeMatches(fetchData);
+
+  return (
+    <div className="space-y-8 w-full overflow-hidden pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFFF00] text-[#08088F] text-[11px] font-black uppercase tracking-widest mb-2">
+            🏆 Official Competitions
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black font-display text-white tracking-wider uppercase">
+            Tournaments
+          </h1>
+          <p className="text-xs sm:text-sm text-[#D9DCFF]/80 mt-1 font-medium">
+            Browse ongoing, upcoming, and completed eFootball competitive leagues.
+          </p>
+        </div>
+        <div className="relative w-full sm:w-72 shrink-0">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#D9DCFF]/60" />
+          <Input
+            id="tournament-search"
+            placeholder="Search tournaments..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 text-xs h-11 w-full bg-[#0A0A7A] border-white/20 text-white placeholder:text-[#D9DCFF]/50 rounded-full focus-visible:border-[#FFFF00] focus-visible:ring-1 focus-visible:ring-[#FFFF00]"
+          />
+        </div>
+      </div>
+
+      {/* Status Filters */}
+      <div className="flex gap-2 flex-wrap">
+        {STATUS_FILTERS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            id={`filter-${key}`}
+            onClick={() => setStatusFilter(key)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border transition-all',
+              statusFilter === key
+                ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)] scale-[1.02]'
+                : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-48 rounded-3xl bg-[#1414C8]/50 animate-pulse border border-white/10" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-center py-16 bg-[#1010C5] rounded-3xl border border-white/15 p-8 max-w-md mx-auto">
+          <p className="text-sm text-[#FF168B] font-bold mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-5 py-2 rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase"
+          >
+            Retry
+          </button>
+        </div>
+      ) : tournaments.length === 0 ? (
+        <div className="text-center py-16 bg-[#1010C5] rounded-3xl border border-white/15 p-8 max-w-md mx-auto">
+          <Trophy className="h-12 w-12 text-[#FFFF00] mx-auto mb-3 opacity-60" />
+          <h3 className="text-base font-black font-display uppercase text-white mb-1">
+            No Tournaments Found
+          </h3>
+          <p className="text-xs text-[#D9DCFF]/70">
+            {search
+              ? 'No competitions match your search query.'
+              : 'There are currently no tournaments matching this filter.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {tournaments.map((tournament, index) => (
+            <TournamentCard
+              key={tournament.id}
+              tournament={tournament}
+              priority={index < 3}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

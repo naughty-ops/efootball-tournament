@@ -406,11 +406,11 @@ export interface Database {
           efootball_id_verified: boolean;
           efootball_verification_status: 'pending' | 'verified' | 'rejected';
           efootball_rejection_reason: string | null;
-          account_status: 'active' | 'suspended' | 'disabled';
-          suspension_reason: string | null;
-          suspended_at: string | null;
-          suspended_by: string | null;
-          admin_notes: string | null;
+          account_status?: 'active' | 'suspended' | 'disabled';
+          suspension_reason?: string | null;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+          admin_notes?: string | null;
           whatsapp_number: string;
           whatsapp_verified: boolean;
           whatsapp_verification_status: 'not_submitted' | 'pending' | 'verified' | 'rejected';
@@ -418,6 +418,9 @@ export interface Database {
           whatsapp_verification_requested_at: string | null;
           whatsapp_verified_at: string | null;
           whatsapp_verified_by: string | null;
+          verification_revoked_at?: string | null;
+          verification_revoked_by?: string | null;
+          verification_revocation_reason?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -441,6 +444,9 @@ export interface Database {
           whatsapp_verification_requested_at?: string | null;
           whatsapp_verified_at?: string | null;
           whatsapp_verified_by?: string | null;
+          verification_revoked_at?: string | null;
+          verification_revoked_by?: string | null;
+          verification_revocation_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -464,6 +470,9 @@ export interface Database {
           whatsapp_verification_requested_at?: string | null;
           whatsapp_verified_at?: string | null;
           whatsapp_verified_by?: string | null;
+          verification_revoked_at?: string | null;
+          verification_revoked_by?: string | null;
+          verification_revocation_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };

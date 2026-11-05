@@ -1,45 +1,31 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use, useCallback } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import {
-  Room,
-  RoomEvent,
-  RemoteTrackPublication,
-  RemoteParticipant,
-  Track,
-  RemoteTrack,
-  VideoQuality,
-  ConnectionQuality,
-  TrackEvent,
-} from 'livekit-client';
+import dynamic from 'next/dynamic';
 import {
   ArrowLeft,
-  Tv,
   Users,
-  Radio,
   Share2,
   Check,
-  Maximize,
-  Volume2,
-  VolumeX,
-  Play,
-  Pause,
   AlertCircle,
   Loader2,
-  Trophy,
-  RefreshCw,
-  Sun,
-  PictureInPicture2,
-  Settings,
-  Activity,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Tournament, Participant } from '@/types/database';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LiveMatchPredictionsWidget } from '@/components/public/live/LiveMatchPredictionsWidget';
 import { ViewerSessionTracker } from '@/components/public/live/ViewerSessionTracker';
+import LivePlayerSkeleton from '@/components/public/live/LivePlayerSkeleton';
+
+// Dynamically import LiveKit Stream Player with SSR disabled to isolate 573 KB livekit-client WebRTC bundle
+const LiveKitStreamPlayer = dynamic(
+  () => import('@/components/public/live/LiveKitStreamPlayer'),
+  {
+    ssr: false,
+    loading: () => <LivePlayerSkeleton />,
+  }
+);
 
 interface FullLiveMatchData {
   match: Match;
@@ -59,157 +45,8 @@ export default function DedicatedLiveMatchPage({
   const [matchData, setMatchData] = useState<FullLiveMatchData | null>(null);
   const [loadingMatch, setLoadingMatch] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
-
-  // LiveKit WebRTC Connection & Network State
-  const [connectionState, setConnectionState] = useState<
-    'CONNECTING' | 'LIVE' | 'RECONNECTING' | 'OFFLINE' | 'ENDED' | 'ERROR'
-  >('CONNECTING');
-  const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(1);
   const [copied, setCopied] = useState(false);
-
-  // Video Quality & Layer Selector States
-  const [selectedQuality, setSelectedQuality] = useState<
-    'auto' | '1080p' | '725p' | '720p' | '480p' | '360p'
-  >('auto');
-  const [activeQualityLabel, setActiveQualityLabel] = useState<string>('Auto');
-  const [availableQualities, setAvailableQualities] = useState<
-    Array<{ label: string; width: number; height: number; quality: VideoQuality }>
-  >([]);
-  const [showQualityMenu, setShowQualityMenu] = useState(false);
-  const [activeVideoPub, setActiveVideoPub] = useState<RemoteTrackPublication | null>(null);
-  const [trackDimensions, setTrackDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [showDebugHUD, setShowDebugHUD] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('debug') === '1' || process.env.NODE_ENV === 'development';
-    }
-    return false;
-  });
-
-  // Video Controls State
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [volume, setVolume] = useState(1);
-  const [showControls, setShowControls] = useState(true);
-  const [pipSupported, setPipSupported] = useState(false);
-
-  // Mobile VLC / MX Gesture States (Brightness & Volume Swipe)
-  const [brightness, setBrightness] = useState(100);
-  const [gestureHUD, setGestureHUD] = useState<{
-    type: 'brightness' | 'volume' | null;
-    value: number;
-  }>({ type: null, value: 100 });
-
-  const roomRef = useRef<Room | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hudTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Touch gesture refs
-  const touchStartRef = useRef<{
-    x: number;
-    y: number;
-    initialVal: number;
-    side: 'left' | 'right';
-  } | null>(null);
-
-
-
-  // Parse available LiveKit video quality layers dynamically
-  const parseAvailableQualities = useCallback(
-    (pub: RemoteTrackPublication, track?: RemoteTrack) => {
-      setActiveVideoPub(pub);
-      const layers: Array<{ label: string; width: number; height: number; quality: VideoQuality }> = [];
-
-      if (pub.trackInfo?.layers && pub.trackInfo.layers.length > 0) {
-        pub.trackInfo.layers.forEach((l) => {
-          let label = '360p';
-          let q = VideoQuality.LOW;
-          if (l.height >= 900 || l.width >= 1600) {
-            label = '1080p';
-            q = VideoQuality.HIGH;
-          } else if (l.height >= 600 || l.width >= 1000) {
-            label = '720p';
-            q = VideoQuality.MEDIUM;
-          } else if (l.height >= 400 || l.width >= 700) {
-            label = '480p';
-            q = VideoQuality.LOW;
-          } else {
-            label = '360p';
-            q = VideoQuality.LOW;
-          }
-
-          if (!layers.some((existing) => existing.label === label)) {
-            layers.push({ label, width: l.width || 0, height: l.height || 0, quality: q });
-          }
-        });
-      }
-
-      if (layers.length === 0) {
-        const videoTrackAny = (track || pub.track) as any;
-        const w = (pub as any).dimensions?.width || videoTrackAny?.dimensions?.width || 1280;
-        const h = (pub as any).dimensions?.height || videoTrackAny?.dimensions?.height || 720;
-
-        let topLabel = '720p';
-        if (h >= 900 || w >= 1600) topLabel = '1080p';
-        else if (h >= 600 || w >= 1000) topLabel = '720p';
-        else if (h >= 400 || w >= 700) topLabel = '480p';
-        else topLabel = '360p';
-
-        layers.push({ label: topLabel, width: w, height: h, quality: VideoQuality.HIGH });
-
-        // Add standard scaling options supported by LiveKit SFU downscaling
-        if (h >= 900 || w >= 1600) {
-          if (!layers.some((l) => l.label === '720p'))
-            layers.push({ label: '720p', width: 1280, height: 720, quality: VideoQuality.MEDIUM });
-          if (!layers.some((l) => l.label === '480p'))
-            layers.push({ label: '480p', width: 854, height: 480, quality: VideoQuality.LOW });
-          if (!layers.some((l) => l.label === '360p'))
-            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
-        } else if (h >= 600 || w >= 1000) {
-          if (!layers.some((l) => l.label === '480p'))
-            layers.push({ label: '480p', width: 854, height: 480, quality: VideoQuality.MEDIUM });
-          if (!layers.some((l) => l.label === '360p'))
-            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
-        } else if (h >= 400 || w >= 700) {
-          if (!layers.some((l) => l.label === '360p'))
-            layers.push({ label: '360p', width: 640, height: 360, quality: VideoQuality.LOW });
-        }
-      }
-
-      layers.sort((a, b) => b.height - a.height);
-      setAvailableQualities(layers);
-    },
-    []
-  );
-
-  // Change Video Quality Layer dynamically
-  const handleSelectQuality = (qualityLabel: 'auto' | '1080p' | '720p' | '480p' | '360p') => {
-    setSelectedQuality(qualityLabel);
-    setShowQualityMenu(false);
-
-    if (!activeVideoPub) return;
-
-    if (qualityLabel === 'auto') {
-      activeVideoPub.setVideoQuality(VideoQuality.HIGH);
-      setActiveQualityLabel('Auto');
-    } else {
-      const targetLayer = availableQualities.find((q) => q.label === qualityLabel);
-      if (targetLayer) {
-        activeVideoPub.setVideoQuality(targetLayer.quality);
-        if (targetLayer.width > 0 && targetLayer.height > 0) {
-          activeVideoPub.setVideoDimensions({
-            width: targetLayer.width,
-            height: targetLayer.height,
-          });
-        }
-        setActiveQualityLabel(qualityLabel);
-      }
-    }
-  };
 
   // 1. Fetch Match Data
   const fetchMatchInfo = async () => {
@@ -263,68 +100,50 @@ export default function DedicatedLiveMatchPage({
           : Promise.resolve({ data: null }),
       ]);
 
-      let tournament: Tournament | null = null;
+      let tData: Tournament | null = null;
       if (rRes.data && rRes.data.tournament_id) {
-        const { data: tData } = await (supabase.from('tournaments') as any)
+        const { data: tourney } = await (supabase.from('tournaments') as any)
           .select('*')
           .eq('id', rRes.data.tournament_id)
           .single();
-        tournament = tData as Tournament;
+        tData = tourney as Tournament;
       }
 
       setMatchData({
         match,
         round: rRes.data as Round | null,
-        tournament,
+        tournament: tData,
         participantA: paRes.data as Participant | null,
         participantB: pbRes.data as Participant | null,
       });
-
-      if (match.status === 'completed' || match.status === 'walkover') {
-        setConnectionState('ENDED');
-      }
+      setLoadingMatch(false);
     } catch (err: any) {
-      console.error('Error fetching live match data:', err);
-      setMatchError(err.message || 'Failed to load match.');
-    } finally {
+      console.error('Error fetching live match details:', err);
+      setMatchError('Unable to load match details.');
       setLoadingMatch(false);
     }
   };
 
   useEffect(() => {
     fetchMatchInfo();
-    if (typeof document !== 'undefined') {
-      setPipSupported(Boolean(document.pictureInPictureEnabled));
-    }
   }, [matchId]);
 
-  // Realtime Supabase Subscription for Instant Score Updates
+  // Realtime subscription for score updates
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`live-match-${matchId}`)
+      .channel(`live_match_sync_${matchId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
-        (payload) => {
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${matchId}`,
+        },
+        (payload: any) => {
           if (payload.new) {
-            setMatchData((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                match: {
-                  ...prev.match,
-                  score_a: payload.new.score_a ?? prev.match.score_a,
-                  score_b: payload.new.score_b ?? prev.match.score_b,
-                  status: payload.new.status ?? prev.match.status,
-                  live_room_name: payload.new.live_room_name ?? prev.match.live_room_name,
-                },
-              };
-            });
-
-            if (payload.new.status === 'completed' || payload.new.status === 'walkover') {
-              setConnectionState('ENDED');
-            }
+            setMatchData((prev) => (prev ? { ...prev, match: payload.new as Match } : null));
           }
         }
       )
@@ -334,272 +153,6 @@ export default function DedicatedLiveMatchPage({
       supabase.removeChannel(channel);
     };
   }, [matchId]);
-
-  // 2. Connect to LiveKit Room as Viewer
-  const connectToStream = async () => {
-    if (!matchData) return;
-    const { match } = matchData;
-
-    const roomName = match.live_room_name || `efootball-match-${match.id}`;
-    if (roomRef.current) {
-      roomRef.current.disconnect();
-      roomRef.current = null;
-    }
-
-    setConnectionState('CONNECTING');
-
-    const viewerIdentity = `viewer-${Math.random().toString(36).substring(2, 9)}`;
-
-    try {
-      let tokenRes = await fetch('/api/live/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          room: roomName,
-          identity: viewerIdentity,
-          role: 'viewer',
-        }),
-      }).catch(() => null);
-
-      if (!tokenRes || !tokenRes.ok) {
-        tokenRes = await fetch('/api/livekit/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            room: roomName,
-            identity: viewerIdentity,
-            role: 'viewer',
-          }),
-        }).catch(() => null);
-      }
-
-      if (!tokenRes || !tokenRes.ok) {
-        throw new Error('Failed to acquire viewer token from server.');
-      }
-
-      const tokenData = await tokenRes.json();
-      if (!tokenData.token) {
-        throw new Error(tokenData.error || 'Failed to acquire viewer token.');
-      }
-
-      const livekitUrl = tokenData.url || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://efootball-tournament-pic0fkvb.livekit.cloud';
-
-      const room = new Room({
-        adaptiveStream: true,
-        dynacast: true,
-      });
-      roomRef.current = room;
-
-      const attachTrack = (track: Track | RemoteTrack) => {
-        if (track.kind === Track.Kind.Video && videoRef.current) {
-          track.attach(videoRef.current);
-
-          const trackAny = track as any;
-          if (trackAny.dimensions) {
-            setTrackDimensions(trackAny.dimensions);
-          }
-          track.on(TrackEvent.VideoDimensionsChanged, (dims: { width: number; height: number }) => {
-            setTrackDimensions(dims);
-          });
-
-          if (videoRef.current) {
-            videoRef.current.muted = isMuted;
-            videoRef.current.play().catch(() => {
-              if (videoRef.current) {
-                videoRef.current.muted = true;
-                setIsMuted(true);
-                videoRef.current.play().catch(() => {});
-              }
-            });
-          }
-          setConnectionState('LIVE');
-        } else if (track.kind === Track.Kind.Audio && audioRef.current) {
-          track.attach(audioRef.current);
-          if (audioRef.current) {
-            audioRef.current.muted = isMuted;
-            audioRef.current.volume = volume;
-            audioRef.current.play().catch(() => {
-              if (audioRef.current) {
-                audioRef.current.muted = true;
-                setIsMuted(true);
-                audioRef.current.play().catch(() => {});
-              }
-            });
-          }
-        }
-      };
-
-      room.on(
-        RoomEvent.TrackSubscribed,
-        (track: RemoteTrack, pub: RemoteTrackPublication) => {
-          attachTrack(track);
-          if (track.kind === Track.Kind.Video) {
-            parseAvailableQualities(pub, track);
-          }
-        }
-      );
-
-      room.on(
-        RoomEvent.TrackUnsubscribed,
-        (track: RemoteTrack, pub: RemoteTrackPublication, participant: RemoteParticipant) => {
-          track.detach();
-          const videoTracks = Array.from(participant.videoTrackPublications.values()).filter(
-            (p) => p.isSubscribed
-          );
-          if (videoTracks.length === 0) {
-            setConnectionState('OFFLINE');
-          }
-        }
-      );
-
-      // Connection Resilience & Network Quality Listeners
-      room.on(RoomEvent.ConnectionQualityChanged, (q, participant) => {
-        if (!participant || participant.identity === room.localParticipant.identity) {
-          setConnectionQuality(q);
-        }
-      });
-
-      room.on(RoomEvent.Reconnecting, () => {
-        setConnectionState('RECONNECTING');
-      });
-
-      room.on(RoomEvent.Reconnected, () => {
-        setConnectionState('LIVE');
-      });
-
-      const updateParticipants = () => {
-        setViewerCount((room.remoteParticipants.size || 0) + 1);
-      };
-
-      room.on(RoomEvent.ParticipantConnected, updateParticipants);
-      room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
-      room.on(RoomEvent.Disconnected, () => {
-        setConnectionState('OFFLINE');
-      });
-
-      await room.connect(livekitUrl, tokenData.token);
-      updateParticipants();
-
-      let foundVideo = false;
-      for (const p of room.remoteParticipants.values()) {
-        for (const pub of p.trackPublications.values()) {
-          if (!pub.isSubscribed) {
-            pub.setSubscribed(true);
-          }
-          if (pub.track) {
-            attachTrack(pub.track);
-            if (pub.kind === Track.Kind.Video) {
-              foundVideo = true;
-              parseAvailableQualities(pub, pub.track);
-            }
-          }
-        }
-      }
-
-      if (foundVideo) {
-        setConnectionState('LIVE');
-      } else {
-        setTimeout(() => {
-          setConnectionState((curr) => (curr === 'CONNECTING' ? 'OFFLINE' : curr));
-        }, 8000);
-      }
-    } catch (err: any) {
-      console.error('Error connecting to stream:', err);
-      setConnectionState('OFFLINE');
-    }
-  };
-
-  useEffect(() => {
-    if (matchData && matchData.match.status !== 'completed') {
-      connectToStream();
-    }
-    return () => {
-      if (roomRef.current) {
-        roomRef.current.disconnect();
-      }
-    };
-  }, [matchData?.match.id]);
-
-  // Auto-hiding controls timeout
-  const resetControlsTimeout = useCallback(() => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-      setShowQualityMenu(false);
-    }, 4000);
-  }, []);
-
-  const handlePlayerTap = () => {
-    if (showControls) {
-      setShowControls(false);
-      setShowQualityMenu(false);
-    } else {
-      resetControlsTimeout();
-    }
-  };
-
-  // Player Controls
-  const toggleMute = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    if (videoRef.current) {
-      videoRef.current.muted = nextMuted;
-      if (!nextMuted) videoRef.current.volume = volume > 0 ? volume : 1;
-    }
-    if (audioRef.current) {
-      audioRef.current.muted = nextMuted;
-      if (!nextMuted) audioRef.current.volume = volume > 0 ? volume : 1;
-    }
-    if (!nextMuted && volume === 0) {
-      setVolume(1);
-    }
-  };
-
-  const togglePlay = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleFullscreen = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (containerRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      } else {
-        containerRef.current.requestFullscreen().then(() => {
-          try {
-            if (screen.orientation && 'lock' in screen.orientation) {
-              (screen.orientation as any).lock('landscape').catch(() => {});
-            }
-          } catch {}
-        }).catch(() => {});
-      }
-    }
-  };
-
-  const togglePiP = async (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    try {
-      if (videoRef.current) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-      }
-    } catch (err) {
-      console.error('PiP Error:', err);
-    }
-  };
 
   const handleCopyLink = async () => {
     try {
@@ -611,60 +164,6 @@ export default function DedicatedLiveMatchPage({
     } catch (err) {
       console.error('Failed to copy link:', err);
     }
-  };
-
-  // Mobile VLC / MX Player Touch Swipe Gestures
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1 || !containerRef.current) return;
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const side = touchX < rect.width / 2 ? 'left' : 'right';
-
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-      initialVal: side === 'left' ? brightness : isMuted ? 0 : volume,
-      side,
-    };
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current || e.touches.length !== 1 || !containerRef.current) return;
-    const touch = e.touches[0];
-    const deltaY = touchStartRef.current.y - touch.clientY;
-    const rect = containerRef.current.getBoundingClientRect();
-    const sensitivity = 1.2;
-    const percentChange = (deltaY / rect.height) * 100 * sensitivity;
-
-    if (touchStartRef.current.side === 'left') {
-      const nextBrightness = Math.min(100, Math.max(20, Math.round(touchStartRef.current.initialVal + percentChange)));
-      setBrightness(nextBrightness);
-      setGestureHUD({ type: 'brightness', value: nextBrightness });
-    } else {
-      const nextVolPercent = Math.min(100, Math.max(0, Math.round(touchStartRef.current.initialVal * 100 + percentChange)));
-      const volFraction = nextVolPercent / 100;
-      setVolume(volFraction);
-      if (videoRef.current) {
-        videoRef.current.volume = volFraction;
-        videoRef.current.muted = volFraction === 0;
-      }
-      if (audioRef.current) {
-        audioRef.current.volume = volFraction;
-        audioRef.current.muted = volFraction === 0;
-      }
-      setIsMuted(volFraction === 0);
-      setGestureHUD({ type: 'volume', value: nextVolPercent });
-    }
-
-    if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current);
-    hudTimeoutRef.current = setTimeout(() => {
-      setGestureHUD({ type: null, value: 0 });
-    }, 1200);
-  };
-
-  const handleTouchEnd = () => {
-    touchStartRef.current = null;
   };
 
   if (loadingMatch) {
@@ -695,7 +194,7 @@ export default function DedicatedLiveMatchPage({
     );
   }
 
-  const { match, round, tournament, participantA, participantB } = matchData;
+  const { match, tournament, participantA, participantB } = matchData;
 
   return (
     <div className="min-h-screen bg-transparent text-white pb-12 font-sans">
@@ -783,242 +282,13 @@ export default function DedicatedLiveMatchPage({
 
         {/* MAIN SECTION — Live Streaming Video Player Wrapper Card */}
         <div className="bg-[#1818D4] border border-white/20 shadow-2xl rounded-[32px] p-2 sm:p-3 space-y-2">
-          <div
-            ref={containerRef}
-            onClick={handlePlayerTap}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-inner flex items-center justify-center select-none group touch-none"
-            style={{ filter: `brightness(${brightness}%)` }}
-          >
-            {/* Development Diagnostic HUD */}
-            {showDebugHUD && connectionState === 'LIVE' && (
-              <div className="absolute top-3 left-3 z-30 bg-black/80 backdrop-blur-sm border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-mono text-emerald-300 flex items-center gap-2 shadow-lg">
-                <Activity className="h-3 w-3 text-emerald-400 animate-pulse" />
-                <span>
-                  {trackDimensions ? `${trackDimensions.width}x${trackDimensions.height}` : 'Video'} |{' '}
-                  {selectedQuality.toUpperCase()} | {connectionQuality !== null ? (ConnectionQuality as any)[connectionQuality] || 'OK' : 'OK'}
-                </span>
-              </div>
-            )}
-
-            {/* HTML5 Video & Audio Elements (ALWAYS MOUNTED IN DOM FOR WEBRTC) */}
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted={isMuted}
-              className="w-full h-full object-contain bg-black"
-            />
-            <audio
-              ref={audioRef}
-              autoPlay
-              playsInline
-              muted={isMuted}
-              className="hidden"
-            />
-
-            {/* VLC/MX Gesture HUD Floating Overlay (Brightness / Volume vertical indicator) */}
-            {gestureHUD.type && (
-              <div className="absolute top-1/2 -translate-y-1/2 z-30 p-3 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 text-white flex flex-col items-center gap-1.5 shadow-2xl animate-fade-in pointer-events-none">
-                {gestureHUD.type === 'brightness' ? (
-                  <Sun className="h-6 w-6 text-amber-400" />
-                ) : (
-                  <Volume2 className="h-6 w-6 text-emerald-400" />
-                )}
-                <span className="text-xs font-black font-mono">{gestureHUD.value}%</span>
-                <div className="w-1.5 h-12 bg-white/20 rounded-full overflow-hidden flex flex-col justify-end">
-                  <div
-                    className={`w-full ${gestureHUD.type === 'brightness' ? 'bg-amber-400' : 'bg-emerald-400'}`}
-                    style={{ height: `${gestureHUD.value}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 1-Tap "Tap for Audio 🔊" Prompt Overlay when muted */}
-            {connectionState === 'LIVE' && isMuted && (
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="absolute top-3 right-3 z-30 bg-black/85 hover:bg-black text-amber-400 border border-amber-400/40 px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 animate-bounce"
-              >
-                <VolumeX className="h-3.5 w-3.5" />
-                <span>Tap for Audio 🔊</span>
-              </button>
-            )}
-
-            {/* CONNECTING Overlay */}
-            {connectionState === 'CONNECTING' && (
-              <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-                <h3 className="text-xs font-bold text-white">Connecting to live match...</h3>
-              </div>
-            )}
-
-            {/* RECONNECTING Overlay */}
-            {connectionState === 'RECONNECTING' && (
-              <div className="absolute inset-0 bg-black/85 z-20 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
-                <h3 className="text-xs font-bold text-white">Reconnecting stream...</h3>
-                <p className="text-[10px] text-zinc-400">Restoring network connection</p>
-              </div>
-            )}
-
-            {/* OFFLINE Overlay */}
-            {connectionState === 'OFFLINE' && (
-              <div className="absolute inset-0 bg-black/95 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <div className="h-11 w-11 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
-                  <Radio className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-white">📡 STREAM OFFLINE</h3>
-                  <p className="text-xs text-zinc-400 max-w-xs">
-                    The broadcaster is currently offline for this match.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={connectToStream}
-                  className="gap-1.5 text-xs font-bold border-zinc-800 text-white hover:bg-zinc-900 rounded-xl h-8"
-                >
-                  <RefreshCw className="h-3 w-3 text-emerald-400" />
-                  Retry Stream
-                </Button>
-              </div>
-            )}
-
-            {/* ENDED Overlay */}
-            {connectionState === 'ENDED' && (
-              <div className="absolute inset-0 bg-black/95 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Trophy className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-white">🏁 LIVE STREAM ENDED</h3>
-                  <p className="text-xs text-zinc-400 max-w-xs">
-                    This live match has concluded.
-                  </p>
-                </div>
-                <Button asChild size="sm" className="bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] font-black rounded-full text-xs px-5 h-9 shadow-lg">
-                  <Link href={tournament ? `/t/${tournament.id}` : '/live'}>
-                    View Match Result
-                  </Link>
-                </Button>
-              </div>
-            )}
-
-            {/* VLC / MX Player Auto-Hiding Controls Bar */}
-            {connectionState === 'LIVE' && showControls && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-20 flex items-center justify-between text-white transition-opacity duration-300"
-              >
-                {/* Left Controls: Play/Pause & Audio Mute/Volume */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={togglePlay}
-                    className="h-8 w-8 text-white hover:bg-white/20 rounded-xl"
-                  >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleMute}
-                    className="h-8 w-8 text-white hover:bg-white/20 rounded-xl"
-                  >
-                    {isMuted ? <VolumeX className="h-4 w-4 text-[#FF168B]" /> : <Volume2 className="h-4 w-4 text-[#FFFF00]" />}
-                  </Button>
-                </div>
-
-                {/* Right Controls: Quality Selector, PiP & Fullscreen */}
-                <div className="flex items-center gap-2">
-                  {/* Compact Video Quality Menu */}
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowQualityMenu((prev) => !prev);
-                      }}
-                      className="h-8 px-2 text-white hover:bg-white/20 rounded-xl gap-1 text-xs font-bold"
-                      title="Video Quality"
-                    >
-                      <Settings className="h-4 w-4 text-[#FFFF00]" />
-                      <span className="text-[10px] bg-[#3434FF] text-white px-1.5 py-0.5 rounded font-mono font-bold">
-                        {selectedQuality === 'auto' ? 'Auto' : selectedQuality}
-                      </span>
-                    </Button>
-
-                    {showQualityMenu && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute bottom-10 right-0 w-36 py-1 bg-[#0A0A7A]/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl z-40 text-xs text-white"
-                      >
-                        <div className="px-3 py-1 text-[10px] font-black text-[#FFFF00] uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
-                          <span>⚙ Quality</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSelectQuality('auto')}
-                          className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors ${
-                            selectedQuality === 'auto' ? 'text-[#FFFF00] font-black bg-white/10' : 'text-white/90'
-                          }`}
-                        >
-                          <span>Auto</span>
-                          {selectedQuality === 'auto' && <Check className="h-3.5 w-3.5 text-[#FFFF00]" />}
-                        </button>
-
-                        {availableQualities.map((q) => (
-                          <button
-                            key={q.label}
-                            type="button"
-                            onClick={() => handleSelectQuality(q.label as any)}
-                            className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors ${
-                              selectedQuality === q.label ? 'text-amber-300 font-bold bg-white/5' : 'text-slate-200'
-                            }`}
-                          >
-                            <span>{q.label}</span>
-                            {selectedQuality === q.label && <Check className="h-3.5 w-3.5 text-amber-300" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {pipSupported && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={togglePiP}
-                      className="h-8 w-8 text-white hover:bg-white/20 rounded-xl"
-                      title="Picture in Picture"
-                    >
-                      <PictureInPicture2 className="h-4 w-4" />
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleFullscreen}
-                    className="h-8 w-8 text-white hover:bg-white/20 rounded-xl"
-                    title="Fullscreen"
-                  >
-                    <Maximize className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <LiveKitStreamPlayer
+            match={match}
+            tournament={tournament}
+            participantA={participantA}
+            participantB={participantB}
+            onViewerCountChange={setViewerCount}
+          />
         </div>
       </div>
 

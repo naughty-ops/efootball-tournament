@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,11 +42,11 @@ const STEPS = [
 ];
 
 const BANNER_PRESETS = [
-  { label: 'Stadium Floodlights', url: '/images/banner1.jpg' },
-  { label: 'Arena Matchday', url: '/images/banner2.jpg' },
-  { label: 'Golden Trophy', url: '/images/banner3.jpg' },
-  { label: 'Championship Stage', url: '/images/banners/efootball-championship.jpg' },
-  { label: 'eFootball Stadium', url: '/images/banners/efootball-stadium.jpg' },
+  { label: 'Stadium Floodlights', url: '/images/banner1.webp' },
+  { label: 'Arena Matchday', url: '/images/banner2.webp' },
+  { label: 'Golden Trophy', url: '/images/banner3.webp' },
+  { label: 'Championship Stage', url: '/images/banners/efootball-championship.webp' },
+  { label: 'eFootball Stadium', url: '/images/banners/efootball-stadium.webp' },
 ];
 
 const STANDARD_RULES_TEMPLATE = `1. Match Duration: 8 Minutes (standard competitive setting).
@@ -383,11 +384,12 @@ export default function CreateTournamentPage() {
 
                 {watch('banner_image') && (
                   <div className="relative w-full aspect-[21/9] min-h-[140px] max-h-[220px] rounded-2xl overflow-hidden border border-white/20 shadow-inner bg-[#0A0A7A]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={watch('banner_image') || '/images/banner1.jpg'}
+                    <Image
+                      src={watch('banner_image') || '/images/banner1.webp'}
                       alt="Banner Preview"
-                      className="w-full h-full object-cover object-center"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 400px"
+                      className="object-cover object-center"
                     />
                     <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold">
                       Live Banner Preview
@@ -872,11 +874,12 @@ export default function CreateTournamentPage() {
 
                 {/* Banner & Title preview */}
                 <div className="relative w-full aspect-[21/9] min-h-[140px] max-h-[180px] rounded-2xl overflow-hidden border border-white/20 shadow-inner">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={formValues.banner_image || '/images/banner1.jpg'}
+                  <Image
+                    src={formValues.banner_image || '/images/banner1.webp'}
                     alt="Cover"
-                    className="w-full h-full object-cover object-center"
+                    fill
+                    sizes="(max-width: 640px) 100vw, 400px"
+                    className="object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 flex flex-col justify-end">
                     <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider font-display">

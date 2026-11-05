@@ -9,7 +9,7 @@ export const SITE_SETTING_KEY = 'home_banners';
 export const DEFAULT_HOME_BANNERS: CarouselSlide[] = [
   {
     id: 'slide-1',
-    image: '/images/banner1.jpg',
+    image: '/images/banner1.webp',
     title: 'eFootball World Championship 2026',
     subtitle: 'Compete with top players worldwide for the ultimate prize pool and glory.',
     badgeText: 'Live Championship',
@@ -18,7 +18,7 @@ export const DEFAULT_HOME_BANNERS: CarouselSlide[] = [
   },
   {
     id: 'slide-2',
-    image: '/images/banner2.jpg',
+    image: '/images/banner2.webp',
     title: 'Super League Season 4 Kickoff',
     subtitle: 'High-stakes competitive eFootball matches starting this weekend.',
     badgeText: 'Upcoming League',
@@ -27,7 +27,7 @@ export const DEFAULT_HOME_BANNERS: CarouselSlide[] = [
   },
   {
     id: 'slide-3',
-    image: '/images/banner3.jpg',
+    image: '/images/banner3.webp',
     title: 'Global Community Leaderboard',
     subtitle: 'Track real-time player rankings, match standings, and match highlights.',
     badgeText: 'Official Rankings',

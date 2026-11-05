@@ -37,5 +37,5 @@ export default async function AdminLayout({
     redirect('/dashboard?error=admin_unauthorized');
   }
 
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+  return <AdminLayoutClient adminEmail={user.email}>{children}</AdminLayoutClient>;
 }

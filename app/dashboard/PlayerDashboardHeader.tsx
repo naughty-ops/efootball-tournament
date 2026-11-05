@@ -130,7 +130,7 @@ export default function PlayerDashboardHeader({
             <div className="flex items-center gap-2">
               <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden shrink-0 border border-white/20">
                 <Image
-                  src="/logos/logo-mark-transparent.png"
+                  src="/logos/logo-mark-transparent.webp"
                   alt="eFootball Logo"
                   width={36}
                   height={36}

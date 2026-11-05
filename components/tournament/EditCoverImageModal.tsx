@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Image as ImageIcon, Check, Loader2, Link2, Sparkles, X } from 'lucide-react';
 import { updateTournamentBannerImage } from '@/services/tournamentService';
 import { Button } from '@/components/ui/button';
@@ -16,9 +17,9 @@ interface EditCoverImageModalProps {
 }
 
 const PRESET_BANNERS = [
-  { label: 'eFootball Stadium 1', url: '/images/banner1.jpg' },
-  { label: 'eFootball Stadium 2', url: '/images/banner2.jpg' },
-  { label: 'eFootball Stadium 3', url: '/images/banner3.jpg' },
+  { label: 'eFootball Stadium 1', url: '/images/banner1.webp' },
+  { label: 'eFootball Stadium 2', url: '/images/banner2.webp' },
+  { label: 'eFootball Stadium 3', url: '/images/banner3.webp' },
 ];
 
 export function EditCoverImageModal({
@@ -29,7 +30,7 @@ export function EditCoverImageModal({
   currentBannerUrl,
   onSuccess,
 }: EditCoverImageModalProps) {
-  const [bannerUrl, setBannerUrl] = useState<string>(currentBannerUrl || '/images/banner1.jpg');
+  const [bannerUrl, setBannerUrl] = useState<string>(currentBannerUrl || '/images/banner1.webp');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,12 +88,14 @@ export function EditCoverImageModal({
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-[#0B3323]">Cover Image Preview</label>
             <div className="relative h-44 w-full rounded-2xl overflow-hidden bg-slate-950 border border-border shadow-inner">
-              <img
-                src={bannerUrl || '/images/banner1.jpg'}
+              <Image
+                src={bannerUrl || '/images/banner1.webp'}
                 alt="Cover Preview"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/images/banner1.jpg';
+                fill
+                sizes="(max-width: 640px) 100vw, 400px"
+                className="object-cover"
+                onError={() => {
+                  setBannerUrl('/images/banner1.webp');
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-4">
@@ -139,7 +142,7 @@ export function EditCoverImageModal({
                         : 'border-border opacity-80 hover:opacity-100 hover:border-primary/50'
                     }`}
                   >
-                    <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
+                    <Image src={preset.url} alt={preset.label} fill sizes="120px" className="object-cover" />
                     <div className="absolute inset-0 bg-black/40 p-1 flex items-end justify-between">
                       <span className="text-[9px] font-bold text-white truncate drop-shadow-xs">
                         {preset.label}

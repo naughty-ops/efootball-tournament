@@ -31,11 +31,11 @@ import { getFixtureStatus } from '@/services/fixtureService';
 import type { Tournament } from '@/types/database';
 
 const BANNER_PRESETS = [
-  { label: 'Stadium Floodlights', url: '/images/banner1.jpg' },
-  { label: 'Arena Matchday', url: '/images/banner2.jpg' },
-  { label: 'Golden Trophy', url: '/images/banner3.jpg' },
-  { label: 'Championship Stage', url: '/images/banners/efootball-championship.jpg' },
-  { label: 'eFootball Stadium', url: '/images/banners/efootball-stadium.jpg' },
+  { label: 'Stadium Floodlights', url: '/images/banner1.webp' },
+  { label: 'Arena Matchday', url: '/images/banner2.webp' },
+  { label: 'Golden Trophy', url: '/images/banner3.webp' },
+  { label: 'Championship Stage', url: '/images/banners/efootball-championship.webp' },
+  { label: 'eFootball Stadium', url: '/images/banners/efootball-stadium.webp' },
 ];
 
 export default function EditTournamentPage({ params }: { params: Promise<{ id: string }> }) {

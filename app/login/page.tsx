@@ -111,7 +111,7 @@ export default function LoginPage() {
           <CardHeader className="text-center space-y-3 pb-6">
             <div className="relative mx-auto h-14 w-14 rounded-2xl overflow-hidden bg-[#0A0A7A] p-1 flex items-center justify-center shadow-lg border border-white/20">
               <Image
-                src="/logos/logo-mark-transparent.png"
+                src="/logos/logo-mark-transparent.webp"
                 alt="eFootball Logo Mark"
                 width={56}
                 height={56}

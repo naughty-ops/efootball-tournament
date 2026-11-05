@@ -11,9 +11,9 @@ import { CarouselSlide } from '@/components/public/ImageCarousel';
 import { getHomeBanners, saveHomeBanners, resetHomeBanners, fetchHomeBannersFromDB } from '@/services/bannerService';
 
 const SAMPLE_BANNERS = [
-  '/images/banner1.jpg',
-  '/images/banner2.jpg',
-  '/images/banner3.jpg',
+  '/images/banner1.webp',
+  '/images/banner2.webp',
+  '/images/banner3.webp',
 ];
 
 export default function AdminSettingsPage() {
@@ -76,7 +76,7 @@ export default function AdminSettingsPage() {
   const handleAddSlide = () => {
     const newSlide: CarouselSlide = {
       id: `slide-${Date.now()}`,
-      image: editForm.image || '/images/banner1.jpg',
+      image: editForm.image || '/images/banner1.webp',
       title: editForm.title || 'New Tournament Showcase',
       subtitle: editForm.subtitle || 'Join the tournament competition and track live scores.',
       badgeText: editForm.badgeText || 'Featured Event',
@@ -123,7 +123,7 @@ export default function AdminSettingsPage() {
                 title: '',
                 subtitle: '',
                 badgeText: 'Live Tournament',
-                image: '/images/banner1.jpg',
+                image: '/images/banner1.webp',
                 actionText: 'Explore Now',
                 actionHref: '/tournaments',
               });

@@ -150,7 +150,7 @@ export default function ImageCarousel({ slides: propSlides }: { slides?: Carouse
             >
               {/* Image */}
               <Image
-                src={slide.image || '/images/banner1.jpg'}
+                src={slide.image || '/images/banner1.webp'}
                 alt={slide.title}
                 fill
                 priority={idx === 0}
