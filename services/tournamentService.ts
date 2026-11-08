@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Tournament, TournamentStatus, TournamentFormat, Participant, Group, Round, Match } from '@/types/database';
-import type { TournamentInput } from '@/lib/validations';
+import { isEligibleTournamentName, type TournamentInput } from '@/lib/validations';
 import { getTournamentSubStage, isKnockoutRoundName } from '@/lib/lifecycle/lifecycleEngine';
 import { FullMatchData } from '@/services/matchService';
 import { generateKnockoutBracket, getTournamentBracket } from '@/services/bracketService';
@@ -189,6 +189,26 @@ export async function getTournamentById(id: string, customClient?: any): Promise
  */
 export async function createTournament(input: TournamentInput): Promise<Tournament> {
   const supabase = createClient();
+
+  const trimmedName = (input.name || '').trim();
+  const nameEligibility = isEligibleTournamentName(trimmedName);
+  if (!nameEligibility.eligible) {
+    throw new Error(nameEligibility.error || 'Tournament name is not eligible.');
+  }
+
+  // Prevent duplicate tournament creation: check if a tournament with this name already exists
+  const { data: existingTournaments, error: lookupErr } = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .select('id, name')
+    .ilike('name', trimmedName);
+
+  if (!lookupErr && existingTournaments && (existingTournaments as any).length > 0) {
+    const isDuplicate = (existingTournaments as any).some(
+      (t: any) => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (isDuplicate) {
+      throw new Error(`A tournament named "${trimmedName}" already exists. Duplicate tournament creation is blocked.`);
+    }
+  }
 
   const dbFormat = input.format === 'single_league_knockout' ? 'group_knockout' : (input.format as TournamentFormat);
 

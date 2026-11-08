@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { requireAdmin } from '@/lib/auth/server';
-import { tournamentSchema, type TournamentInput } from '@/lib/validations';
+import { tournamentSchema, isEligibleTournamentName, type TournamentInput } from '@/lib/validations';
 import { ALLOWED_STATUS_TRANSITIONS } from '@/services/tournamentService';
 import type { TournamentStatus, TournamentFormat } from '@/types/database';
 
@@ -25,6 +25,50 @@ function computePaiseAmount(rupees?: number | null, explicitPaise?: number | nul
 }
 
 /**
+ * Validates tournament name eligibility and verifies that no other tournament
+ * already exists with the same name (case-insensitive and trimmed).
+ */
+export async function checkTournamentNameAvailabilityAction(
+  name: string,
+  excludeId?: string
+): Promise<{ available: boolean; error?: string }> {
+  const eligibility = isEligibleTournamentName(name);
+  if (!eligibility.eligible) {
+    return { available: false, error: eligibility.error };
+  }
+
+  const trimmed = name.trim();
+  const supabase = await createClient();
+
+  let query = (supabase.from('tournaments') as any)
+    .select('id, name')
+    .ilike('name', trimmed);
+
+  if (excludeId) {
+    query = query.neq('id', excludeId);
+  }
+
+  const { data: matches, error } = await query;
+  if (error) {
+    console.error('Error checking tournament name availability:', error);
+    return { available: false, error: 'Database error validating tournament name.' };
+  }
+
+  const hasExactCollision = (matches || []).some(
+    (t: any) => t.name.trim().toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (hasExactCollision) {
+    return {
+      available: false,
+      error: `A tournament named "${trimmed}" already exists. Please choose a unique name.`,
+    };
+  }
+
+  return { available: true };
+}
+
+/**
  * Server action: Create a new tournament
  * Strictly requires verified administrator authentication (ye.agrajj@gmail.com).
  */
@@ -41,6 +85,34 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
     }
 
     const validData = parseResult.data;
+    const trimmedName = validData.name.trim();
+
+    // Check name eligibility
+    const nameCheck = isEligibleTournamentName(trimmedName);
+    if (!nameCheck.eligible) {
+      return { success: false, message: nameCheck.error || 'Tournament name is not eligible.' };
+    }
+
+    const supabase = await createClient();
+
+    // Prevent duplicate tournament creation: check if a tournament with this name already exists
+    const { data: existingTournaments, error: nameLookupError } = await (supabase.from('tournaments') as any)
+      .select('id, name')
+      .ilike('name', trimmedName);
+
+    if (nameLookupError) {
+      console.error('Error checking duplicate tournament name:', nameLookupError);
+    } else if (existingTournaments && existingTournaments.length > 0) {
+      const isDuplicate = existingTournaments.some(
+        (t: any) => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (isDuplicate) {
+        return {
+          success: false,
+          message: `A tournament named "${trimmedName}" already exists. Duplicate tournament creation is blocked.`,
+        };
+      }
+    }
     const dbFormat = validData.format === 'single_league_knockout' ? 'group_knockout' : (validData.format as TournamentFormat);
 
     const isPaid = Boolean(validData.is_paid);
@@ -70,8 +142,6 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
       }
       accessCodeHash = await bcrypt.hash(validData.access_code.trim(), 10);
     }
-
-    const supabase = await createClient();
 
     const insertPayload: Record<string, any> = {
       name: validData.name.trim(),
@@ -183,6 +253,32 @@ export async function updateTournamentAction(
 
     if (existErr || !existing) {
       return { success: false, message: 'Tournament not found.' };
+    }
+
+    // 1b. Validate tournament name eligibility & uniqueness if changed
+    const trimmedName = validData.name.trim();
+    const nameCheck = isEligibleTournamentName(trimmedName);
+    if (!nameCheck.eligible) {
+      return { success: false, message: nameCheck.error || 'Tournament name is not eligible.' };
+    }
+
+    if (existing.name.trim().toLowerCase() !== trimmedName.toLowerCase()) {
+      const { data: duplicateCheck, error: dupErr } = await (supabase.from('tournaments') as any)
+        .select('id, name')
+        .ilike('name', trimmedName)
+        .neq('id', id);
+
+      if (!dupErr && duplicateCheck && duplicateCheck.length > 0) {
+        const isDuplicate = duplicateCheck.some(
+          (t: any) => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (isDuplicate) {
+          return {
+            success: false,
+            message: `Another tournament named "${trimmedName}" already exists. Please choose a unique name.`,
+          };
+        }
+      }
     }
 
     // 2. Validate status lifecycle transition (Task 2)

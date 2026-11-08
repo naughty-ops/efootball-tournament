@@ -124,12 +124,38 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+/**
+ * Validates whether a tournament name is eligible for creation.
+ * Rules:
+ * - Must be non-empty after trimming
+ * - Minimum 3 characters, maximum 100 characters
+ * - Must contain at least one alphanumeric character
+ */
+export function isEligibleTournamentName(name: string): { eligible: boolean; error?: string } {
+  const trimmed = (name || '').trim();
+  if (trimmed.length < 3) {
+    return { eligible: false, error: 'Tournament name must be at least 3 characters long.' };
+  }
+  if (trimmed.length > 100) {
+    return { eligible: false, error: 'Tournament name cannot exceed 100 characters.' };
+  }
+  if (!/[a-zA-Z0-9]/.test(trimmed)) {
+    return { eligible: false, error: 'Tournament name must contain at least one letter or number.' };
+  }
+  return { eligible: true };
+}
+
 export const tournamentSchema = z
   .object({
     name: z
       .string()
+      .trim()
       .min(3, 'Tournament name must be at least 3 characters')
-      .max(100, 'Tournament name must not exceed 100 characters'),
+      .max(100, 'Tournament name must not exceed 100 characters')
+      .refine(
+        (val) => /[a-zA-Z0-9]/.test(val),
+        { message: 'Tournament name must contain at least one letter or number' }
+      ),
     description: z.string().optional().nullable(),
     format: z.enum(['knockout', 'league', 'group_knockout', 'single_league_knockout'], {
       message: 'Please select a valid tournament format',

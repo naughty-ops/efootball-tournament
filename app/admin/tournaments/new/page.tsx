@@ -30,7 +30,7 @@ import {
   Award,
 } from 'lucide-react';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
-import { createTournamentAction } from '@/app/actions/tournamentActions';
+import { createTournamentAction, checkTournamentNameAvailabilityAction } from '@/app/actions/tournamentActions';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,9 @@ export default function CreateTournamentPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [isCheckingName, setIsCheckingName] = useState(false);
+  const [nameStatus, setNameStatus] = useState<{ checked: boolean; available: boolean; message?: string } | null>(null);
   const [matchLength, setMatchLength] = useState('8');
   const [extraTime, setExtraTime] = useState(true);
   const [penalties, setPenalties] = useState(true);
@@ -127,11 +130,66 @@ export default function CreateTournamentPage() {
   // Live financial calculations
   const projectedGross = isPaid ? maxParticipants * entryFeeRupees : 0;
 
-  // Step navigation with field validation
+  // Real-time tournament name availability & eligibility check
+  const handleNameBlur = async () => {
+    const nameVal = (watch('name') || '').trim();
+    if (nameVal.length < 3) {
+      setNameStatus(null);
+      return;
+    }
+    setIsCheckingName(true);
+    try {
+      const res = await checkTournamentNameAvailabilityAction(nameVal);
+      setNameStatus({
+        checked: true,
+        available: res.available,
+        message: res.available ? 'Tournament name is eligible and available!' : res.error,
+      });
+      if (!res.available && res.error) {
+        setErrorMessage(res.error);
+      } else {
+        setErrorMessage(null);
+      }
+    } catch {
+      setNameStatus(null);
+    } finally {
+      setIsCheckingName(false);
+    }
+  };
+
+  // Step navigation with field validation & duplicate name verification
   const nextStep = async () => {
     let fieldsToValidate: (keyof TournamentInput)[] = [];
     if (currentStep === 1) {
       fieldsToValidate = ['name', 'start_date', 'end_date', 'registration_deadline', 'banner_image'];
+      const isValid = await trigger(fieldsToValidate);
+      if (!isValid) return;
+
+      const nameVal = (watch('name') || '').trim();
+      setIsCheckingName(true);
+      try {
+        const check = await checkTournamentNameAvailabilityAction(nameVal);
+        if (!check.available) {
+          setErrorMessage(check.error || 'Tournament name is not eligible or is already in use.');
+          setNameStatus({
+            checked: true,
+            available: false,
+            message: check.error,
+          });
+          return;
+        }
+        setNameStatus({
+          checked: true,
+          available: true,
+          message: 'Tournament name is eligible and available!',
+        });
+      } finally {
+        setIsCheckingName(false);
+      }
+
+      setErrorMessage(null);
+      setCurrentStep(2);
+      return;
     } else if (currentStep === 2) {
       fieldsToValidate = ['format', 'rounds_per_pair', 'qualifiers_per_group'];
     } else if (currentStep === 3) {
@@ -179,12 +237,16 @@ export default function CreateTournamentPage() {
   };
 
   const submitTournament = async (targetStatus: 'draft' | 'registration') => {
+    // Strict lock against rapid double-clicks and concurrent submissions
+    if (isSubmittingForm) return;
+    setIsSubmittingForm(true);
     setErrorMessage(null);
     setValue('status', targetStatus);
 
     const valid = await trigger();
     if (!valid) {
       setErrorMessage('Please fix validation errors before submitting.');
+      setIsSubmittingForm(false);
       return;
     }
 
@@ -194,6 +256,7 @@ export default function CreateTournamentPage() {
       const res = await createTournamentAction(data);
       if (!res.success) {
         setErrorMessage(res.message);
+        setIsSubmittingForm(false);
         return;
       }
       router.push('/admin/tournaments');
@@ -201,6 +264,7 @@ export default function CreateTournamentPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create tournament';
       setErrorMessage(msg);
+      setIsSubmittingForm(false);
     }
   };
 
@@ -302,15 +366,37 @@ export default function CreateTournamentPage() {
           {currentStep === 1 && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div>
-                <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
-                  Tournament Name *
+                <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                  <span>Tournament Name *</span>
+                  <span className="text-[10px] text-white/50 font-normal lowercase">unique competitive title</span>
                 </label>
-                <Input
-                  placeholder="e.g. eFootball Championship Spring 2026"
-                  disabled={isSubmitting}
-                  className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11"
-                  {...register('name')}
-                />
+                <div className="relative">
+                  <Input
+                    placeholder="e.g. eFootball Championship Spring 2026"
+                    disabled={isSubmitting || isSubmittingForm}
+                    className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11 pr-10"
+                    {...register('name')}
+                    onBlur={handleNameBlur}
+                  />
+                  {isCheckingName && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#FFFF00]" />
+                    </div>
+                  )}
+                </div>
+                {nameStatus?.checked && !errors.name && (
+                  nameStatus.available ? (
+                    <p className="text-xs text-emerald-300 mt-1.5 font-medium flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>{nameStatus.message}</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-300 mt-1.5 font-medium flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{nameStatus.message}</span>
+                    </p>
+                  )
+                )}
                 {errors.name && <p className="text-xs text-red-300 mt-1 font-medium">{errors.name.message}</p>}
               </div>
 
@@ -1200,7 +1286,7 @@ export default function CreateTournamentPage() {
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isSubmittingForm || isCheckingName}
                   className="w-full sm:w-auto rounded-full border-white/30 text-white hover:bg-white/10 font-bold px-6 h-11 gap-2 cursor-pointer justify-center"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -1214,21 +1300,34 @@ export default function CreateTournamentPage() {
                 <Button
                   type="button"
                   onClick={nextStep}
+                  disabled={isSubmitting || isSubmittingForm || isCheckingName}
                   className="w-full sm:w-auto bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black rounded-full px-8 h-11 gap-2 shadow-lg uppercase tracking-wider cursor-pointer justify-center"
                 >
-                  <span>Continue to Step {currentStep + 1}</span>
-                  <ArrowRight className="h-4 w-4" />
+                  {isCheckingName ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-[#08088F]" />
+                      <span>Validating Name...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Continue to Step {currentStep + 1}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                   <Button
                     type="button"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSubmittingForm}
                     onClick={() => submitTournament('draft')}
-                    className="w-full sm:w-auto bg-[#0A0A7A] hover:bg-[#0A0A7A]/80 text-white border border-white/30 font-bold rounded-full px-6 h-11 gap-2 cursor-pointer justify-center"
+                    className="w-full sm:w-auto bg-[#0A0A7A] hover:bg-[#0A0A7A]/80 text-white border border-white/30 font-bold rounded-full px-6 h-11 gap-2 cursor-pointer justify-center disabled:opacity-50"
                   >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {isSubmittingForm ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Saving Draft...</span>
+                      </>
                     ) : (
                       <>
                         <FileText className="h-4 w-4" />
@@ -1239,14 +1338,14 @@ export default function CreateTournamentPage() {
 
                   <Button
                     type="button"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSubmittingForm}
                     onClick={() => submitTournament('registration')}
-                    className="w-full sm:w-auto bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black rounded-full px-8 h-11 gap-2 shadow-lg uppercase tracking-wider cursor-pointer justify-center"
+                    className="w-full sm:w-auto bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black rounded-full px-8 h-11 gap-2 shadow-lg uppercase tracking-wider cursor-pointer justify-center disabled:opacity-50"
                   >
-                    {isSubmitting ? (
+                    {isSubmittingForm ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin text-[#08088F]" />
-                        <span>Publishing...</span>
+                        <span>Publishing Tournament...</span>
                       </>
                     ) : (
                       <>
