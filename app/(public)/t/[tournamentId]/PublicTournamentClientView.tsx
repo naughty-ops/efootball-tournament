@@ -40,6 +40,7 @@ import PublicOverviewTab from '@/components/public/tournament/PublicOverviewTab'
 import PublicParticipantsTab from '@/components/public/tournament/PublicParticipantsTab';
 import PublicMatchesTab from '@/components/public/tournament/PublicMatchesTab';
 import PublicChampionBanner from '@/components/public/tournament/PublicChampionBanner';
+import { TournamentPrizeShowcase } from '@/components/tournament/TournamentPrizeShowcase';
 import { SwipeableTabBar, SwipeableTabContainer, type TabItem } from '@/components/ui/SwipeableTabs';
 
 // Dynamically import heavy visual components and modal overlays
@@ -586,6 +587,9 @@ export default function PublicTournamentClientView({
 
             {/* Quick Stat Pills */}
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-bold text-[#D9DCFF]">
+              {/* Prominent Prize Showcase Pill */}
+              <TournamentPrizeShowcase prizePoolPaise={tournament.prize_pool_paise} variant="chip" />
+
               <div className="flex items-center gap-2 bg-[#0A0A7A] border border-white/15 px-3 py-1.5 rounded-full">
                 <Users className="h-3.5 w-3.5 text-[#FFFF00]" />
                 <span>

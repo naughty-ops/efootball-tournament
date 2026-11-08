@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShareModal } from '@/components/share/ShareModal';
 import { EditCoverImageModal } from '@/components/tournament/EditCoverImageModal';
+import { TournamentPrizeShowcase } from '@/components/tournament/TournamentPrizeShowcase';
 
 interface TournamentCardProps {
   tournament: TournamentWithStats;
@@ -195,6 +196,15 @@ export function TournamentCard({ tournament: t, isAdmin = false, priority = fals
                 )}
               </div>
             ) : null}
+
+            {/* Tournament Prize Showcase: Prominently displays prize money distributed to champions / runners up */}
+            <TournamentPrizeShowcase
+              prizePoolPaise={t.prize_pool_paise}
+              isCompleted={isCompleted}
+              championName={champion?.username}
+              runnerUpName={runnerUp?.username}
+              variant="card"
+            />
 
             {/* Metadata Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs py-2 px-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/15 font-bold text-white">

@@ -503,8 +503,11 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
               </div>
 
               <div>
-                <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider">
-                  Prize Pool (₹ INR)
+                <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between max-w-xs">
+                  <span>Prize Pool (₹ INR)</span>
+                  <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
+                    {prizePoolRupees * 100} paise
+                  </span>
                 </label>
                 <Input
                   type="number"
@@ -514,6 +517,19 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                   className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11 max-w-xs font-mono font-bold"
                   {...register('prize_pool_rupees', { valueAsNumber: true })}
                 />
+                <p className="text-[11px] text-white/60 mt-1">
+                  Total prize money distributed to champions / runners up.
+                </p>
+                {prizePoolRupees > 0 && (
+                  <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#07075A] border border-amber-400/40 text-amber-300 font-bold">
+                      🏆 Champion (70%): ₹{Math.round(prizePoolRupees * 0.7).toLocaleString('en-IN')}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-[#07075A] border border-white/20 text-slate-300 font-bold">
+                      🥈 Runner-Up (30%): ₹{(prizePoolRupees - Math.round(prizePoolRupees * 0.7)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

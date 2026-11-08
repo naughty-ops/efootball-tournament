@@ -9,6 +9,7 @@ import type { GroupStageOverview } from '@/services/groupService';
 import type { BracketOverview } from '@/services/bracketService';
 import { SeasonStatsCards } from '@/components/tournament/SeasonStatsCards';
 import { TournamentRegistrationCard } from '@/components/tournament/TournamentRegistrationCard';
+import { TournamentPrizeShowcase } from '@/components/tournament/TournamentPrizeShowcase';
 
 interface PublicOverviewTabProps {
   tournament: TournamentWithStats;
@@ -118,6 +119,15 @@ export default function PublicOverviewTab({
           </div>
         </div>
       )}
+
+      {/* Official Tournament Prize Showcase */}
+      <TournamentPrizeShowcase
+        prizePoolPaise={tournament.prize_pool_paise}
+        isCompleted={isCompleted}
+        championName={champion?.username}
+        runnerUpName={runnerUp?.username}
+        variant="banner"
+      />
 
       {/* Tournament Registration Card */}
       <TournamentRegistrationCard tournament={tournament} />

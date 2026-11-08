@@ -31,11 +31,12 @@ import type { Participant, Tournament, TournamentStatus } from '@/types/database
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatRupees } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/modal';
 import { StageProgressIndicator } from '@/components/tournament/StageProgressIndicator';
 import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 import { SeasonStatsCards } from '@/components/tournament/SeasonStatsCards';
+import { TournamentPrizeShowcase } from '@/components/tournament/TournamentPrizeShowcase';
 import { TournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';
 import {
   getFixtureStatus,
@@ -347,6 +348,15 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
         </Card>
       )}
 
+      {/* Tournament Prize Showcase */}
+      <TournamentPrizeShowcase
+        prizePoolPaise={tournament.prize_pool_paise}
+        isCompleted={isCompleted}
+        championName={champion?.username}
+        runnerUpName={stageInfo?.finalWinner?.username}
+        variant="banner"
+      />
+
       {/* Visual Lifecycle Progress Indicator */}
       <StageProgressIndicator format={tournament.format} subStage={subStage} />
 
@@ -386,6 +396,12 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
               <CardTitle className="text-base font-extrabold text-[#0B3323]">Key Metrics</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
+              <div className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-muted-foreground">Prize Pool</span>
+                <span className="font-bold text-emerald-600">
+                  {formatRupees((tournament.prize_pool_paise || 0) / 100)}
+                </span>
+              </div>
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Format</span>
                 <span className="font-bold text-[#0B3323] uppercase">{tournament.format.replace('_', ' + ')}</span>

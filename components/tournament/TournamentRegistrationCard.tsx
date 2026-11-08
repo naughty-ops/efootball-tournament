@@ -26,6 +26,7 @@ import { cancelRegistrationRequestAction } from '@/app/actions/paymentRegistrati
 import { getManualPaymentSettings, DEFAULT_MANUAL_PAYMENT_SETTINGS } from '@/services/paymentSettingsService';
 import { generateWhatsAppPaymentLink } from '@/lib/whatsappPayment';
 import { playConnecting } from '@/src/lib/sounds/sound-manager';
+import { calculatePrizeSplit } from '@/lib/utils';
 import type { TournamentWithStats } from '@/services/tournamentService';
 import type { ManualPaymentSettings, RegistrationStatus } from '@/types/database';
 
@@ -59,6 +60,7 @@ export function TournamentRegistrationCard({
 
   const isPaidTournament = Boolean(tournament.is_paid && (tournament.entry_fee_paise || 0) > 0);
   const entryFeeINR = Math.round((tournament.entry_fee_paise || 0) / 100);
+  const prizeSplit = calculatePrizeSplit(tournament.prize_pool_paise || 0);
 
   // Check user session, registration status & payment settings
   const checkAuthAndRegistration = useCallback(async () => {
@@ -255,6 +257,12 @@ export function TournamentRegistrationCard({
                   {tournament.status}
                 </Badge>
               )}
+              <Badge className="bg-amber-400 text-amber-950 font-black text-[10px] uppercase px-3 py-1 rounded-full border-0 flex items-center gap-1 shadow-xs">
+                <Trophy className="h-3 w-3 text-amber-950" />
+                <span>
+                  PRIZE POOL: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedTotal : 'TROPHY & GLORY'}
+                </span>
+              </Badge>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white uppercase font-display tracking-tight">
               {isRegistrationOpen ? 'Reserve Your Competitor Slot' : 'Tournament Registration'}
@@ -272,6 +280,27 @@ export function TournamentRegistrationCard({
                 {isFull ? 'Tournament Full' : `${slotsRemaining} slots remaining`}
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Prize Pool Distribution Showcase */}
+        <div className="p-4 rounded-2xl bg-[#1010C5] border border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5 text-[#FFFF00] font-black uppercase text-[11px] tracking-wider">
+              <Trophy className="h-3.5 w-3.5" />
+              <span>Official Prize Pool: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedTotal : 'Trophy & Glory'}</span>
+            </div>
+            <p className="text-[11px] text-[#D9DCFF]/80 font-medium">
+              Total prize money distributed to champions / runners up.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-3 py-1 rounded-xl bg-[#08088F] border border-amber-400/40 text-amber-300 font-extrabold text-[11px]">
+              🏆 1st: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedChampion : '70%'}
+            </span>
+            <span className="px-3 py-1 rounded-xl bg-[#08088F] border border-white/20 text-slate-300 font-extrabold text-[11px]">
+              🥈 2nd: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedRunnerUp : '30%'}
+            </span>
           </div>
         </div>
 

@@ -813,7 +813,7 @@ export default function CreateTournamentPage() {
                 </div>
               </div>
 
-              {isPaid && (
+              {isPaid ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-[#0A0A7A] border border-white/20">
                   <div>
                     <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between">
@@ -862,6 +862,27 @@ export default function CreateTournamentPage() {
                       Total prize money distributed to champions / runners up.
                     </p>
                   </div>
+                </div>
+              ) : (
+                <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-2">
+                  <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between max-w-sm">
+                    <span>Sponsored Prize Pool (₹ INR - Optional)</span>
+                    <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
+                      {prizePoolRupees * 100} paise
+                    </span>
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10000000}
+                    placeholder="0 (or enter prize pool e.g. 1000)"
+                    disabled={isSubmitting}
+                    className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 text-base font-bold font-mono max-w-sm"
+                    {...register('prize_pool_rupees', { valueAsNumber: true })}
+                  />
+                  <p className="text-[11px] text-white/60">
+                    Total prize money distributed to champions / runners up. Free tournaments can feature sponsored cash prizes.
+                  </p>
                 </div>
               )}
 
