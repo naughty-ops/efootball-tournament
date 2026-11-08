@@ -58,10 +58,12 @@ export default function SignupPage() {
           data: {
             full_name: data.fullName.trim(),
             efootball_id: normalizedEfootballId,
-            efootball_id_verified: true,
-            efootball_verification_status: 'verified',
+            efootball_id_verified: false,
+            efootball_verification_status: 'pending',
             whatsapp_number: data.whatsappNumber.trim(),
-            whatsapp_verification_status: 'not_submitted',
+            whatsapp_verified: false,
+            whatsapp_verification_status: 'pending',
+            whatsapp_verification_requested_at: new Date().toISOString(),
           },
         },
       });

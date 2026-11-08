@@ -250,6 +250,13 @@ export async function getVerificationDashboardStatsAction(): Promise<ActionRespo
     await requireAdmin();
     const supabase = await createClient();
 
+    // Trigger self-healing profile sync for any orphaned auth.users
+    try {
+      await supabase.rpc('sync_missing_profiles');
+    } catch {
+      // Non-fatal fallback
+    }
+
     const [allRes, verifiedRes, pendingRes, rejectedRes, suspendedRes] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase
@@ -259,7 +266,10 @@ export async function getVerificationDashboardStatsAction(): Promise<ActionRespo
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('whatsapp_verification_status', 'pending'),
+        .or('whatsapp_verified.eq.false,efootball_id_verified.eq.false,whatsapp_verification_status.in.(pending,not_submitted),efootball_verification_status.eq.pending')
+        .neq('whatsapp_verification_status', 'rejected')
+        .neq('efootball_verification_status', 'rejected')
+        .not('account_status', 'in', '("suspended","disabled")'),
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -267,7 +277,7 @@ export async function getVerificationDashboardStatsAction(): Promise<ActionRespo
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('account_status', 'suspended'),
+        .in('account_status', ['suspended', 'disabled']),
     ]);
 
     const stats: VerificationDashboardStats = {
@@ -317,6 +327,13 @@ export async function getAdminVerificationQueueAction(options: {
     await requireAdmin();
     const supabase = await createClient();
 
+    // Trigger self-healing profile sync for any orphaned auth.users
+    try {
+      await supabase.rpc('sync_missing_profiles');
+    } catch {
+      // Non-fatal fallback
+    }
+
     const filter = options.tab || options.filter || 'all';
     const search = options.search?.trim() || '';
     const sortBy = options.sortBy || 'created_at_desc';
@@ -327,7 +344,11 @@ export async function getAdminVerificationQueueAction(options: {
 
     // 1. Tab Filters
     if (filter === 'pending') {
-      query = query.or('whatsapp_verification_status.eq.pending,efootball_verification_status.eq.pending');
+      query = query
+        .or('whatsapp_verified.eq.false,efootball_id_verified.eq.false,whatsapp_verification_status.in.(pending,not_submitted),efootball_verification_status.eq.pending')
+        .neq('whatsapp_verification_status', 'rejected')
+        .neq('efootball_verification_status', 'rejected')
+        .not('account_status', 'in', '("suspended","disabled")');
     } else if (filter === 'verified') {
       query = query.eq('whatsapp_verified', true);
     } else if (filter === 'rejected') {
