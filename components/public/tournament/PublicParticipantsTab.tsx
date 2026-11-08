@@ -50,7 +50,6 @@ export default function PublicParticipantsTab({ participants }: PublicParticipan
         {participants.map((p, idx) => {
           const hasRealName = Boolean(p.real_name && p.real_name.trim().length > 0);
           const playerName = hasRealName ? p.real_name!.trim() : p.username;
-          const showSeparateId = hasRealName && p.real_name!.trim().toLowerCase() !== p.username.trim().toLowerCase();
 
           return (
             <div
@@ -66,7 +65,7 @@ export default function PublicParticipantsTab({ participants }: PublicParticipan
                 {p.seed_number ?? (idx + 1)}
               </div>
 
-              {/* Player Name and eFootball ID */}
+              {/* Player Name */}
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   'text-sm font-black truncate text-white tracking-wide',
@@ -75,13 +74,6 @@ export default function PublicParticipantsTab({ participants }: PublicParticipan
                 )}>
                   {playerName}
                 </p>
-
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span className="text-[10px] font-mono font-bold text-[#FFFF00] bg-[#0A0A7A] px-2 py-0.5 rounded-md border border-white/15 tracking-wider inline-flex items-center gap-1">
-                    <span className="text-white/60 font-sans text-[9px] uppercase">ID:</span>
-                    <span>{p.username}</span>
-                  </span>
-                </div>
               </div>
 
               {/* Status badge */}

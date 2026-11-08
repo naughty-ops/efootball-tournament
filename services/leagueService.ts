@@ -128,7 +128,11 @@ export async function generateLeagueFixtures(
 
   if (pErr) throw new Error(`Failed to load participants: ${formatSupabaseError(pErr)}`);
 
-  const participants = (pData || []) as Participant[];
+  const rawParticipants = (pData || []) as any[];
+  const participants = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
   if (participants.length < 2) {
     throw new Error('At least 2 participants are required to generate league fixtures.');
   }

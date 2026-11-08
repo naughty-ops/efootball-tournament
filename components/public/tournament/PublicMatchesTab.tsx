@@ -81,7 +81,7 @@ function MatchCard({ match }: { match: FullMatchData }) {
               ? 'text-[#FFFF00] font-black'
               : 'text-white'
           )}>
-            {match.participantAUser?.username ?? 'TBD'}
+            {match.participantAUser?.real_name || match.participantAUser?.username || 'TBD'}
           </p>
           {isCompleted && !isDraw && match.winner_id === match.participant_a && (
             <span className="text-[10px] font-black text-[#FFFF00] uppercase tracking-wider">WINNER</span>
@@ -137,7 +137,7 @@ function MatchCard({ match }: { match: FullMatchData }) {
               ? 'text-[#FFFF00] font-black'
               : 'text-white'
           )}>
-            {match.participantBUser?.username ?? 'TBD'}
+            {match.participantBUser?.real_name || match.participantBUser?.username || 'TBD'}
           </p>
           {isCompleted && !isDraw && match.winner_id === match.participant_b && (
             <span className="text-[10px] font-black text-[#FFFF00] uppercase tracking-wider">WINNER</span>
@@ -264,7 +264,7 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
                         <span className={cn('flex h-5 w-5 items-center justify-center rounded text-[10px] font-black', isTopQual ? 'bg-[#FFFF00] text-[#08088F]' : 'bg-[#0A0A7A] text-[#D9DCFF]')}>
                           {idx + 1}
                         </span>
-                        <span className="font-bold text-white truncate max-w-[120px]">{row.participant.username}</span>
+                        <span className="font-bold text-white truncate max-w-[120px]">{row.participant.real_name || row.participant.username}</span>
                         {idx === 0 && <span className="text-[10px]">🏆</span>}
                       </td>
                       <td className="py-2.5 px-2 text-center text-[#D9DCFF]">{row.played}</td>

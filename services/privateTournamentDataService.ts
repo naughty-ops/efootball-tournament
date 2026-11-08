@@ -78,7 +78,11 @@ export async function getAuthorizedPrivateTournamentData(
   const rawTournament = tournamentRes.data as Tournament;
 
   // 1. Process Participants (Empty array is a valid result if no participants registered yet)
-  const participants = (participantsRes.data || []) as Participant[];
+  const rawParticipants = (participantsRes.data || []) as Participant[];
+  const participants: Participant[] = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  }));
   const participantMap = new Map<string, Participant>(participants.map((p) => [p.id, p]));
 
   // 2. Process Matches and enrich with populated participant details

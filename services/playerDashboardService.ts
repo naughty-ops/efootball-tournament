@@ -1095,14 +1095,14 @@ export async function selfRegisterTournament(
   // --------------------------------------------------------------------------
   // BRANCH B: FREE TOURNAMENT (Instant Participant Enrollment)
   // --------------------------------------------------------------------------
-  const username = normalizedEfootballId;
+  const playerName = profile.display_name?.trim() || normalizedEfootballId;
   const { data: newParticipant, error: insertErr } = await supabase
     .from('participants')
     .insert({
       tournament_id: tournamentId,
       user_id: userId,
-      username: username,
-      real_name: profile.display_name?.trim() || username,
+      username: playerName,
+      real_name: playerName,
       contact_info: profile.whatsapp_number?.trim() || null,
       status: 'active',
       terms_accepted: true,

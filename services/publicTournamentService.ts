@@ -134,7 +134,12 @@ export async function getPublicParticipants(tournamentId: string, customClient?:
     throw new Error('Failed to load participants.');
   }
 
-  return (data || []) as PublicParticipant[];
+  const mapped = (data || []).map((p: any) => ({
+    ...p,
+    username: p.real_name || p.username,
+  }));
+
+  return mapped as PublicParticipant[];
 }
 
 /**

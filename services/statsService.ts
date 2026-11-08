@@ -53,7 +53,11 @@ export async function getTournamentSeasonRecords(tournamentId: string): Promise<
     ps = fallback.data;
   }
 
-  const participants = (ps || []) as Participant[];
+  const rawParticipants = (ps || []) as any[];
+  const participants = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
   if (participants.length === 0) {
     return {
       topScorer: null,

@@ -148,13 +148,13 @@ function PlayerSlot({
               : 'bg-slate-200 text-slate-400 border-slate-300'
           )}
         >
-          {participant ? getInitials(participant.username) : '?'}
+          {participant ? getInitials(participant.real_name || participant.username) : '?'}
         </div>
 
-        {/* Username or Smart Placeholder */}
+        {/* Player Name or Smart Placeholder */}
         <div className="min-w-0 flex-1">
           <span
-            title={participant?.username || placeholderText}
+            title={participant ? (participant.real_name || participant.username) : placeholderText}
             className={cn(
               'text-xs font-bold block truncate tracking-tight',
               isWinner
@@ -166,13 +166,8 @@ function PlayerSlot({
                 : 'text-slate-400 text-[10px] italic font-semibold'
             )}
           >
-            {participant ? participant.username : placeholderText}
+            {participant ? (participant.real_name || participant.username) : placeholderText}
           </span>
-          {participant?.real_name && (
-            <span className="text-[9px] text-muted-foreground block truncate -mt-0.5">
-              {participant.real_name}
-            </span>
-          )}
         </div>
       </div>
 

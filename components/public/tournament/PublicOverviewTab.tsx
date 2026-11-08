@@ -100,7 +100,7 @@ export default function PublicOverviewTab({
                 <span>🏆 TOURNAMENT CHAMPION</span>
               </div>
               <p className="text-2xl sm:text-3xl font-black font-display uppercase tracking-wide text-white truncate">
-                {champion?.username || 'Champion TBD'}
+                {champion?.real_name || champion?.username || 'Champion TBD'}
               </p>
             </div>
 
@@ -112,7 +112,7 @@ export default function PublicOverviewTab({
                   <span>🥈 RUNNER-UP</span>
                 </div>
                 <p className="text-xl sm:text-2xl font-bold font-display uppercase text-white truncate">
-                  {runnerUp.username}
+                  {runnerUp.real_name || runnerUp.username}
                 </p>
               </div>
             )}
@@ -124,8 +124,8 @@ export default function PublicOverviewTab({
       <TournamentPrizeShowcase
         tournament={tournament}
         isCompleted={isCompleted}
-        championName={champion?.username}
-        runnerUpName={runnerUp?.username}
+        championName={champion?.real_name || champion?.username}
+        runnerUpName={runnerUp?.real_name || runnerUp?.username}
         variant="banner"
       />
 

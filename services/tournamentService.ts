@@ -140,8 +140,8 @@ export async function getTournaments(params?: GetTournamentsParams): Promise<Tou
     sanitizeTournamentObject({
       ...t,
       participant_count: t.participants?.[0]?.count ?? 0,
-      championUser: t.champion ?? null,
-      runnerUpUser: t.runner_up ?? null,
+      championUser: t.champion ? { ...t.champion, username: t.champion.real_name || t.champion.username } : null,
+      runnerUpUser: t.runner_up ? { ...t.runner_up, username: t.runner_up.real_name || t.runner_up.username } : null,
     })
   );
 }
@@ -179,8 +179,8 @@ export async function getTournamentById(id: string, customClient?: any): Promise
   return sanitizeTournamentObject({
     ...row,
     participant_count: row.participants?.[0]?.count ?? 0,
-    championUser: row.champion ?? null,
-    runnerUpUser: row.runner_up ?? null,
+    championUser: row.champion ? { ...row.champion, username: row.champion.real_name || row.champion.username } : null,
+    runnerUpUser: row.runner_up ? { ...row.runner_up, username: row.runner_up.real_name || row.runner_up.username } : null,
   });
 }
 

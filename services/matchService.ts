@@ -77,7 +77,11 @@ export async function getMatchesByTournament(
       .eq('tournament_id', tournamentId);
   }
 
-  const participants = (pRes.data || []) as Participant[];
+  const rawParticipants = (pRes.data || []) as any[];
+  const participants = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
   const participantMap = new Map<string, Participant>(participants.map((p) => [p.id, p]));
 
   // 3. Fetch Matches
@@ -262,7 +266,11 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
 
   const rounds = (rRes.data || []) as Round[];
   const groups = (gRes.data || []) as { id: string; name: string; tournament_id: string }[];
-  const participants = (pResRaw.data || []) as Participant[];
+  const rawParticipants2 = (pResRaw.data || []) as any[];
+  const participants = rawParticipants2.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
 
   const roundMap = new Map<string, Round>(rounds.map((r) => [r.id, r]));
   const groupMap = new Map<string, { id: string; name: string; tournament_id: string }>(

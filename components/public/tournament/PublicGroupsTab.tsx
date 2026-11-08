@@ -66,7 +66,7 @@ function StandingsTable({
                         {idx + 1}
                       </span>
                       <span className="font-bold truncate max-w-[130px] text-white">
-                        {row.participant.username}
+                        {row.participant.real_name || row.participant.username}
                       </span>
                       {isLeagueWinner && (
                         <span className="text-[9px] py-0.5 px-2 bg-[#FFFF00] text-[#08088F] font-black rounded-full shrink-0">

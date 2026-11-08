@@ -160,7 +160,11 @@ export async function getTournamentGroups(tournamentId: string, customClient?: a
       .order('seed_number', { ascending: true });
   }
 
-  const participants = (pRes.data || []) as Participant[];
+  const rawParticipants = (pRes.data || []) as any[];
+  const participants = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
   const participantMap = new Map<string, Participant>(participants.map((p) => [p.id, p]));
 
   // 3. Fetch Groups

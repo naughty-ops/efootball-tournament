@@ -104,7 +104,11 @@ export async function getTournamentBracket(tournamentId: string, customClient?: 
       .order('seed_number', { ascending: true });
   }
 
-  const participants = (pRes.data || []) as Participant[];
+  const rawParticipants = (pRes.data || []) as any[];
+  const participants = rawParticipants.map((p) => ({
+    ...p,
+    username: p.real_name || p.username,
+  })) as Participant[];
 
   // 3. Fetch Rounds (ONLY Knockout Rounds - strictly exclude Matchday 1..N and Group Stage)
   const rRes = await (supabase.from('rounds') as unknown as UnknownQuery)
