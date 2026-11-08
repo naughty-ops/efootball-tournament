@@ -48,6 +48,19 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
       ? computePaiseAmount(validData.entry_fee_rupees, validData.entry_fee_paise)
       : 0;
     const prizePoolPaise = computePaiseAmount(validData.prize_pool_rupees, validData.prize_pool_paise);
+    const firstPlacePaise = computePaiseAmount(validData.first_place_rupees, validData.first_place_paise);
+    const secondPlacePaise = computePaiseAmount(validData.second_place_rupees, validData.second_place_paise);
+    const thirdPlacePaise = computePaiseAmount(validData.third_place_rupees, validData.third_place_paise);
+    let totalPrizePoolPaise = prizePoolPaise;
+    if (totalPrizePoolPaise === 0 && (firstPlacePaise > 0 || secondPlacePaise > 0 || thirdPlacePaise > 0)) {
+      totalPrizePoolPaise = firstPlacePaise + secondPlacePaise + thirdPlacePaise;
+    }
+
+    const prizeDistribution = {
+      first: { paise: firstPlacePaise, notes: validData.first_place_notes?.trim() || null },
+      second: { paise: secondPlacePaise, notes: validData.second_place_notes?.trim() || null },
+      third: { paise: thirdPlacePaise, notes: validData.third_place_notes?.trim() || null },
+    };
 
     const isPrivate = Boolean(validData.is_private);
     let accessCodeHash: string | null = null;
@@ -75,7 +88,14 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
       rounds_per_pair: validData.rounds_per_pair || 1,
       is_paid: isPaid,
       entry_fee_paise: entryFeePaise,
-      prize_pool_paise: prizePoolPaise,
+      prize_pool_paise: totalPrizePoolPaise,
+      first_place_prize_paise: firstPlacePaise,
+      first_place_notes: validData.first_place_notes?.trim() || null,
+      second_place_prize_paise: secondPlacePaise,
+      second_place_notes: validData.second_place_notes?.trim() || null,
+      third_place_prize_paise: thirdPlacePaise,
+      third_place_notes: validData.third_place_notes?.trim() || null,
+      prize_distribution: prizeDistribution,
       currency: validData.currency?.trim() || 'INR',
       is_private: isPrivate,
       access_code_hash: accessCodeHash,
@@ -249,6 +269,19 @@ export async function updateTournamentAction(
       }
     }
     const prizePoolPaise = computePaiseAmount(validData.prize_pool_rupees, validData.prize_pool_paise);
+    const firstPlacePaise = computePaiseAmount(validData.first_place_rupees, validData.first_place_paise);
+    const secondPlacePaise = computePaiseAmount(validData.second_place_rupees, validData.second_place_paise);
+    const thirdPlacePaise = computePaiseAmount(validData.third_place_rupees, validData.third_place_paise);
+    let totalPrizePoolPaise = prizePoolPaise;
+    if (totalPrizePoolPaise === 0 && (firstPlacePaise > 0 || secondPlacePaise > 0 || thirdPlacePaise > 0)) {
+      totalPrizePoolPaise = firstPlacePaise + secondPlacePaise + thirdPlacePaise;
+    }
+
+    const prizeDistribution = {
+      first: { paise: firstPlacePaise, notes: validData.first_place_notes?.trim() || null },
+      second: { paise: secondPlacePaise, notes: validData.second_place_notes?.trim() || null },
+      third: { paise: thirdPlacePaise, notes: validData.third_place_notes?.trim() || null },
+    };
 
     const isPrivate = Boolean(validData.is_private);
     let accessCodeHash: string | null = (existing as any).access_code_hash || null;
@@ -279,7 +312,14 @@ export async function updateTournamentAction(
       rounds_per_pair: validData.rounds_per_pair || 1,
       is_paid: isPaid,
       entry_fee_paise: entryFeePaise,
-      prize_pool_paise: prizePoolPaise,
+      prize_pool_paise: totalPrizePoolPaise,
+      first_place_prize_paise: firstPlacePaise,
+      first_place_notes: validData.first_place_notes?.trim() || null,
+      second_place_prize_paise: secondPlacePaise,
+      second_place_notes: validData.second_place_notes?.trim() || null,
+      third_place_prize_paise: thirdPlacePaise,
+      third_place_notes: validData.third_place_notes?.trim() || null,
+      prize_distribution: prizeDistribution,
       currency: validData.currency?.trim() || 'INR',
       is_private: isPrivate,
       access_code_hash: accessCodeHash,

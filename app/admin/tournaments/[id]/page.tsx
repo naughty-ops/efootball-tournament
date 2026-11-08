@@ -350,7 +350,7 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
 
       {/* Tournament Prize Showcase */}
       <TournamentPrizeShowcase
-        prizePoolPaise={tournament.prize_pool_paise}
+        tournament={tournament}
         isCompleted={isCompleted}
         championName={champion?.username}
         runnerUpName={stageInfo?.finalWinner?.username}

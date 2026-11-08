@@ -122,7 +122,7 @@ export default function PublicOverviewTab({
 
       {/* Official Tournament Prize Showcase */}
       <TournamentPrizeShowcase
-        prizePoolPaise={tournament.prize_pool_paise}
+        tournament={tournament}
         isCompleted={isCompleted}
         championName={champion?.username}
         runnerUpName={runnerUp?.username}

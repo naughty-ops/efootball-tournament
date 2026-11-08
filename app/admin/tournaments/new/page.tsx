@@ -26,6 +26,8 @@ import {
   Clock,
   Info,
   Lock,
+  Medal,
+  Award,
 } from 'lucide-react';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
 import { createTournamentAction } from '@/app/actions/tournamentActions';
@@ -97,6 +99,12 @@ export default function CreateTournamentPage() {
       is_paid: false,
       entry_fee_rupees: 0,
       prize_pool_rupees: 0,
+      first_place_rupees: 0,
+      first_place_notes: 'Official Winner Trophy',
+      second_place_rupees: 0,
+      second_place_notes: 'Silver Medal',
+      third_place_rupees: 0,
+      third_place_notes: '',
       currency: 'INR',
       is_private: false,
       access_code: '',
@@ -108,6 +116,12 @@ export default function CreateTournamentPage() {
   const isPaid = watch('is_paid');
   const entryFeeRupees = watch('entry_fee_rupees') || 0;
   const prizePoolRupees = watch('prize_pool_rupees') || 0;
+  const firstPlaceRupees = watch('first_place_rupees') || 0;
+  const firstPlaceNotes = watch('first_place_notes') || '';
+  const secondPlaceRupees = watch('second_place_rupees') || 0;
+  const secondPlaceNotes = watch('second_place_notes') || '';
+  const thirdPlaceRupees = watch('third_place_rupees') || 0;
+  const thirdPlaceNotes = watch('third_place_notes') || '';
   const maxParticipants = watch('max_participants') || 32;
 
   // Live financial calculations
@@ -125,7 +139,17 @@ export default function CreateTournamentPage() {
     } else if (currentStep === 4) {
       fieldsToValidate = ['rules_text'];
     } else if (currentStep === 5) {
-      fieldsToValidate = ['is_paid', 'entry_fee_rupees', 'prize_pool_rupees'];
+      fieldsToValidate = [
+        'is_paid',
+        'entry_fee_rupees',
+        'prize_pool_rupees',
+        'first_place_rupees',
+        'first_place_notes',
+        'second_place_rupees',
+        'second_place_notes',
+        'third_place_rupees',
+        'third_place_notes',
+      ];
     }
 
     const isValid = await trigger(fieldsToValidate);
@@ -813,78 +837,194 @@ export default function CreateTournamentPage() {
                 </div>
               </div>
 
-              {isPaid ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-[#0A0A7A] border border-white/20">
-                  <div>
-                    <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between">
-                      <span>Entry Fee (₹ INR) *</span>
-                      <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
-                        {entryFeeRupees * 100} paise
-                      </span>
-                    </label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={50000}
-                      placeholder="e.g. 50"
-                      disabled={isSubmitting}
-                      className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 text-base font-bold font-mono"
-                      {...register('entry_fee_rupees', { valueAsNumber: true })}
-                    />
-                    {errors.entry_fee_rupees && (
-                      <p className="text-xs text-red-300 mt-1 font-medium">{errors.entry_fee_rupees.message}</p>
-                    )}
-                    <p className="text-[11px] text-white/60 mt-1">
-                      The displayed entry fee is the exact total amount paid by the player in Indian Rupees.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between">
-                      <span>Prize Pool (₹ INR)</span>
-                      <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
-                        {prizePoolRupees * 100} paise
-                      </span>
-                    </label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={10000000}
-                      placeholder="e.g. 1000"
-                      disabled={isSubmitting}
-                      className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 text-base font-bold font-mono"
-                      {...register('prize_pool_rupees', { valueAsNumber: true })}
-                    />
-                    {errors.prize_pool_rupees && (
-                      <p className="text-xs text-red-300 mt-1 font-medium">{errors.prize_pool_rupees.message}</p>
-                    )}
-                    <p className="text-[11px] text-white/60 mt-1">
-                      Total prize money distributed to champions / runners up.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-2">
-                  <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between max-w-sm">
-                    <span>Sponsored Prize Pool (₹ INR - Optional)</span>
+              {isPaid && (
+                <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20">
+                  <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                    <span>Entry Fee (₹ INR) *</span>
                     <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
-                      {prizePoolRupees * 100} paise
+                      {entryFeeRupees * 100} paise
                     </span>
                   </label>
                   <Input
                     type="number"
-                    min={0}
-                    max={10000000}
-                    placeholder="0 (or enter prize pool e.g. 1000)"
+                    min={1}
+                    max={50000}
+                    placeholder="e.g. 50"
                     disabled={isSubmitting}
                     className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 text-base font-bold font-mono max-w-sm"
-                    {...register('prize_pool_rupees', { valueAsNumber: true })}
+                    {...register('entry_fee_rupees', { valueAsNumber: true })}
                   />
-                  <p className="text-[11px] text-white/60">
-                    Total prize money distributed to champions / runners up. Free tournaments can feature sponsored cash prizes.
+                  {errors.entry_fee_rupees && (
+                    <p className="text-xs text-red-300 mt-1 font-medium">{errors.entry_fee_rupees.message}</p>
+                  )}
+                  <p className="text-[11px] text-white/60 mt-1">
+                    The displayed entry fee is the exact total amount paid by the player in Indian Rupees.
                   </p>
                 </div>
               )}
+
+              {/* Prize Pool & Podium Distribution Desk */}
+              <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <label className="text-xs font-bold text-white block uppercase tracking-wider flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-[#FFFF00]" />
+                      <span>Total Prize Pool (₹ INR)</span>
+                    </label>
+                    <p className="text-[11px] text-white/60 mt-0.5">
+                      Total prize money distributed to champions / runners up.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = prizePoolRupees || 1000;
+                        setValue('prize_pool_rupees', total);
+                        setValue('first_place_rupees', Math.round(total * 0.7));
+                        setValue('second_place_rupees', total - Math.round(total * 0.7));
+                        setValue('third_place_rupees', 0);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#1818D4] hover:bg-[#2525E8] border border-white/20 text-[10px] font-bold text-white cursor-pointer"
+                    >
+                      Split 70% / 30%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = prizePoolRupees || 1000;
+                        setValue('prize_pool_rupees', total);
+                        setValue('first_place_rupees', Math.round(total * 0.6));
+                        setValue('second_place_rupees', Math.round(total * 0.3));
+                        setValue('third_place_rupees', total - Math.round(total * 0.6) - Math.round(total * 0.3));
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#1818D4] hover:bg-[#2525E8] border border-white/20 text-[10px] font-bold text-white cursor-pointer"
+                    >
+                      Split 60% / 30% / 10%
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-w-xs">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10000000}
+                    placeholder="e.g. 1000"
+                    disabled={isSubmitting}
+                    className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 text-base font-bold font-mono"
+                    {...register('prize_pool_rupees', { valueAsNumber: true })}
+                  />
+                  {errors.prize_pool_rupees && (
+                    <p className="text-xs text-red-300 mt-1 font-medium">{errors.prize_pool_rupees.message}</p>
+                  )}
+                </div>
+
+                {/* Podium Place Configurations */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  {/* 1st Place */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-amber-400/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5 text-[#FFFF00]" />
+                        1st Place (Champion)
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
+                        Required
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 7000"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('first_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Official Winner Trophy, Jersey"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('first_place_notes')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2nd Place */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-slate-400/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <Medal className="h-3.5 w-3.5 text-slate-300" />
+                        2nd Place (Runner-Up)
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-300 bg-slate-600/20 px-2 py-0.5 rounded">
+                        Required
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 3000"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('second_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Silver Medal, 2000 Coins"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('second_place_notes')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3rd Place (Optional) */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-amber-800/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                        <Award className="h-3.5 w-3.5 text-amber-500" />
+                        3rd Place (Optional)
+                      </span>
+                      <span className="text-[10px] font-bold text-white/50 bg-white/10 px-2 py-0.5 rounded">
+                        Optional
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="0 (optional)"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('third_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Bronze Medal, Distinction Certificate"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('third_place_notes')}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Financial Projection & Policy Summary */}
               <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-3">
@@ -988,6 +1128,41 @@ export default function CreateTournamentPage() {
                     <p className="text-white/80 line-clamp-3 font-mono text-[11px]">{formValues.rules_text}</p>
                   </div>
                 </div>
+
+                {/* Prize Breakdown Preview */}
+                {(prizePoolRupees > 0 || firstPlaceRupees > 0 || secondPlaceRupees > 0) && (
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-white/10 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-bold text-[#FFFF00] uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5" />
+                        Prize Distribution Breakdown
+                      </span>
+                      <span className="text-[10px] text-white/60">
+                        Total prize money distributed to champions / runners up.
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="p-2.5 rounded-lg bg-[#0A0A7A] border border-amber-400/30">
+                        <span className="text-amber-400 font-black text-[10px] uppercase block">1st Place (Champion)</span>
+                        <span className="text-base font-black text-white font-mono">₹{firstPlaceRupees.toLocaleString('en-IN')}</span>
+                        {firstPlaceNotes && <p className="text-[10px] text-amber-200/80 mt-0.5 truncate">{firstPlaceNotes}</p>}
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-[#0A0A7A] border border-slate-400/30">
+                        <span className="text-slate-300 font-black text-[10px] uppercase block">2nd Place (Runner-Up)</span>
+                        <span className="text-base font-black text-white font-mono">₹{secondPlaceRupees.toLocaleString('en-IN')}</span>
+                        {secondPlaceNotes && <p className="text-[10px] text-slate-300/80 mt-0.5 truncate">{secondPlaceNotes}</p>}
+                      </div>
+                      {(thirdPlaceRupees > 0 || thirdPlaceNotes) && (
+                        <div className="p-2.5 rounded-lg bg-[#0A0A7A] border border-amber-800/30">
+                          <span className="text-amber-500 font-black text-[10px] uppercase block">3rd Place (Optional)</span>
+                          <span className="text-base font-black text-white font-mono">₹{thirdPlaceRupees.toLocaleString('en-IN')}</span>
+                          {thirdPlaceNotes && <p className="text-[10px] text-amber-300/80 mt-0.5 truncate">{thirdPlaceNotes}</p>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Validation Checklist */}

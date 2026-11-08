@@ -40,40 +40,109 @@ export interface PrizeDistributionSplit {
   totalPaise: number;
   totalRupees: number;
   championRupees: number;
+  championNotes?: string | null;
   runnerUpRupees: number;
-  championPercent: number;
-  runnerUpPercent: number;
+  runnerUpNotes?: string | null;
+  thirdPlaceRupees: number;
+  thirdPlaceNotes?: string | null;
+  hasThirdPlace: boolean;
+  championPercent?: number;
+  runnerUpPercent?: number;
   formattedTotal: string;
   formattedChampion: string;
   formattedRunnerUp: string;
+  formattedThirdPlace?: string;
   hasPrizeMoney: boolean;
 }
 
 /**
- * Computes standard competitive prize distribution:
- * 70% Champion / 30% Runner-Up for tournaments with prize pools.
+ * Computes tournament prize distribution:
+ * Supports custom admin distribution for 1st place, 2nd place, and optional 3rd place,
+ * complete with additional prize notes/perks (e.g. Trophies, Medals, Jersey, In-game currency),
+ * falling back gracefully to 70% Champion / 30% Runner-Up when specific allocations are not configured.
  */
-export function calculatePrizeSplit(prizePoolPaise: number = 0): PrizeDistributionSplit {
-  const totalPaise = Math.max(0, prizePoolPaise || 0);
+export function calculatePrizeSplit(
+  tournamentOrPaise: number | {
+    prize_pool_paise?: number | null;
+    first_place_prize_paise?: number | null;
+    first_place_notes?: string | null;
+    second_place_prize_paise?: number | null;
+    second_place_notes?: string | null;
+    third_place_prize_paise?: number | null;
+    third_place_notes?: string | null;
+    prize_distribution?: Record<string, any> | null;
+  } = 0
+): PrizeDistributionSplit {
+  let totalPaise = 0;
+  let firstPaise = 0;
+  let secondPaise = 0;
+  let thirdPaise = 0;
+  let firstNotes: string | null = null;
+  let secondNotes: string | null = null;
+  let thirdNotes: string | null = null;
+
+  if (typeof tournamentOrPaise === 'number') {
+    totalPaise = Math.max(0, tournamentOrPaise || 0);
+  } else if (tournamentOrPaise && typeof tournamentOrPaise === 'object') {
+    totalPaise = Math.max(0, tournamentOrPaise.prize_pool_paise || 0);
+    firstPaise = Math.max(0, tournamentOrPaise.first_place_prize_paise || 0);
+    secondPaise = Math.max(0, tournamentOrPaise.second_place_prize_paise || 0);
+    thirdPaise = Math.max(0, tournamentOrPaise.third_place_prize_paise || 0);
+    firstNotes = tournamentOrPaise.first_place_notes || null;
+    secondNotes = tournamentOrPaise.second_place_notes || null;
+    thirdNotes = tournamentOrPaise.third_place_notes || null;
+
+    // Check prize_distribution JSONB fallback
+    const pd = tournamentOrPaise.prize_distribution;
+    if (pd && typeof pd === 'object') {
+      if (pd.first?.notes && !firstNotes) firstNotes = pd.first.notes;
+      if (pd.second?.notes && !secondNotes) secondNotes = pd.second.notes;
+      if (pd.third?.notes && !thirdNotes) thirdNotes = pd.third.notes;
+      if (pd.first?.paise && firstPaise === 0) firstPaise = pd.first.paise;
+      if (pd.second?.paise && secondPaise === 0) secondPaise = pd.second.paise;
+      if (pd.third?.paise && thirdPaise === 0) thirdPaise = pd.third.paise;
+    }
+  }
+
+  // If explicit place amounts are set, ensure total reflects the allocated amounts
+  if (firstPaise > 0 || secondPaise > 0 || thirdPaise > 0) {
+    const sumPaise = firstPaise + secondPaise + thirdPaise;
+    if (totalPaise === 0 || totalPaise < sumPaise) {
+      totalPaise = sumPaise;
+    }
+  }
+
   const totalRupees = Math.round(totalPaise / 100);
   const hasPrizeMoney = totalRupees > 0;
 
-  const championPercent = 70;
-  const runnerUpPercent = 30;
+  let championRupees = Math.round(firstPaise / 100);
+  let runnerUpRupees = Math.round(secondPaise / 100);
+  let thirdPlaceRupees = Math.round(thirdPaise / 100);
 
-  const championRupees = hasPrizeMoney ? Math.round(totalRupees * 0.7) : 0;
-  const runnerUpRupees = hasPrizeMoney ? totalRupees - championRupees : 0;
+  // If prize pool exists but custom allocations weren't set, default to 70% / 30%
+  if (hasPrizeMoney && championRupees === 0 && runnerUpRupees === 0 && thirdPlaceRupees === 0) {
+    championRupees = Math.round(totalRupees * 0.7);
+    runnerUpRupees = totalRupees - championRupees;
+  }
+
+  const hasThirdPlace = thirdPlaceRupees > 0 || Boolean(thirdNotes && thirdNotes.trim());
 
   return {
     totalPaise,
     totalRupees,
     championRupees,
+    championNotes: firstNotes,
     runnerUpRupees,
-    championPercent,
-    runnerUpPercent,
+    runnerUpNotes: secondNotes,
+    thirdPlaceRupees,
+    thirdPlaceNotes: thirdNotes,
+    hasThirdPlace,
+    championPercent: totalRupees > 0 ? Math.round((championRupees / totalRupees) * 100) : 70,
+    runnerUpPercent: totalRupees > 0 ? Math.round((runnerUpRupees / totalRupees) * 100) : 30,
     formattedTotal: formatRupees(totalRupees),
     formattedChampion: formatRupees(championRupees),
     formattedRunnerUp: formatRupees(runnerUpRupees),
+    formattedThirdPlace: hasThirdPlace ? formatRupees(thirdPlaceRupees) : undefined,
     hasPrizeMoney,
   };
 }

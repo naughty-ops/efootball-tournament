@@ -64,7 +64,7 @@ function formatSupabaseError(error: unknown): string {
 }
 
 const SAFE_TOURNAMENT_PUBLIC_SELECT =
-  'id, name, description, rules_text, format, status, max_participants, is_paid, entry_fee_paise, prize_pool_paise, currency, is_private, champion_id, runner_up_id, banner_image, created_at, updated_at, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)';
+  'id, name, description, rules_text, format, status, max_participants, is_paid, entry_fee_paise, prize_pool_paise, first_place_prize_paise, first_place_notes, second_place_prize_paise, second_place_notes, third_place_prize_paise, third_place_notes, third_place_id, prize_distribution, currency, is_private, champion_id, runner_up_id, banner_image, created_at, updated_at, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)';
 
 export function sanitizeTournamentObject<T extends Record<string, any>>(tournament: T): T {
   if (!tournament) return tournament;
@@ -206,6 +206,30 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
     ? Math.round(input.prize_pool_rupees * 100)
     : 0;
 
+  const firstPlacePaise = typeof input.first_place_paise === 'number'
+    ? input.first_place_paise
+    : typeof input.first_place_rupees === 'number'
+    ? Math.round(input.first_place_rupees * 100)
+    : 0;
+
+  const secondPlacePaise = typeof input.second_place_paise === 'number'
+    ? input.second_place_paise
+    : typeof input.second_place_rupees === 'number'
+    ? Math.round(input.second_place_rupees * 100)
+    : 0;
+
+  const thirdPlacePaise = typeof input.third_place_paise === 'number'
+    ? input.third_place_paise
+    : typeof input.third_place_rupees === 'number'
+    ? Math.round(input.third_place_rupees * 100)
+    : 0;
+
+  const prizeDistribution = {
+    first: { paise: firstPlacePaise, notes: input.first_place_notes?.trim() || null },
+    second: { paise: secondPlacePaise, notes: input.second_place_notes?.trim() || null },
+    third: { paise: thirdPlacePaise, notes: input.third_place_notes?.trim() || null },
+  };
+
   const insertPayload = {
     name: input.name,
     description: input.description || null,
@@ -222,6 +246,13 @@ export async function createTournament(input: TournamentInput): Promise<Tourname
     is_paid: Boolean(input.is_paid),
     entry_fee_paise: entryFeePaise,
     prize_pool_paise: prizePoolPaise,
+    first_place_prize_paise: firstPlacePaise,
+    first_place_notes: input.first_place_notes?.trim() || null,
+    second_place_prize_paise: secondPlacePaise,
+    second_place_notes: input.second_place_notes?.trim() || null,
+    third_place_prize_paise: thirdPlacePaise,
+    third_place_notes: input.third_place_notes?.trim() || null,
+    prize_distribution: prizeDistribution,
     currency: input.currency?.trim() || 'INR',
   };
 
@@ -260,6 +291,30 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
     ? Math.round(input.prize_pool_rupees * 100)
     : 0;
 
+  const firstPlacePaise = typeof input.first_place_paise === 'number'
+    ? input.first_place_paise
+    : typeof input.first_place_rupees === 'number'
+    ? Math.round(input.first_place_rupees * 100)
+    : 0;
+
+  const secondPlacePaise = typeof input.second_place_paise === 'number'
+    ? input.second_place_paise
+    : typeof input.second_place_rupees === 'number'
+    ? Math.round(input.second_place_rupees * 100)
+    : 0;
+
+  const thirdPlacePaise = typeof input.third_place_paise === 'number'
+    ? input.third_place_paise
+    : typeof input.third_place_rupees === 'number'
+    ? Math.round(input.third_place_rupees * 100)
+    : 0;
+
+  const prizeDistribution = {
+    first: { paise: firstPlacePaise, notes: input.first_place_notes?.trim() || null },
+    second: { paise: secondPlacePaise, notes: input.second_place_notes?.trim() || null },
+    third: { paise: thirdPlacePaise, notes: input.third_place_notes?.trim() || null },
+  };
+
   const updatePayload = {
     name: input.name,
     description: input.description || null,
@@ -276,6 +331,13 @@ export async function updateTournament(id: string, input: TournamentInput): Prom
     is_paid: Boolean(input.is_paid),
     entry_fee_paise: entryFeePaise,
     prize_pool_paise: prizePoolPaise,
+    first_place_prize_paise: firstPlacePaise,
+    first_place_notes: input.first_place_notes?.trim() || null,
+    second_place_prize_paise: secondPlacePaise,
+    second_place_notes: input.second_place_notes?.trim() || null,
+    third_place_prize_paise: thirdPlacePaise,
+    third_place_notes: input.third_place_notes?.trim() || null,
+    prize_distribution: prizeDistribution,
     currency: input.currency?.trim() || 'INR',
     updated_at: new Date().toISOString(),
   };

@@ -60,7 +60,7 @@ export function TournamentRegistrationCard({
 
   const isPaidTournament = Boolean(tournament.is_paid && (tournament.entry_fee_paise || 0) > 0);
   const entryFeeINR = Math.round((tournament.entry_fee_paise || 0) / 100);
-  const prizeSplit = calculatePrizeSplit(tournament.prize_pool_paise || 0);
+  const prizeSplit = calculatePrizeSplit(tournament);
 
   // Check user session, registration status & payment settings
   const checkAuthAndRegistration = useCallback(async () => {
@@ -284,7 +284,7 @@ export function TournamentRegistrationCard({
         </div>
 
         {/* Prize Pool Distribution Showcase */}
-        <div className="p-4 rounded-2xl bg-[#1010C5] border border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="p-4 rounded-2xl bg-[#1010C5] border border-amber-400/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-[#FFFF00] font-black uppercase text-[11px] tracking-wider">
               <Trophy className="h-3.5 w-3.5" />
@@ -294,13 +294,27 @@ export function TournamentRegistrationCard({
               Total prize money distributed to champions / runners up.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="px-3 py-1 rounded-xl bg-[#08088F] border border-amber-400/40 text-amber-300 font-extrabold text-[11px]">
-              🏆 1st: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedChampion : '70%'}
-            </span>
-            <span className="px-3 py-1 rounded-xl bg-[#08088F] border border-white/20 text-slate-300 font-extrabold text-[11px]">
-              🥈 2nd: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedRunnerUp : '30%'}
-            </span>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <div className="px-3 py-1 rounded-xl bg-[#08088F] border border-amber-400/40 text-[11px]">
+              <span className="text-amber-300 font-extrabold">🏆 1st: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedChampion : '70%'}</span>
+              {prizeSplit.championNotes && (
+                <span className="text-[10px] text-amber-200/80 block font-medium truncate max-w-[140px]">+ {prizeSplit.championNotes}</span>
+              )}
+            </div>
+            <div className="px-3 py-1 rounded-xl bg-[#08088F] border border-white/20 text-[11px]">
+              <span className="text-slate-300 font-extrabold">🥈 2nd: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedRunnerUp : '30%'}</span>
+              {prizeSplit.runnerUpNotes && (
+                <span className="text-[10px] text-slate-300/80 block font-medium truncate max-w-[140px]">+ {prizeSplit.runnerUpNotes}</span>
+              )}
+            </div>
+            {prizeSplit.hasThirdPlace && (
+              <div className="px-3 py-1 rounded-xl bg-[#08088F] border border-amber-700/40 text-[11px]">
+                <span className="text-amber-500 font-extrabold">🥉 3rd: {prizeSplit.thirdPlaceRupees > 0 ? prizeSplit.formattedThirdPlace : 'Podium'}</span>
+                {prizeSplit.thirdPlaceNotes && (
+                  <span className="text-[10px] text-amber-400/80 block font-medium truncate max-w-[140px]">+ {prizeSplit.thirdPlaceNotes}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

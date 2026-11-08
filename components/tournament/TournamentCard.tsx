@@ -199,7 +199,7 @@ export function TournamentCard({ tournament: t, isAdmin = false, priority = fals
 
             {/* Tournament Prize Showcase: Prominently displays prize money distributed to champions / runners up */}
             <TournamentPrizeShowcase
-              prizePoolPaise={t.prize_pool_paise}
+              tournament={t}
               isCompleted={isCompleted}
               championName={champion?.username}
               runnerUpName={runnerUp?.username}

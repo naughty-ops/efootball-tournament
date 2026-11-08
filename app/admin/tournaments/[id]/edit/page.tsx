@@ -20,6 +20,9 @@ import {
   Sparkles,
   CheckCircle2,
   Lock,
+  Trophy,
+  Medal,
+  Award,
 } from 'lucide-react';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
 import { getTournamentById } from '@/services/tournamentService';
@@ -75,6 +78,12 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
       is_paid: false,
       entry_fee_rupees: 0,
       prize_pool_rupees: 0,
+      first_place_rupees: 0,
+      first_place_notes: 'Official Winner Trophy',
+      second_place_rupees: 0,
+      second_place_notes: 'Silver Medal',
+      third_place_rupees: 0,
+      third_place_notes: '',
       currency: 'INR',
       is_private: false,
       access_code: '',
@@ -118,6 +127,12 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
             is_paid: Boolean(t.is_paid),
             entry_fee_rupees: (t.entry_fee_paise || 0) / 100,
             prize_pool_rupees: (t.prize_pool_paise || 0) / 100,
+            first_place_rupees: (t.first_place_prize_paise || 0) / 100,
+            first_place_notes: t.first_place_notes || '',
+            second_place_rupees: (t.second_place_prize_paise || 0) / 100,
+            second_place_notes: t.second_place_notes || '',
+            third_place_rupees: (t.third_place_prize_paise || 0) / 100,
+            third_place_notes: t.third_place_notes || '',
             currency: t.currency || 'INR',
             is_private: Boolean((t as any).is_private),
             access_code: '',
@@ -502,34 +517,166 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                 )}
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-white block mb-1.5 uppercase tracking-wider flex items-center justify-between max-w-xs">
-                  <span>Prize Pool (₹ INR)</span>
-                  <span className="text-[10px] text-[#FFFF00] font-mono font-bold">
-                    {prizePoolRupees * 100} paise
-                  </span>
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={10000000}
-                  disabled={isSubmitting}
-                  className="bg-[#0A0A7A] border-white/20 text-white rounded-xl h-11 max-w-xs font-mono font-bold"
-                  {...register('prize_pool_rupees', { valueAsNumber: true })}
-                />
-                <p className="text-[11px] text-white/60 mt-1">
-                  Total prize money distributed to champions / runners up.
-                </p>
-                {prizePoolRupees > 0 && (
-                  <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
-                    <span className="px-2.5 py-1 rounded-lg bg-[#07075A] border border-amber-400/40 text-amber-300 font-bold">
-                      🏆 Champion (70%): ₹{Math.round(prizePoolRupees * 0.7).toLocaleString('en-IN')}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-[#07075A] border border-white/20 text-slate-300 font-bold">
-                      🥈 Runner-Up (30%): ₹{(prizePoolRupees - Math.round(prizePoolRupees * 0.7)).toLocaleString('en-IN')}
-                    </span>
+              {/* Prize Pool & Podium Distribution Desk */}
+              <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <label className="text-xs font-bold text-white block uppercase tracking-wider flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-[#FFFF00]" />
+                      <span>Total Prize Pool (₹ INR)</span>
+                    </label>
+                    <p className="text-[11px] text-white/60 mt-0.5">
+                      Total prize money distributed to champions / runners up.
+                    </p>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = prizePoolRupees || 1000;
+                        setValue('prize_pool_rupees', total);
+                        setValue('first_place_rupees', Math.round(total * 0.7));
+                        setValue('second_place_rupees', total - Math.round(total * 0.7));
+                        setValue('third_place_rupees', 0);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#1818D4] hover:bg-[#2525E8] border border-white/20 text-[10px] font-bold text-white cursor-pointer"
+                    >
+                      Split 70% / 30%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = prizePoolRupees || 1000;
+                        setValue('prize_pool_rupees', total);
+                        setValue('first_place_rupees', Math.round(total * 0.6));
+                        setValue('second_place_rupees', Math.round(total * 0.3));
+                        setValue('third_place_rupees', total - Math.round(total * 0.6) - Math.round(total * 0.3));
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#1818D4] hover:bg-[#2525E8] border border-white/20 text-[10px] font-bold text-white cursor-pointer"
+                    >
+                      Split 60% / 30% / 10%
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-w-xs">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10000000}
+                    disabled={isSubmitting}
+                    className="bg-[#1818D4] border-white/20 text-white rounded-xl h-11 font-mono font-bold text-base"
+                    {...register('prize_pool_rupees', { valueAsNumber: true })}
+                  />
+                  {errors.prize_pool_rupees && (
+                    <p className="text-xs text-red-300 mt-1 font-medium">{errors.prize_pool_rupees.message}</p>
+                  )}
+                </div>
+
+                {/* Podium Place Configurations */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  {/* 1st Place */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-amber-400/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                        <Trophy className="h-3.5 w-3.5 text-[#FFFF00]" />
+                        1st Place (Champion)
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
+                        Required
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 7000"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('first_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Official Trophy, Jersey, 5000 Coins"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('first_place_notes')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2nd Place */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-slate-400/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <Medal className="h-3.5 w-3.5 text-slate-300" />
+                        2nd Place (Runner-Up)
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-300 bg-slate-600/20 px-2 py-0.5 rounded">
+                        Required
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 3000"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('second_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Silver Medal, 2000 Coins"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('second_place_notes')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3rd Place (Optional) */}
+                  <div className="p-4 rounded-xl bg-[#1818D4] border border-amber-800/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                        <Award className="h-3.5 w-3.5 text-amber-500" />
+                        3rd Place (Optional)
+                      </span>
+                      <span className="text-[10px] font-bold text-white/50 bg-white/10 px-2 py-0.5 rounded">
+                        Optional
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Prize Amount (₹ INR)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="0 (optional)"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs font-mono font-bold"
+                        {...register('third_place_rupees', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-white/70 block mb-1 uppercase">Additional Notes & Prizes</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Bronze Medal, Distinction Certificate"
+                        disabled={isSubmitting}
+                        className="bg-[#0A0A7A] border-white/20 text-white rounded-lg h-9 text-xs placeholder:text-white/30"
+                        {...register('third_place_notes')}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -185,6 +185,30 @@ export const tournamentSchema = z
       .optional()
       .nullable(),
     prize_pool_paise: z.number().int().min(0).optional().nullable(),
+    first_place_rupees: z
+      .number()
+      .min(0, '1st place prize cannot be negative')
+      .max(10000000, '1st place prize cannot exceed ₹1,00,00,000')
+      .optional()
+      .nullable(),
+    first_place_paise: z.number().int().min(0).optional().nullable(),
+    first_place_notes: z.string().max(250, 'Notes cannot exceed 250 characters').optional().nullable(),
+    second_place_rupees: z
+      .number()
+      .min(0, '2nd place prize cannot be negative')
+      .max(10000000, '2nd place prize cannot exceed ₹1,00,00,000')
+      .optional()
+      .nullable(),
+    second_place_paise: z.number().int().min(0).optional().nullable(),
+    second_place_notes: z.string().max(250, 'Notes cannot exceed 250 characters').optional().nullable(),
+    third_place_rupees: z
+      .number()
+      .min(0, '3rd place prize cannot be negative')
+      .max(10000000, '3rd place prize cannot exceed ₹1,00,00,000')
+      .optional()
+      .nullable(),
+    third_place_paise: z.number().int().min(0).optional().nullable(),
+    third_place_notes: z.string().max(250, 'Notes cannot exceed 250 characters').optional().nullable(),
     currency: z.string().default('INR').optional().nullable(),
   })
   .refine(
