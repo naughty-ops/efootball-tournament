@@ -66,9 +66,15 @@ export default function PlayerDashboardHeader({
 }: PlayerDashboardHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Clear optimistic pendingHref once route transition completes
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   // Close dropdown on outside click or Esc key
   useEffect(() => {
@@ -112,8 +118,9 @@ export default function PlayerDashboardHeader({
   };
 
   const isTabActive = (href: string, exact: boolean) => {
-    if (exact) return pathname === href;
-    return pathname.startsWith(href);
+    const targetPath = pendingHref ?? pathname;
+    if (exact) return targetPath === href;
+    return targetPath.startsWith(href);
   };
 
   const playerInitial = (displayName || userEmail || 'P').charAt(0).toUpperCase();
@@ -270,6 +277,11 @@ export default function PlayerDashboardHeader({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => {
+                    if (pathname !== item.href) {
+                      setPendingHref(item.href);
+                    }
+                  }}
                   className={cn(
                     'w-full xl:w-auto flex items-center justify-center gap-1 min-[360px]:gap-1.5 sm:gap-2 min-h-[44px] h-11 sm:h-10 px-1.5 min-[360px]:px-2.5 sm:px-3.5 xl:px-4 rounded-full font-black tracking-wide transition-all duration-200 active:scale-95 touch-target select-none',
                     active

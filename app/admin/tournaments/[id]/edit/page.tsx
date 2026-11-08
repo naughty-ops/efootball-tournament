@@ -19,6 +19,7 @@ import {
   Info,
   Sparkles,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
 import { getTournamentById } from '@/services/tournamentService';
@@ -75,6 +76,8 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
       entry_fee_rupees: 0,
       prize_pool_rupees: 0,
       currency: 'INR',
+      is_private: false,
+      access_code: '',
     },
   });
 
@@ -116,6 +119,8 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
             entry_fee_rupees: (t.entry_fee_paise || 0) / 100,
             prize_pool_rupees: (t.prize_pool_paise || 0) / 100,
             currency: t.currency || 'INR',
+            is_private: Boolean((t as any).is_private),
+            access_code: '',
           });
         }
       } catch (err: unknown) {
@@ -281,6 +286,50 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                     <p className="text-xs text-red-300 mt-1 font-medium">{errors.registration_deadline.message}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Private Tournament Access Settings */}
+              <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                      <Lock className="h-3.5 w-3.5 text-[#FFFF00]" />
+                      <span>Private Tournament (Invitation Only)</span>
+                    </label>
+                    <p className="text-[11px] text-white/60">
+                      Restrict tournament overview, brackets, and rosters behind a required access code.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="is_private"
+                    className="h-5 w-5 rounded border-white/30 text-[#FFFF00] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    {...register('is_private')}
+                  />
+                </div>
+
+                {watch('is_private') && (
+                  <div className="pt-3 border-t border-white/10 space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-white block uppercase tracking-wider">
+                      Access Code
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder={Boolean((originalTournament as any)?.is_private) ? '•••••••• (Leave blank to keep current code)' : 'Enter new access code'}
+                      disabled={isSubmitting}
+                      className="bg-[#050550] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11 font-mono tracking-wider"
+                      {...register('access_code')}
+                    />
+                    <p className="text-[10px] text-white/50">
+                      {Boolean((originalTournament as any)?.is_private)
+                        ? 'Leave blank to preserve existing code. If changed, the new access code will be hashed securely with bcrypt.'
+                        : 'Enter an access code to lock this private tournament. It will be hashed with bcrypt.'}
+                    </p>
+                    {errors.access_code && (
+                      <p className="text-xs text-red-300 mt-1 font-medium">{errors.access_code.message}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

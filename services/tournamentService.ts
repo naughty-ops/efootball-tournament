@@ -63,14 +63,23 @@ function formatSupabaseError(error: unknown): string {
   }
 }
 
+const SAFE_TOURNAMENT_PUBLIC_SELECT =
+  'id, name, description, rules_text, format, status, max_participants, is_paid, entry_fee_paise, prize_pool_paise, currency, is_private, champion_id, runner_up_id, banner_image, created_at, updated_at, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)';
+
+export function sanitizeTournamentObject<T extends Record<string, any>>(tournament: T): T {
+  if (!tournament) return tournament;
+  const clean = { ...tournament };
+  delete clean.access_code_hash;
+  delete clean.access_code;
+  return clean;
+}
+
 /**
  * Fetch tournaments with optional search, status filtering, and sorting
  */
 export async function getTournaments(params?: GetTournamentsParams): Promise<TournamentWithStats[]> {
   const supabase = createClient();
-  let query = (supabase.from('tournaments') as unknown as UnknownQuery).select(
-    '*, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)'
-  );
+  let query = (supabase.from('tournaments') as unknown as UnknownQuery).select(SAFE_TOURNAMENT_PUBLIC_SELECT);
 
   if (params?.search && params.search.trim().length > 0) {
     query = query.ilike('name', `%${params.search.trim()}%`);
@@ -93,7 +102,32 @@ export async function getTournaments(params?: GetTournamentsParams): Promise<Tou
     query = query.order('created_at', { ascending: false });
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+
+  // Graceful fallback for staging/local environments where the is_private migration is queued but not yet applied
+  if (error && error.code === '42703' && error.message?.includes('is_private')) {
+    const fallbackSelect = SAFE_TOURNAMENT_PUBLIC_SELECT.replace('is_private, ', '');
+    let fbQuery = (supabase.from('tournaments') as unknown as UnknownQuery).select(fallbackSelect);
+    if (params?.search && params.search.trim().length > 0) {
+      fbQuery = fbQuery.ilike('name', `%${params.search.trim()}%`);
+    }
+    if (params?.status && params.status !== 'all') {
+      if (params.status === 'draft' && !params.includeDrafts) return [];
+      fbQuery = fbQuery.eq('status', params.status as TournamentStatus);
+    } else if (!params?.includeDrafts) {
+      fbQuery = fbQuery.neq('status', 'draft');
+    }
+    if (params?.sort === 'oldest') {
+      fbQuery = fbQuery.order('created_at', { ascending: true });
+    } else if (params?.sort === 'start_date') {
+      fbQuery = fbQuery.order('start_date', { ascending: true, nullsFirst: false });
+    } else {
+      fbQuery = fbQuery.order('created_at', { ascending: false });
+    }
+    const fbRes = await fbQuery;
+    data = fbRes.data;
+    error = fbRes.error;
+  }
 
   if (error) {
     console.error('Error fetching tournaments:', error);
@@ -102,25 +136,35 @@ export async function getTournaments(params?: GetTournamentsParams): Promise<Tou
 
   const rows = (data || []) as SupabaseTournamentRow[];
 
-  return rows.map((t) => ({
-    ...t,
-    participant_count: t.participants?.[0]?.count ?? 0,
-    championUser: t.champion ?? null,
-    runnerUpUser: t.runner_up ?? null,
-  }));
+  return rows.map((t) =>
+    sanitizeTournamentObject({
+      ...t,
+      participant_count: t.participants?.[0]?.count ?? 0,
+      championUser: t.champion ?? null,
+      runnerUpUser: t.runner_up ?? null,
+    })
+  );
 }
 
 /**
  * Fetch a single tournament by UUID with participant count, champion, and runner-up
  */
-export async function getTournamentById(id: string): Promise<TournamentWithStats | null> {
-  const supabase = createClient();
-  const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
-    .select(
-      '*, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)'
-    )
+export async function getTournamentById(id: string, customClient?: any): Promise<TournamentWithStats | null> {
+  const supabase = customClient || createClient();
+  let { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
+    .select(SAFE_TOURNAMENT_PUBLIC_SELECT)
     .eq('id', id)
     .single();
+
+  if (error && error.code === '42703' && error.message?.includes('is_private')) {
+    const fallbackSelect = SAFE_TOURNAMENT_PUBLIC_SELECT.replace('is_private, ', '');
+    const fallbackRes = await (supabase.from('tournaments') as unknown as UnknownQuery)
+      .select(fallbackSelect)
+      .eq('id', id)
+      .single();
+    data = fallbackRes.data;
+    error = fallbackRes.error;
+  }
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -132,12 +176,12 @@ export async function getTournamentById(id: string): Promise<TournamentWithStats
 
   const row = data as SupabaseTournamentRow;
 
-  return {
+  return sanitizeTournamentObject({
     ...row,
     participant_count: row.participants?.[0]?.count ?? 0,
     championUser: row.champion ?? null,
     runnerUpUser: row.runner_up ?? null,
-  };
+  });
 }
 
 /**
@@ -313,9 +357,9 @@ export async function deleteTournament(id: string): Promise<void> {
 /**
  * Get comprehensive stage info and lifecycle state for a tournament
  */
-export async function getTournamentStageInfo(tournamentId: string) {
-  const supabase = createClient();
-  const t = await getTournamentById(tournamentId);
+export async function getTournamentStageInfo(tournamentId: string, customClient?: any) {
+  const supabase = customClient || createClient();
+  const t = await getTournamentById(tournamentId, supabase);
   if (!t) throw new Error('Tournament not found');
 
   const [
@@ -327,7 +371,7 @@ export async function getTournamentStageInfo(tournamentId: string) {
       .from('tournament_participants_public')
       .select('id, tournament_id, username, seed_number, status')
       .eq('tournament_id', tournamentId)
-      .then((res) =>
+      .then((res: any) =>
         res.error || !res.data
           ? supabase.from('participants').select('id, tournament_id, username, seed_number, status').eq('tournament_id', tournamentId)
           : res

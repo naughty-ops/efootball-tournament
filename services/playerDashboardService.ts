@@ -1,4 +1,4 @@
-import type { Profile, Tournament, Participant, Match } from '@/types/database';
+import type { Profile, Tournament, Participant, Match, RegistrationStatus } from '@/types/database';
 import { normalizeEfootballId, isValidEfootballId } from '@/lib/validations/efootball';
 
 export interface ServiceResult<T> {
@@ -585,20 +585,13 @@ export async function getPlayerMatches(
 }
 
 /**
- * Aggregates statistics for the player overview cards
+ * Computes player overview stats from in-memory tournament and match lists.
+ * Pure computation with 0 database round-trips.
  */
-export async function getPlayerOverviewStats(
-  supabase: AnySupabaseClient,
-  userId: string
-): Promise<PlayerOverviewStats> {
-  const [tournamentsRes, matchesRes] = await Promise.all([
-    getPlayerTournaments(supabase, userId),
-    getPlayerMatches(supabase, userId),
-  ]);
-
-  const tournaments = tournamentsRes.data || [];
-  const matches = matchesRes.data || [];
-
+export function calculatePlayerOverviewStats(
+  tournaments: PlayerTournamentItem[],
+  matches: PlayerMatchItem[]
+): PlayerOverviewStats {
   const registeredTournamentsCount = tournaments.length;
   const activeTournamentsCount = tournaments.filter(
     (t) => t.status === 'ongoing' || t.status === 'registration'
@@ -644,6 +637,24 @@ export async function getPlayerOverviewStats(
 }
 
 /**
+ * Aggregates statistics for the player overview cards.
+ * Accepts optional preloaded datasets to eliminate duplicate database queries.
+ */
+export async function getPlayerOverviewStats(
+  supabase: AnySupabaseClient,
+  userId: string,
+  preloadedTournaments?: PlayerTournamentItem[],
+  preloadedMatches?: PlayerMatchItem[]
+): Promise<PlayerOverviewStats> {
+  const [tournamentsRes, matchesRes] = await Promise.all([
+    preloadedTournaments ? { data: preloadedTournaments, error: null } : getPlayerTournaments(supabase, userId),
+    preloadedMatches ? { data: preloadedMatches, error: null } : getPlayerMatches(supabase, userId),
+  ]);
+
+  return calculatePlayerOverviewStats(tournamentsRes.data || [], matchesRes.data || []);
+}
+
+/**
  * Check if the user is already registered for a specific tournament
  */
 export async function checkUserTournamentRegistration(
@@ -670,14 +681,173 @@ export async function checkUserTournamentRegistration(
 }
 
 /**
- * Perform self-registration for an open tournament
+ * Get detailed user tournament registration and payment status
+ */
+export async function getUserTournamentRegistrationStatus(
+  supabase: AnySupabaseClient,
+  userId: string,
+  tournamentId: string
+): Promise<{
+  isRegistered: boolean;
+  participant: Participant | null;
+  registration: any | null;
+}> {
+  try {
+    const [partRes, regRes] = await Promise.all([
+      supabase
+        .from('participants')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('tournament_registrations')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const participant = partRes.data ? (partRes.data as Participant) : null;
+    const registration = regRes.data || null;
+    const isRegistered = Boolean(
+      participant ||
+        (registration && (registration.status === 'approved' || registration.status === 'confirmed'))
+    );
+
+    return {
+      isRegistered,
+      participant,
+      registration,
+    };
+  } catch (err) {
+    console.error('Error fetching user registration status:', err);
+    return {
+      isRegistered: false,
+      participant: null,
+      registration: null,
+    };
+  }
+}
+
+export interface PlayerPaymentRegistrationItem {
+  id: string;
+  tournamentId: string;
+  tournamentName: string;
+  bannerImage: string | null;
+  status: RegistrationStatus;
+  amountPaise: number;
+  entryFeeINR: number;
+  paymentReference: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fetch a player's pending, submitted, or recent payment registrations
+ */
+export async function getPlayerPaymentRegistrations(
+  supabase: AnySupabaseClient,
+  userId: string
+): Promise<PlayerPaymentRegistrationItem[]> {
+  try {
+    const { data: regs, error } = await (supabase.from('tournament_registrations') as any)
+      .select('id, tournament_id, status, amount_paise, payment_reference, rejection_reason, created_at, updated_at')
+      .eq('user_id', userId)
+      .in('status', ['pending_payment', 'payment_submitted', 'under_verification', 'rejected'])
+      .order('created_at', { ascending: false });
+
+    if (error || !regs || regs.length === 0) {
+      return [];
+    }
+
+    const tournamentIds = Array.from(new Set(regs.map((r: any) => r.tournament_id)));
+    const { data: tourneys } = await supabase
+      .from('tournaments')
+      .select('id, name, banner_image')
+      .in('id', tournamentIds);
+
+    const tourneyMap = new Map<string, { name: string; banner_image: string | null }>();
+    if (tourneys) {
+      tourneys.forEach((t: any) => tourneyMap.set(t.id, { name: t.name, banner_image: t.banner_image }));
+    }
+
+    return regs.map((r: any) => {
+      const t = tourneyMap.get(r.tournament_id);
+      return {
+        id: r.id,
+        tournamentId: r.tournament_id,
+        tournamentName: t?.name || 'Tournament',
+        bannerImage: t?.banner_image || null,
+        status: r.status as RegistrationStatus,
+        amountPaise: r.amount_paise || 0,
+        entryFeeINR: Math.round((r.amount_paise || 0) / 100),
+        paymentReference: r.payment_reference || null,
+        rejectionReason: r.rejection_reason || null,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    });
+  } catch (err) {
+    console.error('Error fetching player payment registrations:', err);
+    return [];
+  }
+}
+
+export interface SelfRegisterResult {
+  success: boolean;
+  message: string;
+  participantId?: string;
+  isPaid?: boolean;
+  registrationId?: string;
+  status?: string;
+  amountPaise?: number;
+  entryFeeINR?: number;
+  currency?: string;
+}
+
+/**
+ * Perform self-registration for an open tournament (Free or Paid with manual WhatsApp payment)
  */
 export async function selfRegisterTournament(
   supabase: AnySupabaseClient,
   userId: string,
   tournamentId: string,
-  options?: { rulesAccepted?: boolean }
-): Promise<{ success: boolean; message: string; participantId?: string }> {
+  options?: { rulesAccepted?: boolean; accessCode?: string }
+): Promise<SelfRegisterResult> {
+  // 0. High-concurrency Fast Path: Attempt atomic database RPC
+  try {
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+      'register_player_for_tournament',
+      {
+        p_tournament_id: tournamentId,
+        p_user_id: userId,
+        p_rules_accepted: options?.rulesAccepted ?? true,
+        p_access_code: options?.accessCode || null,
+      }
+    );
+
+    if (!rpcErr && rpcData && typeof rpcData === 'object') {
+      const res = rpcData as Record<string, any>;
+      return {
+        success: Boolean(res.success),
+        message: res.message || (res.success ? 'Registration completed.' : 'Registration failed.'),
+        participantId: res.participant_id || undefined,
+        isPaid: res.is_paid,
+        registrationId: res.registration_id,
+        status: res.status,
+        amountPaise: res.amount_paise,
+        entryFeeINR: res.entry_fee_inr,
+        currency: res.currency,
+      };
+    }
+  } catch {
+    // Database RPC not yet migrated in current environment; fallback to robust client-orchestrated flow
+  }
+
   // 1. Fetch user profile
   let profile = await getPlayerProfile(supabase, userId);
   if (!profile) {
@@ -729,7 +899,7 @@ export async function selfRegisterTournament(
   // 2. Fetch tournament details & verify status
   const { data: tourney, error: tErr } = await supabase
     .from('tournaments')
-    .select('id, name, status, max_participants')
+    .select('id, name, status, max_participants, is_paid, entry_fee_paise, currency')
     .eq('id', tournamentId)
     .maybeSingle();
 
@@ -759,7 +929,7 @@ export async function selfRegisterTournament(
     return { success: false, message: 'Tournament capacity is full. No more slots available.' };
   }
 
-  // 4. Verify user is not already registered by user_id
+  // 4. Verify user is not already registered in participants
   const { isRegistered } = await checkUserTournamentRegistration(supabase, userId, tournamentId);
   if (isRegistered) {
     return { success: false, message: 'You are already registered for this tournament.' };
@@ -777,7 +947,82 @@ export async function selfRegisterTournament(
     return { success: false, message: 'This eFootball ID is already registered in this tournament.' };
   }
 
-  // 6. Insert participant record
+  const isPaidTournament = Boolean(tourney.is_paid && (tourney.entry_fee_paise || 0) > 0);
+
+  // --------------------------------------------------------------------------
+  // BRANCH A: PAID TOURNAMENT (Manual WhatsApp Payment Request)
+  // --------------------------------------------------------------------------
+  if (isPaidTournament) {
+    // Check if an active registration already exists
+    const { data: existingReg } = await (supabase.from('tournament_registrations') as any)
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('user_id', userId)
+      .in('status', ['pending_payment', 'payment_submitted', 'under_verification', 'approved', 'confirmed'])
+      .maybeSingle();
+
+    if (existingReg) {
+      if (existingReg.status === 'approved' || existingReg.status === 'confirmed') {
+        return {
+          success: true,
+          message: 'You are already registered and confirmed for this tournament.',
+          participantId: existingReg.participant_id,
+          isPaid: true,
+          registrationId: existingReg.id,
+          status: existingReg.status,
+        };
+      }
+      return {
+        success: true,
+        message: 'You have an active registration request for this tournament.',
+        isPaid: true,
+        registrationId: existingReg.id,
+        status: existingReg.status,
+        amountPaise: existingReg.amount_paise,
+        entryFeeINR: Math.round((existingReg.amount_paise || 0) / 100),
+        currency: existingReg.currency || 'INR',
+      };
+    }
+
+    // Create a new pending registration request
+    const { data: newReg, error: regErr } = await (supabase.from('tournament_registrations') as any)
+      .insert({
+        tournament_id: tournamentId,
+        user_id: userId,
+        status: 'pending_payment',
+        amount_paise: tourney.entry_fee_paise,
+        currency: tourney.currency || 'INR',
+        payment_method: 'whatsapp_manual',
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString(),
+        rules_version: '1.0',
+      })
+      .select('id, amount_paise, currency, status')
+      .single();
+
+    if (regErr || !newReg) {
+      console.error('Error creating registration request:', regErr);
+      return {
+        success: false,
+        message: regErr?.message || 'Failed to create payment registration request.',
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Registration request created. Please complete payment via WhatsApp to confirm your slot.',
+      isPaid: true,
+      registrationId: newReg.id,
+      status: 'pending_payment',
+      amountPaise: newReg.amount_paise,
+      entryFeeINR: Math.round((newReg.amount_paise || 0) / 100),
+      currency: newReg.currency || 'INR',
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // BRANCH B: FREE TOURNAMENT (Instant Participant Enrollment)
+  // --------------------------------------------------------------------------
   const username = normalizedEfootballId;
   const { data: newParticipant, error: insertErr } = await supabase
     .from('participants')
@@ -803,13 +1048,13 @@ export async function selfRegisterTournament(
     return { success: false, message: insertErr.message || 'Failed to complete registration.' };
   }
 
-  // 7. Update tournament confirmed slots count & create registration record
+  // Update tournament confirmed slots count & create registration record
   try {
     await Promise.all([
       supabase
         .from('tournaments')
         .update({
-          confirmed_slots_count: (currentCount + 1),
+          confirmed_slots_count: currentCount + 1,
           updated_at: new Date().toISOString(),
         } as any)
         .eq('id', tournamentId),
@@ -834,5 +1079,6 @@ export async function selfRegisterTournament(
     success: true,
     message: `Successfully registered for ${tourney.name}!`,
     participantId: newParticipant?.id,
+    isPaid: false,
   };
 }

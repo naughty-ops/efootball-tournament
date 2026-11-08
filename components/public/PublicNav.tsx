@@ -7,7 +7,7 @@ import { PUBLIC_NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Trophy, Radio, Home, Info, Phone } from 'lucide-react';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
-import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 
 const NAV_ICONS: Record<string, React.ElementType> = {
   '/': Home,
@@ -47,7 +47,22 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
     };
   }, [fetchLiveCount]);
 
-  useRealtimeMatches(fetchLiveCount);
+  // Only re-fetch live match count if a match actually changed status (e.g. went live or ended)
+  const handleRealtimeMatchUpdate = useCallback(
+    (payload?: RealtimePayload) => {
+      if (payload?.table === 'matches' && payload?.eventType === 'UPDATE') {
+        const oldStatus = payload.old?.status;
+        const newStatus = payload.new?.status;
+        if (oldStatus && newStatus && oldStatus === newStatus) {
+          return; // Status unchanged (e.g. goal scored); live count remains identical
+        }
+      }
+      fetchLiveCount();
+    },
+    [fetchLiveCount]
+  );
+
+  useRealtimeMatches(handleRealtimeMatchUpdate);
 
   // Auto-scroll active item into view on mobile
   useEffect(() => {

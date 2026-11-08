@@ -101,10 +101,28 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   background-color: #08088F;
+  position: relative;
+}
+
+/* Hardware-accelerated fixed background canvas: eliminates mobile CPU repaint on scroll while preserving visual fidelity */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image: 
     radial-gradient(circle at 10% 20%, rgba(52, 52, 255, 0.25) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(16, 16, 197, 0.4) 0%, transparent 50%);
-  background-attachment: fixed;
+  will-change: transform;
+}
+
+/* Mobile Safe-Area Utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
 }
 
 /* Headings use bold athletic gaming typography */

@@ -121,6 +121,22 @@ export function SwipeableTabContainer({
 
   const currentIndex = tabs.findIndex((t) => getTabId(t) === activeTab);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevTabRef = useRef(activeTab);
+
+  // Smooth, non-destructive animation on activeTab changes without DOM unmounting
+  useEffect(() => {
+    if (prevTabRef.current !== activeTab) {
+      const prevIndex = tabs.findIndex((t) => getTabId(t) === prevTabRef.current);
+      if (prevIndex !== -1 && currentIndex !== -1) {
+        setSlideDirection(currentIndex > prevIndex ? 'left' : 'right');
+      }
+      prevTabRef.current = activeTab;
+      setIsTransitioning(true);
+      const timer = setTimeout(() => setIsTransitioning(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, currentIndex, tabs]);
 
   const handleNextTab = () => {
     if (currentIndex < tabs.length - 1) {
@@ -161,10 +177,9 @@ export function SwipeableTabContainer({
       aria-labelledby={`tab-${activeTab}`}
     >
       <div
-        key={activeTab}
         className={cn(
-          'transition-all duration-200 ease-out animate-in fade-in',
-          slideDirection === 'left' ? 'slide-in-from-right-3' : 'slide-in-from-left-3'
+          'w-full transition-all duration-200 ease-out',
+          isTransitioning && (slideDirection === 'left' ? 'animate-in fade-in slide-in-from-right-3' : 'animate-in fade-in slide-in-from-left-3')
         )}
       >
         {children}

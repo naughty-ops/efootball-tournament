@@ -23,7 +23,7 @@ import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardS
 import OpponentWhatsAppButton from '@/components/dashboard/OpponentWhatsAppButton';
 import {
   getPlayerProfile,
-  getPlayerOverviewStats,
+  calculatePlayerOverviewStats,
   getPlayerTournaments,
   getPlayerMatches,
 } from '@/services/playerDashboardService';
@@ -51,16 +51,16 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
     redirect('/auth/login?error=unauthorized');
   }
 
-  // Fetch player profile, overview stats, recent tournaments, and matches in parallel
-  const [profile, stats, tournamentsRes, matchesRes] = await Promise.all([
+  // Fetch player profile, recent tournaments, and matches in parallel (single batch, 0 duplicate queries)
+  const [profile, tournamentsRes, matchesRes] = await Promise.all([
     getPlayerProfile(supabase, user.id, user),
-    getPlayerOverviewStats(supabase, user.id),
     getPlayerTournaments(supabase, user.id),
     getPlayerMatches(supabase, user.id),
   ]);
 
   const tournaments = tournamentsRes.data || [];
   const matches = matchesRes.data || [];
+  const stats = calculatePlayerOverviewStats(tournaments, matches);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';

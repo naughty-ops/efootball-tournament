@@ -25,6 +25,7 @@ import {
   FileText,
   Clock,
   Info,
+  Lock,
 } from 'lucide-react';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
 import { createTournamentAction } from '@/app/actions/tournamentActions';
@@ -97,6 +98,8 @@ export default function CreateTournamentPage() {
       entry_fee_rupees: 0,
       prize_pool_rupees: 0,
       currency: 'INR',
+      is_private: false,
+      access_code: '',
     },
   });
 
@@ -394,6 +397,48 @@ export default function CreateTournamentPage() {
                     <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold">
                       Live Banner Preview
                     </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Private Tournament Access Settings */}
+              <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-4 pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                      <Lock className="h-3.5 w-3.5 text-[#FFFF00]" />
+                      <span>Private Tournament (Invitation Only)</span>
+                    </label>
+                    <p className="text-[11px] text-white/60">
+                      Restrict tournament overview, brackets, and rosters behind a required access code.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="is_private"
+                    className="h-5 w-5 rounded border-white/30 text-[#FFFF00] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    {...register('is_private')}
+                  />
+                </div>
+
+                {watch('is_private') && (
+                  <div className="pt-3 border-t border-white/10 space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-white block uppercase tracking-wider">
+                      Access Code *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. VIP-2026-CHAMP"
+                      disabled={isSubmitting}
+                      className="bg-[#050550] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11 font-mono tracking-wider"
+                      {...register('access_code')}
+                    />
+                    <p className="text-[10px] text-white/50">
+                      This access code will be securely hashed with bcrypt prior to persistence. Plaintext is never stored.
+                    </p>
+                    {errors.access_code && (
+                      <p className="text-xs text-red-300 mt-1 font-medium">{errors.access_code.message}</p>
+                    )}
                   </div>
                 )}
               </div>

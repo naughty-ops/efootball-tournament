@@ -84,6 +84,15 @@ export function preloadSounds(): void {
   }
 }
 
+// Auto-prewarm sound pool in browser context on initial script evaluation
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    preloadSounds();
+  } else {
+    window.addEventListener('DOMContentLoaded', preloadSounds, { once: true });
+  }
+}
+
 /**
  * Play eFootball Touch 2 SFX
  * Used for button clicks, tab switches, sidebar items, modal triggers, and UI controls.

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronRight, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { LiveMatchEntry } from '@/services/publicTournamentService';
 import { getPublicLiveMatches } from '@/services/publicTournamentService';
-import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import { cn } from '@/lib/utils';
 import type { HomepageSection } from '@/types/database';
 
@@ -24,17 +24,51 @@ export default function LiveMatchesTicker({
 }: LiveMatchesTickerProps) {
   const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>(initialLiveMatches);
 
-  const refreshLiveMatches = async () => {
+  const refreshLiveMatches = useCallback(async () => {
     try {
       const data = await getPublicLiveMatches(undefined, true);
       setLiveMatches(data);
     } catch {
       // Non-fatal fallback
     }
-  };
+  }, []);
+
+  // Patch live scores immediately; re-fetch only on match addition/completion
+  const handleRealtimeUpdate = useCallback(
+    (payload?: RealtimePayload) => {
+      if (payload?.table === 'matches' && payload?.eventType === 'UPDATE' && payload.new) {
+        const updated = payload.new;
+        let found = false;
+
+        setLiveMatches((prev) =>
+          prev.map((entry) => {
+            if (entry.match.id === updated.id) {
+              found = true;
+              return {
+                ...entry,
+                match: {
+                  ...entry.match,
+                  score_a: updated.score_a ?? entry.match.score_a,
+                  score_b: updated.score_b ?? entry.match.score_b,
+                  status: updated.status ?? entry.match.status,
+                },
+              };
+            }
+            return entry;
+          })
+        );
+
+        if (found && updated.status === 'live') {
+          return; // Successfully patched in-place without DB fetch!
+        }
+      }
+      refreshLiveMatches();
+    },
+    [refreshLiveMatches]
+  );
 
   // Only subscribe to realtime updates if there are live matches or actively viewing
-  useRealtimeMatches(refreshLiveMatches);
+  useRealtimeMatches(handleRealtimeUpdate);
 
   const liveData = liveSec?.published_content || {};
   const maxLiveDisplay = (liveData.max_display_count as number) || 3;

@@ -52,9 +52,10 @@ function formatSupabaseError(error: unknown): string {
  */
 export async function getMatchesByTournament(
   tournamentId: string,
-  statusFilter?: string
+  statusFilter?: string,
+  customClient?: any
 ): Promise<RoundWithMatches[]> {
-  const supabase = createClient();
+  const supabase = customClient || createClient();
 
   // 1. Fetch Rounds
   const rRes = await (supabase.from('rounds') as unknown as UnknownQuery)

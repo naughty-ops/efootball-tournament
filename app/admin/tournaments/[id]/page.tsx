@@ -18,6 +18,7 @@ import {
   Zap,
   Trash2,
   RotateCcw,
+  CreditCard,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -449,6 +450,14 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                   </Link>
                 </Button>
               )}
+
+              {/* Payment Requests Desk Action */}
+              <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-[#1010C5] text-[#1010C5] hover:bg-[#1010C5] hover:text-white font-bold transition-colors">
+                <Link href={`/admin/tournaments/${tournament.id}/payments`}>
+                  <CreditCard className="h-4 w-4" />
+                  <span>Payment Requests Desk</span>
+                </Link>
+              </Button>
 
               {/* Automatic Fixtures Action */}
               {!isCompleted && tournament.format !== 'group_knockout' && (

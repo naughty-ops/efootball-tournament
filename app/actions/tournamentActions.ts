@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import bcrypt from 'bcryptjs';
 import { requireAdmin } from '@/lib/auth/server';
 import { tournamentSchema, type TournamentInput } from '@/lib/validations';
 import { ALLOWED_STATUS_TRANSITIONS } from '@/services/tournamentService';
@@ -48,9 +49,18 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
       : 0;
     const prizePoolPaise = computePaiseAmount(validData.prize_pool_rupees, validData.prize_pool_paise);
 
+    const isPrivate = Boolean(validData.is_private);
+    let accessCodeHash: string | null = null;
+    if (isPrivate) {
+      if (!validData.access_code?.trim()) {
+        return { success: false, message: 'An access code is required when creating a private tournament.' };
+      }
+      accessCodeHash = await bcrypt.hash(validData.access_code.trim(), 10);
+    }
+
     const supabase = await createClient();
 
-    const insertPayload = {
+    const insertPayload: Record<string, any> = {
       name: validData.name.trim(),
       description: validData.description?.trim() || null,
       format: dbFormat,
@@ -67,14 +77,23 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
       entry_fee_paise: entryFeePaise,
       prize_pool_paise: prizePoolPaise,
       currency: validData.currency?.trim() || 'INR',
+      is_private: isPrivate,
+      access_code_hash: accessCodeHash,
     };
 
     const { data: newTournament, error } = await (supabase.from('tournaments') as any)
       .insert(insertPayload)
-      .select('id, name, status, format, is_paid, entry_fee_paise')
+      .select('id, name, status, format, is_paid, is_private, entry_fee_paise')
       .single();
 
     if (error) {
+      if ((error as any).code === '42703' && isPrivate) {
+        return {
+          success: false,
+          message:
+            'Database schema does not support private tournaments (column "is_private" missing). Creation aborted to prevent unauthenticated public exposure.',
+        };
+      }
       console.error('Error creating tournament in server action:', error);
       return {
         success: false,
@@ -128,10 +147,19 @@ export async function updateTournamentAction(
     const supabase = await createClient();
 
     // 1. Fetch existing tournament to ensure safe updates
-    const { data: existing, error: existErr } = await (supabase.from('tournaments') as any)
-      .select('id, name, format, status, confirmed_slots_count, reserved_slots_count, is_paid, entry_fee_paise, currency')
+    let { data: existing, error: existErr } = await (supabase.from('tournaments') as any)
+      .select('id, name, format, status, confirmed_slots_count, reserved_slots_count, is_paid, entry_fee_paise, currency, is_private, access_code_hash')
       .eq('id', id)
       .single();
+
+    if (existErr && (existErr as any).code === '42703') {
+      const fallbackExist = await (supabase.from('tournaments') as any)
+        .select('id, name, format, status, confirmed_slots_count, reserved_slots_count, is_paid, entry_fee_paise, currency')
+        .eq('id', id)
+        .single();
+      existing = fallbackExist.data;
+      existErr = fallbackExist.error;
+    }
 
     if (existErr || !existing) {
       return { success: false, message: 'Tournament not found.' };
@@ -222,7 +250,21 @@ export async function updateTournamentAction(
     }
     const prizePoolPaise = computePaiseAmount(validData.prize_pool_rupees, validData.prize_pool_paise);
 
-    const updatePayload = {
+    const isPrivate = Boolean(validData.is_private);
+    let accessCodeHash: string | null = (existing as any).access_code_hash || null;
+
+    if (!isPrivate) {
+      accessCodeHash = null;
+    } else if (validData.access_code && validData.access_code.trim()) {
+      accessCodeHash = await bcrypt.hash(validData.access_code.trim(), 10);
+    } else if (!accessCodeHash && !(existing as any).is_private) {
+      return {
+        success: false,
+        message: 'An access code is required to make a tournament private.',
+      };
+    }
+
+    const updatePayload: Record<string, any> = {
       name: validData.name.trim(),
       description: validData.description?.trim() || null,
       format: dbFormat,
@@ -239,16 +281,25 @@ export async function updateTournamentAction(
       entry_fee_paise: entryFeePaise,
       prize_pool_paise: prizePoolPaise,
       currency: validData.currency?.trim() || 'INR',
+      is_private: isPrivate,
+      access_code_hash: accessCodeHash,
       updated_at: new Date().toISOString(),
     };
 
     const { data: updated, error } = await (supabase.from('tournaments') as any)
       .update(updatePayload)
       .eq('id', id)
-      .select('id, name, status, format, is_paid, entry_fee_paise')
+      .select('id, name, status, format, is_paid, is_private, entry_fee_paise')
       .single();
 
     if (error) {
+      if ((error as any).code === '42703' && validData.is_private) {
+        return {
+          success: false,
+          message:
+            'Database schema does not support private tournaments (column "is_private" missing). Update aborted to prevent privacy loss.',
+        };
+      }
       console.error('Error updating tournament in server action:', error);
       return {
         success: false,

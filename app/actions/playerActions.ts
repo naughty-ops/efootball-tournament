@@ -42,7 +42,15 @@ export async function registerForTournamentAction(
     return {
       success: result.success,
       message: result.message,
-      data: { participantId: result.participantId },
+      data: {
+        participantId: result.participantId,
+        isPaid: result.isPaid,
+        registrationId: result.registrationId,
+        status: result.status,
+        amountPaise: result.amountPaise,
+        entryFeeINR: result.entryFeeINR,
+        currency: result.currency,
+      },
     };
   } catch (err: any) {
     console.error('Error in registerForTournamentAction:', err);

@@ -169,6 +169,8 @@ export const tournamentSchema = z
       .optional()
       .nullable(),
     is_paid: z.boolean().default(false),
+    is_private: z.boolean().default(false),
+    access_code: z.string().max(50, 'Access code cannot exceed 50 characters').optional().nullable(),
     entry_fee_rupees: z
       .number()
       .min(0, 'Entry fee cannot be negative')

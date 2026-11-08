@@ -2,13 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Settings, Plus, Trash2, Edit3, Save, RotateCcw, Check, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Settings, Plus, Trash2, Edit3, Save, RotateCcw, Check, Sparkles, Image as ImageIcon, CreditCard, MessageSquare, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CarouselSlide } from '@/components/public/ImageCarousel';
 import { getHomeBanners, saveHomeBanners, resetHomeBanners, fetchHomeBannersFromDB } from '@/services/bannerService';
+import { getManualPaymentSettingsAction, updateManualPaymentSettingsAction } from '@/app/actions/paymentRegistrationActions';
+import type { ManualPaymentSettings } from '@/types/database';
+import { DEFAULT_MANUAL_PAYMENT_SETTINGS } from '@/services/paymentSettingsService';
 
 const SAMPLE_BANNERS = [
   '/images/banner1.webp',
@@ -23,16 +26,48 @@ export default function AdminSettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [newSlideModalOpen, setNewSlideModalOpen] = useState(false);
 
+  // Manual WhatsApp Payment Settings
+  const [paymentSettings, setPaymentSettings] = useState<ManualPaymentSettings>(DEFAULT_MANUAL_PAYMENT_SETTINGS);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentFeedback, setPaymentFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const dbBanners = await fetchHomeBannersFromDB();
-      if (!cancelled) setSlides(dbBanners);
+      const [dbBanners, pRes] = await Promise.all([
+        fetchHomeBannersFromDB(),
+        getManualPaymentSettingsAction(),
+      ]);
+      if (!cancelled) {
+        setSlides(dbBanners);
+        if (pRes.success && pRes.settings) {
+          setPaymentSettings(pRes.settings);
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const handleSavePaymentSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPayment(true);
+    setPaymentFeedback(null);
+    try {
+      const res = await updateManualPaymentSettingsAction(paymentSettings);
+      if (res.success) {
+        setPaymentFeedback({ type: 'success', message: 'Manual payment & WhatsApp settings updated successfully!' });
+        setTimeout(() => setPaymentFeedback(null), 4000);
+      } else {
+        setPaymentFeedback({ type: 'error', message: res.message || 'Failed to update payment settings.' });
+      }
+    } catch {
+      setPaymentFeedback({ type: 'error', message: 'Error saving payment settings.' });
+    } finally {
+      setSavingPayment(false);
+    }
+  };
 
   const handleSaveAll = async (updatedSlides: CarouselSlide[]) => {
     setSlides(updatedSlides);
@@ -144,6 +179,167 @@ export default function AdminSettingsPage() {
           <span>Home Dashboard Carousel Banners updated successfully! Public users will immediately see your changes.</span>
         </div>
       )}
+
+      {/* Manual WhatsApp & Payment Settings Card */}
+      <Card className="border-border shadow-xs bg-white text-[#0A0D14]">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base font-extrabold text-[#0B3323] flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <span>Manual WhatsApp Payment Configuration</span>
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Configure official payment details, UPI ID, admin WhatsApp number, and instructions shown to users during paid tournament registration.
+              </CardDescription>
+            </div>
+            <Badge className="bg-[#00C853] text-[#072418] font-bold text-[10px] w-fit">
+              DATABASE ENFORCED
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-6">
+          {paymentFeedback && (
+            <div
+              className={`p-3.5 mb-5 rounded-2xl text-xs font-bold flex items-center gap-2 border ${
+                paymentFeedback.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                  : 'bg-rose-50 text-rose-900 border-rose-300'
+              }`}
+            >
+              <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+              <span>{paymentFeedback.message}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSavePaymentSettings} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#0B3323] block">
+                  Admin WhatsApp Number (receives payment confirmations)
+                </label>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={paymentSettings.admin_whatsapp_number}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, admin_whatsapp_number: e.target.value })}
+                    placeholder="+919207516227"
+                    className="pl-9 text-xs rounded-xl font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#0B3323] block">
+                  Admin UPI ID / VPA
+                </label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={paymentSettings.upi_id}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, upi_id: e.target.value })}
+                    placeholder="efootball@upi"
+                    className="pl-9 text-xs rounded-xl font-mono"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#0B3323] block">
+                  Account Holder / Payee Name
+                </label>
+                <Input
+                  type="text"
+                  value={paymentSettings.account_holder_name}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, account_holder_name: e.target.value })}
+                  placeholder="eFootball Tournament Admin"
+                  className="text-xs rounded-xl"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#0B3323] block">
+                  Bank Name (Optional)
+                </label>
+                <Input
+                  type="text"
+                  value={paymentSettings.bank_name || ''}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, bank_name: e.target.value })}
+                  placeholder="State Bank of India"
+                  className="text-xs rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#0B3323] block">
+                  Account Number (Optional)
+                </label>
+                <Input
+                  type="text"
+                  value={paymentSettings.account_number || ''}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, account_number: e.target.value })}
+                  placeholder="Account Number"
+                  className="text-xs rounded-xl font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#0B3323] block">
+                Payment Instructions (displayed to players on modal)
+              </label>
+              <Input
+                type="text"
+                value={paymentSettings.instructions}
+                onChange={(e) => setPaymentSettings({ ...paymentSettings, instructions: e.target.value })}
+                placeholder="Send payment via UPI or Bank Transfer..."
+                className="text-xs rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#0B3323] block">
+                Verification Notice Text
+              </label>
+              <Input
+                type="text"
+                value={paymentSettings.verification_notice}
+                onChange={(e) => setPaymentSettings({ ...paymentSettings, verification_notice: e.target.value })}
+                placeholder="Manual verification takes 10-30 minutes..."
+                className="text-xs rounded-xl"
+              />
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="submit"
+                disabled={savingPayment}
+                className="rounded-xl text-xs font-black bg-[#00C853] hover:bg-[#00E676] text-[#0B3323] px-5 h-9 gap-1.5 shadow-sm uppercase tracking-wider"
+              >
+                {savingPayment ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Saving Settings...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    <span>Save Payment Settings</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Home Carousel Banners List */}
       <Card className="border-border shadow-xs">

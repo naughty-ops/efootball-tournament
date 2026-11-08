@@ -21,6 +21,9 @@ import {
   Search,
   ShieldCheck,
   Check,
+  CreditCard,
+  MessageSquare,
+  FileCheck2,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,11 +31,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate } from '@/lib/utils';
 import { SwipeableTabBar, SwipeableTabContainer } from '@/components/ui/SwipeableTabs';
-import type { PlayerTournamentItem } from '@/services/playerDashboardService';
+import type { PlayerTournamentItem, PlayerPaymentRegistrationItem } from '@/services/playerDashboardService';
+import type { ManualPaymentSettings } from '@/types/database';
 import { cancelRegistrationAction } from '@/app/actions/playerActions';
+import { cancelRegistrationRequestAction } from '@/app/actions/paymentRegistrationActions';
+import { generateWhatsAppPaymentLink } from '@/lib/whatsappPayment';
+import { DEFAULT_MANUAL_PAYMENT_SETTINGS } from '@/services/paymentSettingsService';
 
 interface PlayerTournamentsClientProps {
   initialTournaments: PlayerTournamentItem[];
+  initialPaymentRegistrations?: PlayerPaymentRegistrationItem[];
+  paymentSettings?: ManualPaymentSettings;
+  playerProfile?: {
+    display_name?: string;
+    efootball_id?: string;
+    whatsapp_number?: string;
+  };
   initialError?: string | null;
 }
 
@@ -45,13 +59,36 @@ const TABS = [
 
 export default function PlayerTournamentsClient({
   initialTournaments,
+  initialPaymentRegistrations = [],
+  paymentSettings = DEFAULT_MANUAL_PAYMENT_SETTINGS,
+  playerProfile = {},
   initialError,
 }: PlayerTournamentsClientProps) {
   const [tournaments, setTournaments] = useState<PlayerTournamentItem[]>(initialTournaments);
+  const [paymentRegistrations, setPaymentRegistrations] = useState<PlayerPaymentRegistrationItem[]>(initialPaymentRegistrations);
   const [selectedTab, setSelectedTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const handleCancelPaymentRequest = async (requestId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this registration request?')) return;
+    setCancellingId(requestId);
+    setFeedback(null);
+    try {
+      const res = await cancelRegistrationRequestAction(requestId);
+      if (res.success) {
+        setPaymentRegistrations((prev) => prev.filter((r) => r.id !== requestId));
+        setFeedback({ message: 'Registration request cancelled.', type: 'success' });
+      } else {
+        setFeedback({ message: res.message || 'Failed to cancel request.', type: 'error' });
+      }
+    } catch {
+      setFeedback({ message: 'Error cancelling registration request.', type: 'error' });
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   // Calculate real, data-backed summary numbers directly from user's records
   const stats = useMemo(() => {
@@ -205,6 +242,114 @@ export default function PlayerTournamentsClient({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* Payment & Verification Requests Banner/List */}
+      {paymentRegistrations.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-[#FFFF00]" />
+              <span>Pending Payment & Verification Requests ({paymentRegistrations.length})</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {paymentRegistrations.map((req) => {
+              const isPending = req.status === 'pending_payment';
+              const isUnderReview = req.status === 'under_verification';
+              const isRejected = req.status === 'rejected';
+
+              const waUrl = generateWhatsAppPaymentLink({
+                adminWhatsAppNumber: paymentSettings.admin_whatsapp_number || '+919207516227',
+                tournamentName: req.tournamentName,
+                tournamentId: req.tournamentId,
+                registrationId: req.id,
+                userName: playerProfile?.display_name || 'Player',
+                efootballId: playerProfile?.efootball_id || 'Not set',
+                userPhone: playerProfile?.whatsapp_number || '',
+                entryFeeINR: req.entryFeeINR,
+              });
+
+              return (
+                <Card
+                  key={req.id}
+                  className="bg-[#1010C5] border border-white/20 rounded-[24px] p-5 shadow-lg text-white space-y-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isPending && (
+                          <Badge className="bg-[#FFFF00] text-[#08088F] font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full border-0">
+                            PAYMENT PENDING
+                          </Badge>
+                        )}
+                        {isUnderReview && (
+                          <Badge className="bg-amber-400 text-amber-950 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full border-0">
+                            UNDER VERIFICATION
+                          </Badge>
+                        )}
+                        {isRejected && (
+                          <Badge className="bg-rose-500 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full border-0">
+                            REJECTED
+                          </Badge>
+                        )}
+                        <span className="text-emerald-400 font-extrabold text-xs">₹{req.entryFeeINR} INR</span>
+                      </div>
+                      <h3 className="text-base font-black text-white font-display uppercase tracking-tight">
+                        {req.tournamentName}
+                      </h3>
+                    </div>
+
+                    <span className="text-[10px] text-[#D9DCFF]/70 font-mono shrink-0">
+                      ID: {req.id.slice(0, 8)}
+                    </span>
+                  </div>
+
+                  {isRejected && req.rejectionReason && (
+                    <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs">
+                      <strong>Rejection reason:</strong> {req.rejectionReason}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-[#00C853] hover:bg-[#00B048] text-[#072418] text-xs font-black rounded-full h-9 px-4 uppercase tracking-wider shadow-sm gap-1.5 cursor-pointer"
+                    >
+                      <a href={waUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>Chat on WhatsApp</span>
+                      </a>
+                    </Button>
+
+                    {(isPending || isUnderReview) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCancelPaymentRequest(req.id)}
+                        disabled={cancellingId === req.id}
+                        className="text-xs font-bold rounded-full h-9 px-3 border-white/20 text-rose-300 hover:bg-rose-500/20 hover:text-white"
+                      >
+                        {cancellingId === req.id ? 'Cancelling...' : 'Cancel Request'}
+                      </Button>
+                    )}
+
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="text-xs font-bold rounded-full h-9 px-3 border-white/20 text-white hover:bg-white/10"
+                    >
+                      <Link href={`/tournaments/${req.tournamentId}`}>Tournament Page</Link>
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { clearPublicCache } from '@/services/publicTournamentService';
@@ -13,18 +13,48 @@ export interface RealtimePayload {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   old: Record<string, any>;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  table?: string;
+  schema?: string;
+  commit_timestamp?: string;
 }
+
+export interface UseRealtimeMatchesOptions {
+  debounceMs?: number;
+  skipGlobalIfUnrelated?: boolean;
+}
+
+interface SharedChannelEntry {
+  channel: RealtimeChannel;
+  refCount: number;
+  status: RealtimeConnectionStatus;
+  hasConnectedOnce: boolean;
+  lastEventTimestamps: Map<string, number>;
+  subscribers: Set<{
+    callback: (payload?: RealtimePayload) => void;
+    onStatusChange: (status: RealtimeConnectionStatus) => void;
+  }>;
+  lastEventSignatures: Set<string>;
+}
+
+// Global reference-counted channel registry to eliminate duplicate subscriptions and random topic proliferation
+const sharedChannelRegistry = new Map<string, SharedChannelEntry>();
 
 /**
  * Production-hardened custom hook to subscribe to Postgres Realtime changes on `public.matches` and `public.tournaments`.
- * Uses useRef for the onUpdate callback to prevent re-subscription loops when parent components re-render.
- * Ensures ALL .on() listeners are attached strictly BEFORE .subscribe() is called.
+ * Features:
+ * - Canonical, deterministic topic naming (eliminates per-client topic explosion in Phoenix).
+ * - Multi-subscriber reference counting (safely shares channels between components without premature unmounting).
+ * - Trailing-edge debouncing (protects against thundering herd re-fetches during rapid score changes).
+ * - Event deduplication and out-of-order rejection.
+ * - Automatic reconnection resynchronization.
  */
 export function useRealtimeMatches(
   onUpdate: (payload?: RealtimePayload) => void,
   tournamentId?: string,
-  matchId?: string
+  matchId?: string,
+  options?: UseRealtimeMatchesOptions
 ) {
+  const debounceMs = options?.debounceMs ?? 400;
   const [connectionStatus, setConnectionStatus] = useState<RealtimeConnectionStatus>('connecting');
 
   // Keep reference to latest onUpdate callback without triggering effect re-runs
@@ -33,119 +63,232 @@ export function useRealtimeMatches(
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
 
-  useEffect(() => {
-    const supabase = createClient();
-    let isMounted = true;
-    let hasConnectedOnce = false;
-    let channel: RealtimeChannel | null = null;
+  // Debounced callback invoker
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingPayloadRef = useRef<RealtimePayload | undefined>(undefined);
 
-    try {
-      // Unique topic name per subscription instance to avoid topic collision in Supabase JS client
-      const instanceId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-      const topicName = matchId
-        ? `matches-realtime-m-${matchId}-${instanceId}`
-        : tournamentId
-        ? `matches-realtime-t-${tournamentId}-${instanceId}`
-        : `matches-realtime-all-${instanceId}`;
-
-      const matchFilter = matchId ? `id=eq.${matchId}` : undefined;
-      const tournamentFilter = tournamentId ? `id=eq.${tournamentId}` : undefined;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[Realtime matches] Registering channel topic: ${topicName}`);
+  const triggerDebouncedUpdate = useCallback(
+    (payload?: RealtimePayload) => {
+      pendingPayloadRef.current = payload;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
-
-      // Single fluid chain: create channel -> attach ALL .on() listeners -> call .subscribe()
-      channel = supabase
-        .channel(topicName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'matches',
-            ...(matchFilter ? { filter: matchFilter } : {}),
-          },
-          (payload) => {
-            clearPublicCache();
-            if (process.env.NODE_ENV === 'development') {
-              console.log('[Realtime match payload]', payload);
-            }
-            if (isMounted && onUpdateRef.current) {
-              try {
-                onUpdateRef.current(payload as unknown as RealtimePayload);
-              } catch (err) {
-                console.warn('[Realtime match callback warning]', err);
-              }
-            }
+      debounceTimerRef.current = setTimeout(() => {
+        try {
+          if (onUpdateRef.current) {
+            onUpdateRef.current(pendingPayloadRef.current);
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'tournaments',
-            ...(tournamentFilter ? { filter: tournamentFilter } : {}),
-          },
-          (payload) => {
-            clearPublicCache();
-            if (process.env.NODE_ENV === 'development') {
-              console.log('[Realtime tournament payload]', payload);
-            }
-            if (isMounted && onUpdateRef.current) {
-              try {
-                onUpdateRef.current(payload as unknown as RealtimePayload);
-              } catch (err) {
-                console.warn('[Realtime tournament callback warning]', err);
-              }
-            }
-          }
-        )
-        .subscribe((status, err) => {
-          if (!isMounted) return;
+        } catch (err) {
+          console.warn('[Realtime match callback warning]', err);
+        } finally {
+          debounceTimerRef.current = null;
+        }
+      }, debounceMs);
+    },
+    [debounceMs]
+  );
 
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[Realtime matches status]: ${topicName} -> ${status}`, err || '');
-          }
+  useEffect(() => {
+    let isMounted = true;
 
-          if (status === 'SUBSCRIBED') {
-            if (hasConnectedOnce && onUpdateRef.current) {
-              // Reconnection recovery: revalidate data upon re-subscribing
-              try {
-                onUpdateRef.current();
-              } catch { /* silent */ }
+    // Canonical, deterministic topic naming
+    const canonicalTopic = matchId
+      ? `rt:m:${matchId}`
+      : tournamentId
+      ? `rt:t:${tournamentId}`
+      : `rt:all`;
+
+    const matchFilter = matchId ? `id=eq.${matchId}` : undefined;
+    const tournamentFilter = tournamentId ? `id=eq.${tournamentId}` : undefined;
+
+    const subscriber = {
+      callback: (payload?: RealtimePayload) => {
+        if (!isMounted) return;
+        triggerDebouncedUpdate(payload);
+      },
+      onStatusChange: (newStatus: RealtimeConnectionStatus) => {
+        if (isMounted) {
+          setConnectionStatus(newStatus);
+        }
+      },
+    };
+
+    let entry = sharedChannelRegistry.get(canonicalTopic);
+
+    if (entry) {
+      // Channel already exists: increment reference count and register subscriber
+      entry.refCount += 1;
+      entry.subscribers.add(subscriber);
+      setConnectionStatus(entry.status);
+    } else {
+      // First subscriber for this topic: initialize Supabase channel
+      const supabase = createClient();
+
+      entry = {
+        channel: null as unknown as RealtimeChannel,
+        refCount: 1,
+        status: 'connecting',
+        hasConnectedOnce: false,
+        lastEventTimestamps: new Map(),
+        subscribers: new Set([subscriber]),
+        lastEventSignatures: new Set(),
+      };
+      sharedChannelRegistry.set(canonicalTopic, entry);
+
+      const notifySubscribers = (payload: RealtimePayload) => {
+        clearPublicCache();
+        const currentEntry = sharedChannelRegistry.get(canonicalTopic);
+        if (!currentEntry) return;
+
+        const newRecord = payload.new || {};
+
+        // 1. Out-of-order event check for matches table (discards stale delayed frames)
+        if (payload.table === 'matches' && newRecord.id && newRecord.updated_at) {
+          const rawDate = new Date(newRecord.updated_at);
+          const recordTs = rawDate.getTime();
+          // Validate timestamp: only evaluate and record finite timestamps to prevent NaN poisoning
+          if (Number.isFinite(recordTs) && recordTs > 0) {
+            const lastTs = currentEntry.lastEventTimestamps.get(newRecord.id);
+            if (lastTs && Number.isFinite(lastTs) && recordTs < lastTs) {
+              // Stale event arrived out of order: discard without applying
+              return;
             }
-            hasConnectedOnce = true;
-            setConnectionStatus('connected');
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            if (err) {
-              console.warn('[Realtime matches channel warning]', err);
-            }
-            setConnectionStatus(hasConnectedOnce ? 'reconnecting' : 'disconnected');
+            currentEntry.lastEventTimestamps.set(newRecord.id, recordTs);
+          }
+        }
+
+        // 2. Event deduplication check
+        const eventSig = `${payload.eventType}:${payload.table}:${newRecord.id || ''}:${newRecord.updated_at || newRecord.created_at || ''}`;
+        if (eventSig.length > 10) {
+          if (currentEntry.lastEventSignatures.has(eventSig)) {
+            return; // Duplicate event frame ignored
+          }
+          currentEntry.lastEventSignatures.add(eventSig);
+          if (currentEntry.lastEventSignatures.size > 200) {
+            currentEntry.lastEventSignatures.clear();
+          }
+        }
+
+        currentEntry.subscribers.forEach((sub) => {
+          try {
+            sub.callback(payload);
+          } catch (cbErr) {
+            console.warn('[Realtime dispatch warning]', cbErr);
           }
         });
-    } catch (err) {
-      console.warn('[Realtime matches defensive catch] Could not initialize subscription:', err);
-      setTimeout(() => {
-        if (isMounted) {
-          setConnectionStatus('disconnected');
-        }
-      }, 0);
+      };
+
+      const notifyStatusChange = (status: RealtimeConnectionStatus) => {
+        const currentEntry = sharedChannelRegistry.get(canonicalTopic);
+        if (!currentEntry) return;
+        currentEntry.status = status;
+        currentEntry.subscribers.forEach((sub) => {
+          try {
+            sub.onStatusChange(status);
+          } catch { /* silent */ }
+        });
+      };
+
+      try {
+        const channel = supabase
+          .channel(canonicalTopic)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'matches',
+              ...(matchFilter ? { filter: matchFilter } : {}),
+            },
+            (payload) => {
+              notifySubscribers({
+                ...payload,
+                table: 'matches',
+                schema: 'public',
+              } as RealtimePayload);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'tournaments',
+              ...(tournamentFilter ? { filter: tournamentFilter } : {}),
+            },
+            (payload) => {
+              notifySubscribers({
+                ...payload,
+                table: 'tournaments',
+                schema: 'public',
+              } as RealtimePayload);
+            }
+          )
+          .subscribe((status, err) => {
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[Realtime matches status]: ${canonicalTopic} -> ${status}`, err || '');
+            }
+
+            if (status === 'SUBSCRIBED') {
+              const currentEntry = sharedChannelRegistry.get(canonicalTopic);
+              const isReconnecting = Boolean(currentEntry?.hasConnectedOnce);
+              if (currentEntry) {
+                currentEntry.hasConnectedOnce = true;
+              }
+              notifyStatusChange('connected');
+
+              // Reconnection recovery: if reconnecting after dropout, trigger debounced resync
+              if (isReconnecting) {
+                notifySubscribers({
+                  eventType: '*',
+                  table: 'tournaments',
+                  schema: 'public',
+                  new: {},
+                  old: {},
+                });
+              }
+            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              if (err) {
+                console.warn('[Realtime matches channel error]', err);
+              }
+              notifyStatusChange('reconnecting');
+            }
+          });
+
+        entry.channel = channel;
+      } catch (err) {
+        console.warn('[Realtime matches subscription error]:', err);
+        notifyStatusChange('disconnected');
+      }
     }
 
     return () => {
       isMounted = false;
-      if (channel) {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      const currentEntry = sharedChannelRegistry.get(canonicalTopic);
+      if (!currentEntry) return;
+
+      currentEntry.subscribers.delete(subscriber);
+      currentEntry.refCount -= 1;
+
+      if (currentEntry.refCount <= 0) {
+        // Last subscriber departed: cleanly remove channel from Supabase client
         try {
-          // Use the exact same supabase client instance for channel removal
-          supabase.removeChannel(channel);
+          const supabase = createClient();
+          if (currentEntry.channel) {
+            supabase.removeChannel(currentEntry.channel);
+          }
         } catch (cleanupErr) {
-          console.warn('[Realtime matches cleanup warning]', cleanupErr);
+          console.warn('[Realtime cleanup warning]:', cleanupErr);
+        } finally {
+          sharedChannelRegistry.delete(canonicalTopic);
         }
       }
     };
-  }, [tournamentId, matchId]); // Deliberately omit onUpdate: managed via onUpdateRef!
+  }, [tournamentId, matchId, triggerDebouncedUpdate]);
 
   return { connectionStatus };
 }

@@ -1,20 +1,43 @@
-import React from 'react';
+import React, { cache } from 'react';
 import type { Metadata } from 'next';
-import { getPublicTournament } from '@/services/publicTournamentService';
+import { cookies } from 'next/headers';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { getPublicTournament, redactPrivateTournament } from '@/services/publicTournamentService';
+import { verifySignedTournamentAccessToken, getTournamentCookieName } from '@/lib/security/tournamentAccessCookie';
 import PublicTournamentClientView from './PublicTournamentClientView';
 
 interface PageProps {
   params: Promise<{ tournamentId: string }>;
 }
 
+// Revalidate public tournament details cache every 30 seconds (ISR)
+export const revalidate = 30;
+
+// Deduplicate tournament data query between generateMetadata and Page component
+const getCachedTournament = cache(async (id: string) => {
+  return await getPublicTournament(id).catch(() => null);
+});
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tournamentId } = await params;
-  const tournament = await getPublicTournament(tournamentId).catch(() => null);
+  const tournament = await getCachedTournament(tournamentId);
 
   if (!tournament) {
     return {
       title: 'Tournament Not Found | eFootball Tournament',
       description: 'The requested eFootball tournament could not be found or may have been deleted.',
+    };
+  }
+
+  // Obfuscate metadata if tournament is marked private
+  if ((tournament as any).is_private) {
+    return {
+      title: 'Private Tournament | eFootball Tournament',
+      description: 'This is a private invitation-only tournament. Access code required to participate.',
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
@@ -48,6 +71,48 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicTournamentPage({ params }: PageProps) {
   const { tournamentId } = await params;
-  const initialTournament = await getPublicTournament(tournamentId).catch(() => null);
+  const initialTournament = await getCachedTournament(tournamentId);
+
+  if (!initialTournament) {
+    return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={null} />;
+  }
+
+  // If tournament is private, check user session and cryptographically signed authorization cookie
+  if ((initialTournament as any).is_private) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Anonymous visitors are strictly restricted behind the access code gate (Task 3.A)
+    if (!user) {
+      const safeRedacted = redactPrivateTournament(initialTournament);
+      return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={safeRedacted} isPrivateLocked={true} />;
+    }
+
+    const cookieStore = await cookies();
+    const cookieName = getTournamentCookieName(tournamentId);
+    const accessCookie = cookieStore.get(cookieName)?.value;
+
+    // Fetch password hash to verify password-state fingerprint
+    const adminClient = createAdminClient();
+    const { data: privRecord } = await (adminClient.from('tournaments') as any)
+      .select('access_code_hash')
+      .eq('id', tournamentId)
+      .maybeSingle();
+
+    const verification = verifySignedTournamentAccessToken(
+      accessCookie,
+      tournamentId,
+      privRecord?.access_code_hash
+    );
+
+    if (!verification.valid) {
+      // Pass strictly redacted version to client view. No private fields leaked to props or HTML.
+      const safeRedacted = redactPrivateTournament(initialTournament);
+      return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={safeRedacted} isPrivateLocked={true} />;
+    }
+  }
+
   return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={initialTournament} />;
 }

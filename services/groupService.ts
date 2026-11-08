@@ -133,8 +133,8 @@ export function isLeagueRoundName(name: string): boolean {
 /**
  * Fetch full group stage overview for a tournament
  */
-export async function getTournamentGroups(tournamentId: string): Promise<GroupStageOverview> {
-  const supabase = createClient();
+export async function getTournamentGroups(tournamentId: string, customClient?: any): Promise<GroupStageOverview> {
+  const supabase = customClient || createClient();
 
   // 1. Fetch Tournament
   const tRes = await (supabase.from('tournaments') as unknown as UnknownQuery)

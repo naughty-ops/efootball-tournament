@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerTournamentsClient from './PlayerTournamentsClient';
-import { getPlayerProfile, getPlayerTournaments } from '@/services/playerDashboardService';
+import { getPlayerProfile, getPlayerTournaments, getPlayerPaymentRegistrations } from '@/services/playerDashboardService';
+import { getManualPaymentSettings } from '@/services/paymentSettingsService';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +27,11 @@ export default async function PlayerTournamentsPage() {
   }
 
   // Derive identity strictly from server-side verified auth.uid()
-  const [profile, tournamentsResult] = await Promise.all([
+  const [profile, tournamentsResult, paymentRegistrations, paymentSettings] = await Promise.all([
     getPlayerProfile(supabase, user.id),
     getPlayerTournaments(supabase, user.id),
+    getPlayerPaymentRegistrations(supabase, user.id),
+    getManualPaymentSettings(supabase),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
@@ -71,6 +74,13 @@ export default async function PlayerTournamentsPage() {
 
         <PlayerTournamentsClient
           initialTournaments={tournamentsResult.data}
+          initialPaymentRegistrations={paymentRegistrations}
+          paymentSettings={paymentSettings}
+          playerProfile={{
+            display_name: fullName,
+            efootball_id: efootballId,
+            whatsapp_number: profile?.whatsapp_number,
+          }}
           initialError={tournamentsResult.error}
         />
         </PlayerDashboardSwipeWrapper>

@@ -82,11 +82,11 @@ export function isKnockoutRoundName(name: string): boolean {
 /**
  * Fetch full bracket data for a tournament
  */
-export async function getTournamentBracket(tournamentId: string): Promise<BracketOverview> {
-  const supabase = createClient();
+export async function getTournamentBracket(tournamentId: string, customClient?: any): Promise<BracketOverview> {
+  const supabase = customClient || createClient();
 
   // 1. Fetch Tournament with stats, champion, and runner-up
-  const tournament = await getTournamentById(tournamentId);
+  const tournament = await getTournamentById(tournamentId, supabase);
   if (!tournament) {
     throw new Error('Tournament not found');
   }

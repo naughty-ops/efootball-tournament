@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Trophy,
   Search,
@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { getPublicTournaments } from '@/services/publicTournamentService';
 import type { TournamentWithStats } from '@/services/tournamentService';
-import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import { cn } from '@/lib/utils';
 import { TournamentCard } from '@/components/tournament/TournamentCard';
 
@@ -30,36 +30,58 @@ interface TournamentsClientListProps {
 export default function TournamentsClientList({
   initialTournaments,
 }: TournamentsClientListProps) {
-  const [tournaments, setTournaments] = useState<TournamentWithStats[]>(initialTournaments);
+  const [allTournaments, setAllTournaments] = useState<TournamentWithStats[]>(initialTournaments);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getPublicTournaments({ search, status: statusFilter });
-      setTournaments(data);
-    } catch {
-      setError('Unable to load tournaments. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, statusFilter]);
-
-  // Fetch only when search or statusFilter changes from initial state
+  // Synchronize when initialTournaments prop changes
   useEffect(() => {
-    if (!search && statusFilter === 'all') {
-      return;
-    }
-    const timer = setTimeout(fetchData, search ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [fetchData, search, statusFilter]);
+    setAllTournaments(initialTournaments);
+  }, [initialTournaments]);
 
-  // Realtime subscription for tournament list updates
-  useRealtimeMatches(fetchData);
+  // Instantaneous in-memory filtering: 0ms response time, 0 network requests
+  const tournaments = useMemo(() => {
+    return allTournaments.filter((t) => {
+      // 1. Status Filter
+      if (statusFilter !== 'all' && t.status !== statusFilter) {
+        return false;
+      }
+      // 2. Search Query Filter
+      if (search.trim()) {
+        const query = search.toLowerCase().trim();
+        const matchesName = t.name.toLowerCase().includes(query);
+        const matchesDesc = (t.description || '').toLowerCase().includes(query);
+        const matchesFormat = (t.format || '').toLowerCase().includes(query);
+        if (!matchesName && !matchesDesc && !matchesFormat) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allTournaments, statusFilter, search]);
+
+  const refreshTournaments = useCallback(async () => {
+    try {
+      const data = await getPublicTournaments({});
+      setAllTournaments(data);
+    } catch {
+      setError('Unable to refresh tournaments. Please try again.');
+    }
+  }, []);
+
+  // Realtime subscription for tournament list updates (only re-queries when tournaments change in DB)
+  const handleRealtimeUpdate = useCallback(
+    (payload?: RealtimePayload) => {
+      if (!payload || payload.table === 'tournaments') {
+        refreshTournaments();
+      }
+    },
+    [refreshTournaments]
+  );
+
+  useRealtimeMatches(handleRealtimeUpdate);
 
   return (
     <div className="space-y-8 w-full overflow-hidden pb-12">
@@ -119,7 +141,7 @@ export default function TournamentsClientList({
         <div className="text-center py-16 bg-[#1010C5] rounded-3xl border border-white/15 p-8 max-w-md mx-auto">
           <p className="text-sm text-[#FF168B] font-bold mb-4">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={refreshTournaments}
             className="px-5 py-2 rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase"
           >
             Retry

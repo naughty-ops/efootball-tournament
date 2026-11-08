@@ -2,7 +2,27 @@ export type TournamentFormat = 'knockout' | 'league' | 'group_knockout' | 'singl
 export type TournamentStatus = 'draft' | 'registration' | 'ongoing' | 'completed';
 export type ParticipantStatus = 'active' | 'eliminated' | 'disqualified';
 export type MatchStatus = 'pending' | 'ready' | 'scheduled' | 'live' | 'completed' | 'walkover' | 'cancelled';
-export type RegistrationStatus = 'confirmed' | 'cancelled' | 'pending';
+export type RegistrationStatus =
+  | 'pending_payment'
+  | 'payment_submitted'
+  | 'under_verification'
+  | 'approved'
+  | 'rejected'
+  | 'confirmed'
+  | 'expired'
+  | 'cancelled'
+  | 'refunded';
+
+export interface ManualPaymentSettings {
+  admin_whatsapp_number: string;
+  upi_id: string;
+  account_holder_name: string;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  instructions: string;
+  verification_notice: string;
+}
 
 export interface Database {
   public: {
@@ -32,6 +52,8 @@ export interface Database {
           reserved_slots_count: number;
           confirmed_slots_count: number;
           registration_deadline: string | null;
+          is_private?: boolean;
+          access_code_hash?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -59,6 +81,8 @@ export interface Database {
           reserved_slots_count?: number;
           confirmed_slots_count?: number;
           registration_deadline?: string | null;
+          is_private?: boolean;
+          access_code_hash?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -86,6 +110,8 @@ export interface Database {
           reserved_slots_count?: number;
           confirmed_slots_count?: number;
           registration_deadline?: string | null;
+          is_private?: boolean;
+          access_code_hash?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -544,6 +570,19 @@ export interface Database {
           status: RegistrationStatus;
           amount_paise: number;
           currency: string;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          payment_proof_url?: string | null;
+          verified_amount_paise?: number | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          rejection_reason?: string | null;
+          submitted_at?: string | null;
+          approved_at?: string | null;
+          notes?: string | null;
+          terms_accepted?: boolean | null;
+          terms_accepted_at?: string | null;
+          rules_version?: string | null;
           reserved_until: string | null;
           confirmed_at: string | null;
           created_at: string;
@@ -557,6 +596,19 @@ export interface Database {
           status?: RegistrationStatus;
           amount_paise?: number;
           currency?: string;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          payment_proof_url?: string | null;
+          verified_amount_paise?: number | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          rejection_reason?: string | null;
+          submitted_at?: string | null;
+          approved_at?: string | null;
+          notes?: string | null;
+          terms_accepted?: boolean | null;
+          terms_accepted_at?: string | null;
+          rules_version?: string | null;
           reserved_until?: string | null;
           confirmed_at?: string | null;
           created_at?: string;
@@ -570,6 +622,19 @@ export interface Database {
           status?: RegistrationStatus;
           amount_paise?: number;
           currency?: string;
+          payment_method?: string | null;
+          payment_reference?: string | null;
+          payment_proof_url?: string | null;
+          verified_amount_paise?: number | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          rejection_reason?: string | null;
+          submitted_at?: string | null;
+          approved_at?: string | null;
+          notes?: string | null;
+          terms_accepted?: boolean | null;
+          terms_accepted_at?: string | null;
+          rules_version?: string | null;
           reserved_until?: string | null;
           confirmed_at?: string | null;
           created_at?: string;

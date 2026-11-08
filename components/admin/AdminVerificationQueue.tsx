@@ -285,7 +285,7 @@ export function AdminVerificationQueue({
     }
   };
 
-  // Handle WhatsApp Verification Action
+  // Handle WhatsApp Verification Action (with instant optimistic UI and error rollback)
   const handleVerifyWhatsApp = async (
     targetUserId: string,
     decision: 'verified' | 'rejected',
@@ -294,19 +294,39 @@ export function AdminVerificationQueue({
     setProcessingId(`wa-${targetUserId}`);
     setFeedback(null);
 
+    const previousItems = items;
+    const previousStats = stats;
+
+    // Optimistic immediate update
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === targetUserId
+          ? {
+              ...item,
+              whatsapp_verified: decision === 'verified',
+              whatsapp_verification_status: decision,
+            }
+          : item
+      )
+    );
+
     startTransition(async () => {
       try {
         const res = await adminVerifyWhatsAppAction(targetUserId, decision, reason);
         if (res.success) {
           setFeedback({ message: res.message, type: 'success' });
-          await Promise.all([loadStats(), loadQueue()]);
+          Promise.all([loadStats(), loadQueue()]);
           if (selectedMemberId === targetUserId) {
             handleOpenDetails(targetUserId);
           }
         } else {
+          setItems(previousItems);
+          setStats(previousStats);
           setFeedback({ message: res.message, type: 'error' });
         }
       } catch (err: any) {
+        setItems(previousItems);
+        setStats(previousStats);
         setFeedback({ message: err.message || 'Operation failed', type: 'error' });
       } finally {
         setProcessingId(null);
@@ -314,7 +334,7 @@ export function AdminVerificationQueue({
     });
   };
 
-  // Handle eFootball Verification Action
+  // Handle eFootball Verification Action (with instant optimistic UI and error rollback)
   const handleVerifyEfootball = async (
     targetUserId: string,
     decision: 'verified' | 'rejected',
@@ -323,19 +343,39 @@ export function AdminVerificationQueue({
     setProcessingId(`ef-${targetUserId}`);
     setFeedback(null);
 
+    const previousItems = items;
+    const previousStats = stats;
+
+    // Optimistic immediate update
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === targetUserId
+          ? {
+              ...item,
+              efootball_id_verified: decision === 'verified',
+              efootball_verification_status: decision,
+            }
+          : item
+      )
+    );
+
     startTransition(async () => {
       try {
         const res = await adminVerifyEfootballIdAction(targetUserId, decision, reason);
         if (res.success) {
           setFeedback({ message: res.message, type: 'success' });
-          await Promise.all([loadStats(), loadQueue()]);
+          Promise.all([loadStats(), loadQueue()]);
           if (selectedMemberId === targetUserId) {
             handleOpenDetails(targetUserId);
           }
         } else {
+          setItems(previousItems);
+          setStats(previousStats);
           setFeedback({ message: res.message, type: 'error' });
         }
       } catch (err: any) {
+        setItems(previousItems);
+        setStats(previousStats);
         setFeedback({ message: err.message || 'Operation failed', type: 'error' });
       } finally {
         setProcessingId(null);
@@ -343,24 +383,46 @@ export function AdminVerificationQueue({
     });
   };
 
-  // Handle Verify Both (Single Click)
+  // Handle Verify Both (with instant optimistic UI and error rollback)
   const handleVerifyBoth = async (targetUserId: string) => {
     setProcessingId(`both-${targetUserId}`);
     setFeedback(null);
+
+    const previousItems = items;
+    const previousStats = stats;
+
+    // Optimistic immediate update
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === targetUserId
+          ? {
+              ...item,
+              whatsapp_verified: true,
+              whatsapp_verification_status: 'verified',
+              efootball_id_verified: true,
+              efootball_verification_status: 'verified',
+            }
+          : item
+      )
+    );
 
     startTransition(async () => {
       try {
         const res = await adminVerifyBothAction(targetUserId);
         if (res.success) {
           setFeedback({ message: res.message, type: 'success' });
-          await Promise.all([loadStats(), loadQueue()]);
+          Promise.all([loadStats(), loadQueue()]);
           if (selectedMemberId === targetUserId) {
             handleOpenDetails(targetUserId);
           }
         } else {
+          setItems(previousItems);
+          setStats(previousStats);
           setFeedback({ message: res.message, type: 'error' });
         }
       } catch (err: any) {
+        setItems(previousItems);
+        setStats(previousStats);
         setFeedback({ message: err.message || 'Operation failed', type: 'error' });
       } finally {
         setProcessingId(null);

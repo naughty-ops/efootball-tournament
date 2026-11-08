@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
@@ -24,12 +24,18 @@ export function PlayerDashboardSwipeWrapper({
 }: PlayerDashboardSwipeWrapperProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
   // Find index of current route
   const currentIndex = DASHBOARD_ROUTES.findIndex((r) => {
     if (r === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(r);
   });
+
+  // Reset slide transition on pathname change
+  useEffect(() => {
+    setSlideDirection(null);
+  }, [pathname]);
 
   // Pre-fetch adjacent tabs for instantaneous navigation
   useEffect(() => {
@@ -45,12 +51,14 @@ export function PlayerDashboardSwipeWrapper({
 
   const handleSwipeLeft = () => {
     if (currentIndex !== -1 && currentIndex < DASHBOARD_ROUTES.length - 1) {
+      setSlideDirection('left');
       router.push(DASHBOARD_ROUTES[currentIndex + 1]);
     }
   };
 
   const handleSwipeRight = () => {
     if (currentIndex !== -1 && currentIndex > 0) {
+      setSlideDirection('right');
       router.push(DASHBOARD_ROUTES[currentIndex - 1]);
     }
   };
@@ -65,7 +73,12 @@ export function PlayerDashboardSwipeWrapper({
   return (
     <div
       {...swipeHandlers}
-      className={cn('w-full touch-pan-y transition-opacity duration-150', className)}
+      className={cn(
+        'w-full touch-pan-y transition-all duration-200 ease-out',
+        slideDirection === 'left' && 'motion-safe:translate-x-[-12px] motion-safe:opacity-75',
+        slideDirection === 'right' && 'motion-safe:translate-x-[12px] motion-safe:opacity-75',
+        className
+      )}
     >
       {children}
     </div>

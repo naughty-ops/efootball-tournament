@@ -15,7 +15,14 @@ export const RATE_LIMIT_RULES: Record<string, RateLimitRule> = {
   health: { limit: 300, windowSeconds: 60 },      // 300 requests / min for health checks
 };
 
-// In-memory sliding window cache per node
+export interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  resetSeconds: number;
+}
+
+// In-memory sliding window cache per serverless isolate
 const memoryStore = new Map<string, { count: number; resetTime: number }>();
 
 // Periodic memory cleanup every 60 seconds
@@ -52,17 +59,12 @@ export function getClientIp(request: NextRequest | Request): string {
 }
 
 /**
- * Checks rate limit for a given key and rule
+ * Synchronous in-memory rate limit check (used by middleware or sync callers).
  */
 export function checkRateLimit(
   key: string,
   rule: RateLimitRule
-): {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  resetSeconds: number;
-} {
+): RateLimitResult {
   const now = Date.now();
   const windowMs = rule.windowSeconds * 1000;
   const record = memoryStore.get(key);
@@ -99,6 +101,86 @@ export function checkRateLimit(
     remaining,
     resetSeconds,
   };
+}
+
+let hasWarnedMissingRedis = false;
+
+/**
+ * Distributed rate limiter with Upstash Redis REST support and transparent in-memory fallback.
+ * Uses atomic INCR with EXPIRE pipeline over native HTTPS.
+ * - If UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are present, rates are tracked globally
+ *   across all serverless isolates.
+ * - If absent, it emits a server-side warning and falls back to process-local in-memory tracking.
+ * - Policy: Fail-open to local in-memory store if Redis is unavailable or times out (>800ms) to maintain uptime.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  rule: RateLimitRule
+): Promise<RateLimitResult> {
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // If Upstash Redis is not configured, warn and use non-distributed process-memory store
+  if (!redisUrl || !redisToken) {
+    if (!hasWarnedMissingRedis) {
+      console.warn(
+        '[RateLimit Warning] UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is not configured. ' +
+        'Falling back to non-distributed process-local memory store. Multi-instance serverless deployments will NOT share rate limits.'
+      );
+      hasWarnedMissingRedis = true;
+    }
+    return checkRateLimit(key, rule);
+  }
+
+  try {
+    const prefixedKey = `ratelimit:${key}`;
+    // Truly atomic rate-limiting via Redis Lua script (EVAL)
+    // Guarantees INCR and EXPIRE are executed atomically in a single Redis engine step.
+    const redisEndpoint = redisUrl.replace(/\/$/, '');
+    const luaScript = `
+      local current = redis.call('INCR', KEYS[1])
+      if tonumber(current) == 1 then
+        redis.call('EXPIRE', KEYS[1], ARGV[1])
+      end
+      local ttl = redis.call('TTL', KEYS[1])
+      return {current, ttl}
+    `;
+
+    const res = await fetch(redisEndpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(['EVAL', luaScript, '1', prefixedKey, String(rule.windowSeconds)]),
+      // 800ms abort signal ensures external network latency never blocks user requests
+      signal: AbortSignal.timeout(800),
+    });
+
+    if (!res.ok) {
+      console.warn('[Distributed RateLimit] Upstash Redis returned HTTP status:', res.status);
+      return checkRateLimit(key, rule);
+    }
+
+    const json = await res.json();
+    const resultArr = Array.isArray(json?.result) ? json.result : [1, rule.windowSeconds];
+    const count = Number(resultArr[0]) || 1;
+    const ttlRaw = Number(resultArr[1]);
+    const ttl = ttlRaw > 0 ? ttlRaw : rule.windowSeconds;
+
+    const remaining = Math.max(0, rule.limit - count);
+    const success = count <= rule.limit;
+
+    return {
+      success,
+      limit: rule.limit,
+      remaining,
+      resetSeconds: ttl,
+    };
+  } catch (err) {
+    console.warn('[Distributed RateLimit] Failed contacting Redis; falling back to process memory store:', err);
+    return checkRateLimit(key, rule);
+  }
 }
 
 /**

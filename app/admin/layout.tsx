@@ -1,7 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { isAllowlistedAdminEmail, checkIsAdmin } from '@/lib/auth/server';
+import { isAllowlistedAdminEmail, getAuthenticatedUser } from '@/lib/auth/server';
 import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
 import type { Metadata } from 'next';
 
@@ -15,25 +14,16 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  // Leverages request-cached getAuthenticatedUser (1 single auth + admin check across the entire request)
+  const { user, isAdmin } = await getAuthenticatedUser();
 
   // 1. Enforce active authentication
-  if (error || !user) {
+  if (!user) {
     redirect('/login');
   }
 
-  // 2. Enforce strict email allowlist check (ye.agrajj@gmail.com only)
-  if (!isAllowlistedAdminEmail(user.email)) {
-    redirect('/dashboard?error=admin_unauthorized');
-  }
-
-  // 3. Enforce database admin_users record verification
-  const isAdmin = await checkIsAdmin(user.id, user.email);
-  if (!isAdmin) {
+  // 2. Enforce strict email allowlist and database admin check (ye.agrajj@gmail.com only)
+  if (!isAdmin || !isAllowlistedAdminEmail(user.email)) {
     redirect('/dashboard?error=admin_unauthorized');
   }
 

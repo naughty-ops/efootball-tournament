@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse } from '@/lib/rateLimit';
+import { checkRateLimitAsync, getClientIp, RATE_LIMIT_RULES, createRateLimitErrorResponse } from '@/lib/rateLimit';
 import { selfRegisterTournament } from '@/services/playerDashboardService';
 
 export const runtime = 'nodejs';
@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 const registerSchema = z.object({
   tournamentId: z.string().uuid({ message: 'Invalid tournament ID format.' }),
   rulesAccepted: z.boolean().optional(),
+  accessCode: z.string().optional(),
 });
 
 /**
@@ -26,9 +27,9 @@ const registerSchema = z.object({
  * - Duplicate registration prevention
  */
 export async function POST(request: NextRequest) {
-  // 1. Rate limiting
+  // 1. Rate limiting (distributed with fallback)
   const ip = getClientIp(request);
-  const rateLimitResult = checkRateLimit(`registration_${ip}`, RATE_LIMIT_RULES.api);
+  const rateLimitResult = await checkRateLimitAsync(`registration_${ip}`, RATE_LIMIT_RULES.api);
   if (!rateLimitResult.success) {
     return createRateLimitErrorResponse(rateLimitResult);
   }
@@ -56,11 +57,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
-    const { tournamentId, rulesAccepted } = parseResult.data;
+    const { tournamentId, rulesAccepted, accessCode } = parseResult.data;
 
     // 4. Perform direct tournament registration
     const result = await selfRegisterTournament(supabase, user.id, tournamentId, {
       rulesAccepted: rulesAccepted ?? true,
+      accessCode,
     });
 
     if (!result.success) {
@@ -73,6 +75,12 @@ export async function POST(request: NextRequest) {
       success: true,
       message: result.message,
       participantId: result.participantId,
+      isPaid: result.isPaid,
+      registrationId: result.registrationId,
+      status: result.status,
+      amountPaise: result.amountPaise,
+      entryFeeINR: result.entryFeeINR,
+      currency: result.currency,
     });
   } catch (error: unknown) {
     console.error('Registration API error:', error);

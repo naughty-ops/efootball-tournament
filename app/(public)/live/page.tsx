@@ -62,6 +62,11 @@ export default function LivePage() {
           }
           return prev;
         });
+
+        // If existing live match was patched, skip full fetch!
+        if (updatedMatch.status === 'live') {
+          return;
+        }
       }
       fetchLive();
     },

@@ -62,6 +62,28 @@ export async function getPublicTournaments(params?: {
 }
 
 /**
+ * Redacted public representation for private tournaments when viewed by unauthorized visitors.
+ * Strips description, rules, prize pool details, champion info, and internal timestamps.
+ */
+export function redactPrivateTournament(tourney: TournamentWithStats): TournamentWithStats & { is_private?: boolean } {
+  const sanitized = { ...tourney };
+  delete (sanitized as any).access_code_hash;
+  delete (sanitized as any).access_code;
+
+  return {
+    ...sanitized,
+    is_private: true,
+    description: null,
+    rules_text: null,
+    banner_image: null,
+    champion_id: null,
+    runner_up_id: null,
+    championUser: null,
+    runnerUpUser: null,
+  } as TournamentWithStats & { is_private?: boolean };
+}
+
+/**
  * Fetch a single tournament for public display.
  * Draft tournaments are strictly hidden from public view.
  */
@@ -84,8 +106,8 @@ export async function getPublicTournamentStageInfo(tournamentId: string) {
  * Fetch participants for public display — uses safe tournament_participants_public view
  * to ensure sensitive fields (contact_info, real_name, user_id) are never retrieved.
  */
-export async function getPublicParticipants(tournamentId: string): Promise<PublicParticipant[]> {
-  const supabase = createClient();
+export async function getPublicParticipants(tournamentId: string, customClient?: any): Promise<PublicParticipant[]> {
+  const supabase = customClient || createClient();
 
   try {
     const { data: viewData, error: viewError } = await (supabase

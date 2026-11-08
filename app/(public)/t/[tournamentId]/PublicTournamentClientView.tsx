@@ -18,6 +18,7 @@ import {
   Sparkles,
   AlertCircle,
   ArrowLeft,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
@@ -34,7 +35,7 @@ import type { TournamentWithStats } from '@/services/tournamentService';
 import type { GroupStageOverview } from '@/services/groupService';
 import type { BracketOverview } from '@/services/bracketService';
 import type { RoundWithMatches } from '@/services/matchService';
-import { useRealtimeMatches } from '@/hooks/useRealtimeMatches';
+import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import PublicOverviewTab from '@/components/public/tournament/PublicOverviewTab';
 import PublicParticipantsTab from '@/components/public/tournament/PublicParticipantsTab';
 import PublicMatchesTab from '@/components/public/tournament/PublicMatchesTab';
@@ -86,6 +87,7 @@ interface PublicTournamentClientViewProps {
   initialTournament?: TournamentWithStats | null;
   initialParticipants?: PublicParticipant[];
   initialStageInfo?: Record<string, any> | null;
+  isPrivateLocked?: boolean;
 }
 
 export default function PublicTournamentClientView({
@@ -93,6 +95,7 @@ export default function PublicTournamentClientView({
   initialTournament = null,
   initialParticipants = [],
   initialStageInfo = null,
+  isPrivateLocked = false,
 }: PublicTournamentClientViewProps) {
   const [tournament, setTournament] = useState<TournamentWithStats | null>(initialTournament);
   const [participants, setParticipants] = useState<PublicParticipant[]>(initialParticipants);
@@ -101,6 +104,12 @@ export default function PublicTournamentClientView({
   const [rounds, setRounds] = useState<RoundWithMatches[]>([]);
   const [subStage, setSubStage] = useState<string | undefined>(initialStageInfo?.subStage);
   const [stageInfo, setStageInfo] = useState<Record<string, any> | null>(initialStageInfo);
+
+  // Private tournament gate state
+  const [isLocked, setIsLocked] = useState<boolean>(isPrivateLocked);
+  const [accessCodeInput, setAccessCodeInput] = useState('');
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(!initialTournament);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +121,59 @@ export default function PublicTournamentClientView({
   const loadedTabsRef = useRef<Set<string>>(new Set(['overview', 'participants']));
   const [loadingTabData, setLoadingTabData] = useState(false);
 
+  // Authorized private tournament data loader
+  const fetchAuthorizedData = useCallback(async () => {
+    if (!tournamentId) return;
+    setLoadingTabData(true);
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/authorized-data`, {
+        credentials: 'same-origin',
+      });
+      if (res.status === 401) {
+        setIsLocked(true);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error('Failed to load authorized tournament data');
+      }
+      const data = await res.json();
+      if (data.tournament) {
+        setTournament(data.tournament);
+        if (data.tournament.status === 'completed' && data.tournament.championUser) {
+          setShowCelebration(true);
+        }
+      }
+      if (data.participants) setParticipants(data.participants);
+      if (data.stageInfo) {
+        setStageInfo(data.stageInfo);
+        if (data.stageInfo.subStage) setSubStage(data.stageInfo.subStage);
+      }
+      if (data.groupStage) setGroupStage(data.groupStage);
+      if (data.rounds) setRounds(data.rounds);
+      if (data.bracket) setBracket(data.bracket);
+
+      loadedTabsRef.current.add('overview');
+      loadedTabsRef.current.add('participants');
+      loadedTabsRef.current.add('groups');
+      loadedTabsRef.current.add('matches');
+      loadedTabsRef.current.add('bracket');
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching authorized tournament data:', err);
+      setError('failed_load');
+    } finally {
+      setLoading(false);
+      setLoadingTabData(false);
+    }
+  }, [tournamentId]);
+
   // 1. Initial Overview Fetch (Only fetches overview essentials, not all 5 datasets at once)
   const fetchOverview = useCallback(async () => {
-    if (!tournamentId) return;
+    if (!tournamentId || isLocked) return;
+    if (tournament?.is_private) {
+      await fetchAuthorizedData();
+      return;
+    }
     try {
       const [t, pRes, sInfo] = await Promise.all([
         tournament ? Promise.resolve(tournament) : getPublicTournament(tournamentId),
@@ -125,6 +184,12 @@ export default function PublicTournamentClientView({
       if (!t) {
         setError('not_found');
         setLoading(false);
+        return;
+      }
+
+      if ((t as any).is_private) {
+        setTournament(t);
+        await fetchAuthorizedData();
         return;
       }
 
@@ -143,7 +208,7 @@ export default function PublicTournamentClientView({
     } finally {
       setLoading(false);
     }
-  }, [tournamentId, tournament, participants.length, stageInfo]);
+  }, [tournamentId, tournament, participants.length, stageInfo, isLocked, fetchAuthorizedData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,7 +222,13 @@ export default function PublicTournamentClientView({
 
   // 2. On-Demand Lazy Tab Loader: Loads tab dataset ONLY when user navigates to it
   const loadTabDataOnDemand = useCallback(async (tab: TabKey) => {
-    if (!tournamentId) return;
+    if (!tournamentId || isLocked) return;
+    if (tournament?.is_private) {
+      if (!loadedTabsRef.current.has(tab)) {
+        await fetchAuthorizedData();
+      }
+      return;
+    }
 
     if (tab === 'groups' && !loadedTabsRef.current.has('groups')) {
       setLoadingTabData(true);
@@ -187,7 +258,7 @@ export default function PublicTournamentClientView({
         setLoadingTabData(false);
       }
     }
-  }, [tournamentId]);
+  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData]);
 
   const handleTabChange = (newTab: TabKey) => {
     setActiveTab(newTab);
@@ -196,10 +267,20 @@ export default function PublicTournamentClientView({
 
   // Full refresh when requested by user button or realtime
   const refreshAll = useCallback(async () => {
-    if (!tournamentId) return;
+    if (!tournamentId || isLocked) return;
+    if (tournament?.is_private) {
+      await fetchAuthorizedData();
+      return;
+    }
     try {
       const t = await getPublicTournament(tournamentId);
-      if (t) setTournament(t);
+      if (t) {
+        setTournament(t);
+        if ((t as any).is_private) {
+          await fetchAuthorizedData();
+          return;
+        }
+      }
 
       const promises: Promise<any>[] = [
         getPublicParticipants(tournamentId).then(setParticipants).catch(() => {}),
@@ -223,15 +304,151 @@ export default function PublicTournamentClientView({
     } catch (err) {
       console.error('Error refreshing tournament:', err);
     }
-  }, [tournamentId]);
+  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData]);
 
-  useRealtimeMatches(refreshAll, tournamentId);
+  // Intelligent realtime handler: patch local match scores immediately without database hammer
+  const handleRealtimeUpdate = useCallback(
+    (payload?: RealtimePayload) => {
+      if (!payload) {
+        refreshAll();
+        return;
+      }
+
+      // If it's a match update and we already have rounds loaded:
+      if (payload.table === 'matches' && payload.eventType === 'UPDATE' && payload.new) {
+        const updatedMatch = payload.new;
+
+        setRounds((prevRounds) => {
+          let found = false;
+          const next = prevRounds.map((r) => {
+            const matchIndex = r.matches.findIndex((m) => m.id === updatedMatch.id);
+            if (matchIndex === -1) return r;
+            found = true;
+            const updatedList = [...r.matches];
+            updatedList[matchIndex] = {
+              ...updatedList[matchIndex],
+              score_a: updatedMatch.score_a ?? updatedList[matchIndex].score_a,
+              score_b: updatedMatch.score_b ?? updatedList[matchIndex].score_b,
+              status: updatedMatch.status ?? updatedList[matchIndex].status,
+              winner_id: updatedMatch.winner_id ?? updatedList[matchIndex].winner_id,
+              penalty_score_a: updatedMatch.penalty_score_a ?? updatedList[matchIndex].penalty_score_a,
+              penalty_score_b: updatedMatch.penalty_score_b ?? updatedList[matchIndex].penalty_score_b,
+              live_room_name:
+                updatedMatch.live_room_name !== undefined
+                  ? updatedMatch.live_room_name
+                  : updatedList[matchIndex].live_room_name,
+            };
+            return { ...r, matches: updatedList };
+          });
+          return found ? next : prevRounds;
+        });
+
+        // Trigger authoritative refresh only if match finished (standings/bracket recalculation)
+        if (updatedMatch.status === 'completed' || updatedMatch.status === 'walkover') {
+          refreshAll();
+        }
+        return;
+      }
+
+      // For structural tournament changes or new matches, perform authoritative refresh
+      refreshAll();
+    },
+    [refreshAll]
+  );
+
+  useRealtimeMatches(handleRealtimeUpdate, tournamentId);
+
+  const handleVerifyAccessCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessCodeInput.trim() || verifyingCode) return;
+    setVerifyingCode(true);
+    setCodeError(null);
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/verify-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessCode: accessCodeInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Invalid access code.');
+      }
+      setIsLocked(false);
+      await fetchAuthorizedData();
+    } catch (err: any) {
+      setCodeError(err.message || 'Invalid tournament access code.');
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#FFFF00]" />
         <p className="text-sm font-black font-display uppercase tracking-widest text-white">Loading Tournament Details...</p>
+      </div>
+    );
+  }
+
+  // Render secure private tournament access code gate
+  if (isLocked) {
+    return (
+      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-6">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-[#FFFF00]/10 text-[#FFFF00] shadow-xl border border-[#FFFF00]/30 animate-pulse">
+          <Lock className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-black uppercase tracking-wider text-[#FFFF00]">
+            Private Competition
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black font-display uppercase text-white tracking-wide">
+            {tournament?.name || 'Private Tournament'}
+          </h2>
+          <p className="text-xs sm:text-sm text-[#D9DCFF]/80 max-w-sm mx-auto leading-relaxed">
+            This tournament is restricted to invited players. Please enter your authorized access code to unlock the overview, bracket, and participant rosters.
+          </p>
+        </div>
+        <form onSubmit={handleVerifyAccessCode} className="space-y-4 max-w-xs mx-auto">
+          <div>
+            <input
+              type="password"
+              value={accessCodeInput}
+              onChange={(e) => setAccessCodeInput(e.target.value)}
+              placeholder="Enter Access Code"
+              className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/20 text-white placeholder:text-white/30 text-center font-mono font-bold tracking-widest text-base focus:outline-none focus:border-[#FFFF00] transition-colors shadow-inner"
+              disabled={verifyingCode}
+              autoFocus
+            />
+            {codeError && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-[#FF168B] font-bold">{codeError}</p>
+                {codeError.toLowerCase().includes('authentication') && (
+                  <Link
+                    href={`/auth/login?next=/t/${tournamentId}`}
+                    className="inline-block text-xs text-[#FFFF00] underline font-bold hover:text-white"
+                  >
+                    Click here to sign in
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+          <Button
+            type="submit"
+            disabled={verifyingCode || !accessCodeInput.trim()}
+            className="w-full font-black rounded-full bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] shadow-lg py-3 gap-2"
+          >
+            {verifyingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+            <span>{verifyingCode ? 'Verifying...' : 'Unlock Tournament'}</span>
+          </Button>
+        </form>
+        <Button asChild variant="ghost" className="text-xs text-[#D9DCFF]/60 hover:text-white">
+          <Link href="/tournaments" className="inline-flex items-center gap-1.5">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Return to Tournament Listings</span>
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -418,44 +635,46 @@ export default function PublicTournamentClientView({
 
         {/* 4. TAB CONTENT PANELS WITH MOBILE SWIPE NAVIGATION */}
         <div className="mt-6">
-          {loadingTabData ? (
-            <div className="min-h-[350px] flex flex-col items-center justify-center p-6 text-center space-y-3">
-              <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
-              <p className="text-xs font-black font-display uppercase tracking-widest text-[#D9DCFF]">
-                Loading Tab Data...
-              </p>
-            </div>
-          ) : (
-            <SwipeableTabContainer
-              tabs={tabItems}
-              activeTab={activeTab}
-              onTabChange={(tabId) => handleTabChange(tabId as TabKey)}
-            >
-              {activeTab === 'overview' && (
-                <PublicOverviewTab
-                  tournament={tournament}
-                  groupStage={groupStage}
-                  bracket={bracket}
-                />
-              )}
+          <SwipeableTabContainer
+            tabs={tabItems}
+            activeTab={activeTab}
+            onTabChange={(tabId) => handleTabChange(tabId as TabKey)}
+          >
+            {loadingTabData ? (
+              <div className="min-h-[350px] flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin text-[#FFFF00]" />
+                <p className="text-xs font-black font-display uppercase tracking-widest text-[#D9DCFF]">
+                  Loading Tab Data...
+                </p>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'overview' && (
+                  <PublicOverviewTab
+                    tournament={tournament}
+                    groupStage={groupStage}
+                    bracket={bracket}
+                  />
+                )}
 
-              {activeTab === 'participants' && (
-                <PublicParticipantsTab participants={participants} />
-              )}
+                {activeTab === 'participants' && (
+                  <PublicParticipantsTab participants={participants} />
+                )}
 
-              {activeTab === 'groups' && showGroups && (
-                <PublicGroupsTab groupStage={groupStage} />
-              )}
+                {activeTab === 'groups' && showGroups && (
+                  <PublicGroupsTab groupStage={groupStage} />
+                )}
 
-              {activeTab === 'matches' && (
-                <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
-              )}
+                {activeTab === 'matches' && (
+                  <PublicMatchesTab rounds={rounds} groupStage={groupStage} />
+                )}
 
-              {activeTab === 'bracket' && showBracket && (
-                <PublicBracketTab bracket={bracket} />
-              )}
-            </SwipeableTabContainer>
-          )}
+                {activeTab === 'bracket' && showBracket && (
+                  <PublicBracketTab bracket={bracket} />
+                )}
+              </>
+            )}
+          </SwipeableTabContainer>
         </div>
       </div>
 
