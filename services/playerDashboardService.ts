@@ -380,10 +380,15 @@ export async function getPlayerMatches(
     if (opponentIds.length > 0) {
       let elevatedClient: any = null;
       try {
-        const { createAdminClient } = await import('@/lib/supabase/server');
+        const { createAdminClient } = await import('@/lib/supabase/admin');
         elevatedClient = createAdminClient();
       } catch {
-        // Fallback to passed client if service role is unavailable
+        try {
+          const { createAdminClient } = await import('@/lib/supabase/server');
+          elevatedClient = createAdminClient();
+        } catch {
+          // Fallback to passed client if service role is unavailable
+        }
       }
 
       const clientToUse = elevatedClient || supabase;
@@ -396,31 +401,98 @@ export async function getPlayerMatches(
 
         if (!partErr && tableOpponents && tableOpponents.length > 0) {
           const userIds = Array.from(new Set(tableOpponents.map((o: any) => o.user_id).filter(Boolean)));
-          const profileMap = new Map<string, any>();
+          const unlinkedNames = Array.from(
+            new Set(
+              tableOpponents
+                .filter((o: any) => !o.user_id)
+                .flatMap((o: any) => [o.username, o.real_name])
+                .map((n: any) => (typeof n === 'string' ? n.trim() : ''))
+                .filter((n: string) => n.length > 0)
+            )
+          );
 
+          const profileMapById = new Map<string, any>();
+          const profileMapByEfootball = new Map<string, any>();
+          const profileMapByName = new Map<string, any>();
+
+          // 1. Query profiles by user_id
           if (userIds.length > 0) {
             try {
-              const { data: profiles } = await clientToUse
-                .from('profiles')
-                .select('id, display_name, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
-                .in('id', userIds);
+              const q = clientToUse.from('profiles');
+              if (q && typeof q.select === 'function') {
+                const { data: profiles } = await q
+                  .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
+                  .in('id', userIds);
 
-              if (profiles) {
-                profiles.forEach((p: any) => profileMap.set(p.id, p));
+                if (profiles) {
+                  profiles.forEach((p: any) => {
+                    if (p.id) profileMapById.set(p.id, p);
+                    if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
+                    if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
+                  });
+                }
               }
             } catch (err) {
-              console.warn('Profiles query notice in player dashboard:', err);
+              console.warn('Profiles query by userIds notice in player dashboard:', err);
             }
           }
 
+          // 2. Query profiles for unlinked participants by display_name or efootball_id
+          if (unlinkedNames.length > 0) {
+            try {
+              const q = clientToUse.from('profiles');
+              if (q && typeof q.select === 'function') {
+                const { data: namedProfiles } = await q
+                  .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
+                  .in('display_name', unlinkedNames);
+
+                if (namedProfiles) {
+                  namedProfiles.forEach((p: any) => {
+                    if (p.id && !profileMapById.has(p.id)) profileMapById.set(p.id, p);
+                    if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
+                    if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
+                  });
+                }
+              }
+            } catch (err) {
+              console.warn('Named profiles query notice in player dashboard:', err);
+            }
+          }
+
+          const extractValidPhoneNumber = (val: string | null | undefined): string | null => {
+            if (!val) return null;
+            const trimmed = val.trim();
+            if (trimmed.includes('@')) return null; // Email, not phone
+            const digits = trimmed.replace(/[^0-9]/g, '');
+            if (digits.length >= 7 && digits.length <= 15) {
+              return trimmed;
+            }
+            return null;
+          };
+
           tableOpponents.forEach((o: any) => {
-            const prof = o.user_id ? profileMap.get(o.user_id) : null;
+            const rawUsername = o.username ? o.username.toLowerCase().trim() : '';
+            const rawRealName = o.real_name ? o.real_name.toLowerCase().trim() : '';
+
+            const prof =
+              (o.user_id ? profileMapById.get(o.user_id) : null) ||
+              (rawUsername ? profileMapByEfootball.get(rawUsername) : null) ||
+              (rawUsername ? profileMapByName.get(rawUsername) : null) ||
+              (rawRealName ? profileMapByName.get(rawRealName) : null) ||
+              null;
+
             const fallbackDisplayName = o.real_name || o.username || 'Opponent';
             const displayName = prof?.display_name || fallbackDisplayName;
-            const rawWhatsapp = prof?.whatsapp_number?.trim();
-            const whatsappNumber = rawWhatsapp && rawWhatsapp.length > 0 ? rawWhatsapp : null;
+
+            const profWa = extractValidPhoneNumber(prof?.whatsapp_number);
+            const partWa = extractValidPhoneNumber(o.contact_info);
+            const whatsappNumber = profWa || partWa || null;
+
             const whatsappVerified = Boolean(
-              prof?.whatsapp_verified === true || prof?.whatsapp_verification_status === 'verified'
+              prof?.whatsapp_verified === true ||
+              prof?.whatsapp_verification_status === 'verified' ||
+              (whatsappNumber && prof?.whatsapp_verification_status !== 'rejected') ||
+              (partWa && !prof)
             );
 
             opponentMap.set(o.id, {

@@ -221,6 +221,26 @@ export default function OpponentWhatsAppButton({
               >
                 Close
               </button>
+              {modalState.type === 'unverified' && hasWhatsappNumber && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeModal();
+                    const url = buildWhatsAppMatchUrl(match.opponentWhatsappNumber!, {
+                      opponentName,
+                      yourName,
+                      tournamentName: match.tournamentName,
+                      matchIdentifier,
+                      scheduledTime: match.scheduledTime,
+                    });
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-black font-black text-xs transition-colors cursor-pointer"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Continue to WhatsApp
+                </button>
+              )}
             </div>
           </div>
         </div>

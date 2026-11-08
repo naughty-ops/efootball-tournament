@@ -44,31 +44,5 @@ export async function createClient() {
   });
 }
 
-/**
- * Creates a privileged Supabase client using the SUPABASE_SERVICE_ROLE_KEY.
- * STRICTLY SERVER-SIDE: Never call this from client components or expose to browser.
- * Only use for authorized internal server operations (e.g. administrative tasks
- * that bypass RLS after authentication has been independently established).
- */
-export function createAdminClient() {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.trim() !== ''
-      ? process.env.NEXT_PUBLIC_SUPABASE_URL
-      : 'https://placeholder.supabase.co';
-
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!serviceRoleKey) {
-    throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is not configured in environment variables. Service-role operations cannot proceed.'
-    );
-  }
-
-  return createSupabaseJsClient<Database>(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
+export { createAdminClient } from '@/lib/supabase/admin';
 
