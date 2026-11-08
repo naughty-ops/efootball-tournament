@@ -288,7 +288,7 @@ export function TournamentRegistrationCard({
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-[#FFFF00] font-black uppercase text-[11px] tracking-wider">
               <Trophy className="h-3.5 w-3.5" />
-              <span>Official Prize Pool: {prizeSplit.hasPrizeMoney ? prizeSplit.formattedTotal : 'Trophy & Glory'}</span>
+              <span>Official Prize Rewards</span>
             </div>
             <p className="text-[11px] text-[#D9DCFF]/80 font-medium">
               Total prize money distributed to champions / runners up.

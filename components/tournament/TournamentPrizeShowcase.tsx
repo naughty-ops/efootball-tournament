@@ -29,6 +29,7 @@ export interface TournamentPrizeShowcaseProps {
   runnerUpName?: string | null;
   thirdPlaceName?: string | null;
   variant?: 'card' | 'banner' | 'chip';
+  showTotalAmount?: boolean;
   className?: string;
 }
 
@@ -46,6 +47,7 @@ export function TournamentPrizeShowcase({
   runnerUpName,
   thirdPlaceName,
   variant = 'card',
+  showTotalAmount = false,
   className,
 }: TournamentPrizeShowcaseProps) {
   // Construct distribution target
@@ -76,10 +78,16 @@ export function TournamentPrizeShowcase({
       >
         <Trophy className={cn('h-3.5 w-3.5', split.hasPrizeMoney ? 'text-[#FFFF00]' : 'text-white/70')} />
         <div className="flex items-center gap-1.5 text-xs font-black tracking-wide font-display uppercase">
-          <span className="text-[10px] text-white/70 font-bold">Prize Pool:</span>
-          <span className={split.hasPrizeMoney ? 'text-[#FFFF00] font-black' : 'text-white font-bold'}>
-            {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Glory'}
-          </span>
+          <span className="text-[10px] text-white/70 font-bold">Prize Rewards:</span>
+          {showTotalAmount ? (
+            <span className={split.hasPrizeMoney ? 'text-[#FFFF00] font-black' : 'text-white font-bold'}>
+              {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Glory'}
+            </span>
+          ) : (
+            <span className="text-[#FFFF00] font-bold text-[11px]">
+              1st: {split.hasPrizeMoney ? split.formattedChampion : 'Trophy'} | 2nd: {split.hasPrizeMoney ? split.formattedRunnerUp : 'Medal'}
+            </span>
+          )}
           {split.championNotes && (
             <span className="text-[10px] text-amber-300/80 lowercase italic hidden sm:inline">
               (+ {split.championNotes})
@@ -106,16 +114,18 @@ export function TournamentPrizeShowcase({
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-300">
             <Trophy className="h-3 w-3 text-[#FFFF00] shrink-0" />
-            <span>Prize Pool</span>
+            <span>Prize Rewards</span>
           </div>
-          <span
-            className={cn(
-              'font-black font-display text-xs tracking-wide',
-              split.hasPrizeMoney ? 'text-[#FFFF00]' : 'text-white/80'
-            )}
-          >
-            {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Glory'}
-          </span>
+          {showTotalAmount && (
+            <span
+              className={cn(
+                'font-black font-display text-xs tracking-wide',
+                split.hasPrizeMoney ? 'text-[#FFFF00]' : 'text-white/80'
+              )}
+            >
+              {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Glory'}
+            </span>
+          )}
         </div>
 
         {/* Distributed Notice */}
@@ -221,15 +231,17 @@ export function TournamentPrizeShowcase({
           </p>
         </div>
 
-        {/* Large Total Value Box */}
-        <div className="flex flex-col sm:items-end justify-center bg-black/30 backdrop-blur-md px-5 py-3 rounded-2xl border border-amber-400/30 shrink-0">
-          <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block">
-            Total Distributed
-          </span>
-          <span className="text-2xl sm:text-3xl font-black font-display tracking-tight text-[#FFFF00] drop-shadow-sm">
-            {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Ranking'}
-          </span>
-        </div>
+        {/* Large Total Value Box (Only revealed in admin state, hidden in user state) */}
+        {showTotalAmount && (
+          <div className="flex flex-col sm:items-end justify-center bg-black/30 backdrop-blur-md px-5 py-3 rounded-2xl border border-amber-400/30 shrink-0">
+            <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest block">
+              Total Distributed
+            </span>
+            <span className="text-2xl sm:text-3xl font-black font-display tracking-tight text-[#FFFF00] drop-shadow-sm">
+              {split.hasPrizeMoney ? split.formattedTotal : 'Trophy & Ranking'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Distribution Showcase Cards: 1st, 2nd, and Optional 3rd Place */}
