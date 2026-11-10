@@ -849,6 +849,29 @@ export async function submitPlayerScoreAction(data: {
           decided_by: 'normal',
           notes: 'Result automatically verified - both players reported matching scores.',
         });
+
+        // Ensure tournament champion & runner_up persistence under RLS admin privileges
+        const { data: completedMatch } = await (adminClient.from('matches') as any)
+          .select('participant_a, participant_b, winner_id, next_match_id, group_id')
+          .eq('id', data.matchId)
+          .single();
+
+        if (completedMatch && !completedMatch.next_match_id && !completedMatch.group_id && completedMatch.winner_id) {
+          const runnerUpId =
+            completedMatch.participant_a === completedMatch.winner_id
+              ? completedMatch.participant_b
+              : completedMatch.participant_a;
+
+          await (adminClient.from('tournaments') as any)
+            .update({
+              status: 'completed',
+              champion_id: completedMatch.winner_id,
+              runner_up_id: runnerUpId || null,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.tournamentId);
+        }
       } catch (resultErr: any) {
         console.error('submitMatchResult auto-verification note:', resultErr);
       }

@@ -109,7 +109,22 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (!isAllowlistedAdmin(user.email)) {
+    let isUserAdmin = isAllowlistedAdmin(user.email);
+    if (!isUserAdmin && user.id) {
+      try {
+        const { data: adminRecord } = await (supabase.from('admin_users') as any)
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (adminRecord && adminRecord.role) {
+          isUserAdmin = true;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    if (!isUserAdmin) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       url.searchParams.set('error', 'admin_unauthorized');
@@ -126,10 +141,25 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Helper to determine if authenticated user has admin role
+  async function checkUserIsAdmin(uid: string, uEmail?: string | null): Promise<boolean> {
+    if (isAllowlistedAdmin(uEmail)) return true;
+    try {
+      const { data: adminRecord } = await (supabase.from('admin_users') as any)
+        .select('role')
+        .eq('id', uid)
+        .maybeSingle();
+      return !!(adminRecord && adminRecord.role);
+    } catch {
+      return false;
+    }
+  }
+
   // 4. Guard /login route:
   if (pathname === '/login' && user) {
     const url = request.nextUrl.clone();
-    if (isAllowlistedAdmin(user.email)) {
+    const isUserAdmin = await checkUserIsAdmin(user.id, user.email);
+    if (isUserAdmin) {
       url.pathname = '/admin/dashboard';
     } else {
       url.pathname = '/dashboard';
@@ -138,6 +168,16 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 5. Guard /auth/login route:
+  if (pathname === '/auth/login' && user) {
+    const url = request.nextUrl.clone();
+    const isUserAdmin = await checkUserIsAdmin(user.id, user.email);
+    if (isUserAdmin) {
+      url.pathname = '/admin/dashboard';
+    } else {
+      url.pathname = '/dashboard';
+    }
+    return NextResponse.redirect(url);
+  }
   if (pathname === '/auth/login' && user) {
     const url = request.nextUrl.clone();
     if (isAllowlistedAdmin(user.email)) {

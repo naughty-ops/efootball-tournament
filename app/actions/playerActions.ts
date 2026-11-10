@@ -242,3 +242,68 @@ export async function updatePlayerProfileAction(
     };
   }
 }
+
+/**
+ * In-session change password action with re-authentication
+ */
+export async function changePasswordAction(input: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<ActionResponse> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user || !user.email) {
+      return { success: false, message: 'You must be signed in to change your password.' };
+    }
+
+    if (!input.currentPassword) {
+      return { success: false, message: 'Current password is required.' };
+    }
+
+    if (!input.newPassword || input.newPassword.length < 8) {
+      return { success: false, message: 'New password must be at least 8 characters long.' };
+    }
+
+    if (input.newPassword !== input.confirmPassword) {
+      return { success: false, message: 'New passwords do not match.' };
+    }
+
+    if (input.currentPassword === input.newPassword) {
+      return { success: false, message: 'New password must be different from your current password.' };
+    }
+
+    // Verify current password via re-authentication
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: input.currentPassword,
+    });
+
+    if (signInErr) {
+      return { success: false, message: 'Current password verification failed. Please check your current password.' };
+    }
+
+    // Update password
+    const { error: updateErr } = await supabase.auth.updateUser({
+      password: input.newPassword,
+    });
+
+    if (updateErr) {
+      return { success: false, message: updateErr.message || 'Failed to update password.' };
+    }
+
+    return {
+      success: true,
+      message: 'Password changed successfully! Your account credentials have been updated.',
+    };
+  } catch (err: any) {
+    console.error('Error in changePasswordAction:', err);
+    return {
+      success: false,
+      message: err.message || 'An unexpected error occurred while updating password.',
+    };
+  }
+}
+

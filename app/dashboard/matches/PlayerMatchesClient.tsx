@@ -70,6 +70,18 @@ export default function PlayerMatchesClient({
   const [disputeModalMatch, setDisputeModalMatch] = useState<PlayerMatchItem | null>(null);
   const [submitScoreMatch, setSubmitScoreMatch] = useState<PlayerMatchItem | null>(null);
   const [uploadEvidenceMatch, setUploadEvidenceMatch] = useState<PlayerMatchItem | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 10;
+
+  const handleTabChange = (tab: string) => {
+    setSelectedTab(tab);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    setCurrentPage(1);
+  };
 
   const handleStartMatch = async (match: PlayerMatchItem) => {
     if (!match.userParticipantId) {
@@ -179,6 +191,12 @@ export default function PlayerMatchesClient({
     });
   }, [initialMatches, selectedTab, searchQuery]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredMatches.length / PAGE_SIZE));
+  const paginatedMatches = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredMatches.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredMatches, currentPage]);
+
   return (
     <div className="space-y-8">
       {/* 1. Summary Cards Section */}
@@ -268,7 +286,7 @@ export default function PlayerMatchesClient({
         <SwipeableTabBar
           tabs={tabItems}
           activeTab={selectedTab}
-          onTabChange={setSelectedTab}
+          onTabChange={handleTabChange}
           className="w-full md:w-auto"
         />
 
@@ -278,7 +296,7 @@ export default function PlayerMatchesClient({
           <Input
             placeholder="Search opponent or tournament..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 h-11 sm:h-10 text-base sm:text-xs bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-full"
           />
         </div>
@@ -314,7 +332,7 @@ export default function PlayerMatchesClient({
       {/* 3. Matches Grid */}
       <SwipeableTabContainer
         activeTab={selectedTab}
-        onTabChange={setSelectedTab}
+        onTabChange={handleTabChange}
         tabs={tabIds}
       >
       {filteredMatches.length === 0 ? (
@@ -358,8 +376,9 @@ export default function PlayerMatchesClient({
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredMatches.map((m) => {
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {paginatedMatches.map((m) => {
             const statusUpper = (m.status || '').toUpperCase();
             const isCompleted = ['COMPLETED', 'WALKOVER', 'FORFEITED', 'CANCELLED'].includes(statusUpper);
             const isDisputed = statusUpper === 'DISPUTED';
@@ -774,6 +793,56 @@ export default function PlayerMatchesClient({
             );
           })}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/10">
+            <span className="text-xs text-white/60">
+              Showing page <strong className="text-white font-bold">{currentPage}</strong> of{' '}
+              <strong className="text-white font-bold">{totalPages}</strong> ({filteredMatches.length} matches)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-9 px-4 rounded-full border-white/20 text-white hover:bg-white/10 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1 px-2">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        'w-8 h-8 rounded-full text-xs font-black transition-colors cursor-pointer',
+                        currentPage === pageNum
+                          ? 'bg-[#FFFF00] text-[#08088F]'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="h-9 px-4 rounded-full border-white/20 text-white hover:bg-white/10 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
       )}
       </SwipeableTabContainer>
 
@@ -787,7 +856,6 @@ export default function PlayerMatchesClient({
           reporterParticipantId={disputeModalMatch.userParticipantId || ''}
           opponentParticipantId={disputeModalMatch.opponentParticipantId}
           opponentName={disputeModalMatch.opponentDisplayName || disputeModalMatch.opponentUsername}
-          allowScreenshot={false}
           onSuccess={() => {
             setFeedbackMsg({
               type: 'success',

@@ -638,11 +638,17 @@ export async function completeTournament(tournamentId: string): Promise<Tourname
   }
 
   const championId = info.finalWinner.id;
+  const runnerUpId =
+    info.finalMatch.participant_a === championId
+      ? info.finalMatch.participant_b
+      : info.finalMatch.participant_a;
 
   const { data, error } = await (supabase.from('tournaments') as unknown as UnknownQuery)
     .update({
       status: 'completed',
       champion_id: championId,
+      runner_up_id: runnerUpId || null,
+      completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq('id', tournamentId)

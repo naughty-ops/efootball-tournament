@@ -9,7 +9,8 @@ const DASHBOARD_ROUTES = [
   '/dashboard',
   '/dashboard/tournaments',
   '/dashboard/matches',
-  '/dashboard/profile',
+  '/dashboard/wallet',
+  '/dashboard/settings',
 ];
 
 interface PlayerDashboardSwipeWrapperProps {
@@ -27,9 +28,13 @@ export function PlayerDashboardSwipeWrapper({
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
   // Find index of current route
+  const normalizedPath =
+    pathname.startsWith('/dashboard/profile') || pathname.startsWith('/dashboard/career')
+      ? '/dashboard/settings'
+      : pathname;
   const currentIndex = DASHBOARD_ROUTES.findIndex((r) => {
-    if (r === '/dashboard') return pathname === '/dashboard';
-    return pathname.startsWith(r);
+    if (r === '/dashboard') return normalizedPath === '/dashboard';
+    return normalizedPath.startsWith(r);
   });
 
   // Reset slide transition on pathname change

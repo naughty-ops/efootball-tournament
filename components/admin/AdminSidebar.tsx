@@ -17,6 +17,7 @@ import {
   ImageIcon,
   Sparkles,
   Ticket,
+  Landmark,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ const navSections: NavSection[] = [
       { label: 'Participants', href: '/admin/participants', icon: Users },
       { label: 'Brackets', href: '/admin/brackets', icon: GitBranch },
       { label: 'Matches', href: '/admin/matches', icon: Swords },
+      { label: 'Prize Payouts', href: '/admin/payouts', icon: Landmark },
     ],
   },
   {

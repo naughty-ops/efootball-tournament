@@ -30,7 +30,7 @@ export default function PublicFooter() {
               </span>
             </Link>
             <p className="text-xs sm:text-sm text-[#D9DCFF] leading-relaxed">
-              Official eFootball esports tournament platform. Compete in group stages, league brackets, and live streamed championship knockout finals.
+              Esports tournament platform. Compete in group stages, league brackets, and live streamed championship knockout finals.
             </p>
             <div className="flex items-center gap-2 text-xs text-[#FFFF00] font-black">
               <span className="h-2 w-2 rounded-full bg-[#FFFF00] animate-ping" />

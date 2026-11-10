@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle, X, ShieldAlert, CheckCircle2, Loader2, UploadCloud } from 'lucide-react';
+import { AlertCircle, X, ShieldAlert, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import MediaUploadZone from '@/components/media/MediaUploadZone';
 import { submitMatchDisputeAction } from '@/app/actions/matchSchedulingActions';
 
 interface ReportMatchIssueModalProps {
@@ -15,7 +14,6 @@ interface ReportMatchIssueModalProps {
   reporterParticipantId: string;
   opponentParticipantId?: string | null;
   opponentName: string;
-  allowScreenshot?: boolean;
   onSuccess?: () => void;
 }
 
@@ -36,12 +34,10 @@ export default function ReportMatchIssueModal({
   reporterParticipantId,
   opponentParticipantId,
   opponentName,
-  allowScreenshot = false,
   onSuccess,
 }: ReportMatchIssueModalProps) {
   const [reason, setReason] = useState<string>('opponent_no_show');
   const [details, setDetails] = useState('');
-  const [evidenceUrl, setEvidenceUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -60,7 +56,6 @@ export default function ReportMatchIssueModal({
       opponentParticipantId: opponentParticipantId || null,
       reason: reason as any,
       details: details.trim() || undefined,
-      evidenceUrl: evidenceUrl.trim() || undefined,
     });
 
     setLoading(false);
@@ -148,25 +143,6 @@ export default function ReportMatchIssueModal({
                 className="w-full rounded-xl bg-slate-900 border border-slate-700/80 p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
               />
             </div>
-
-            {/* Screenshot proof is strictly required/allowed only after match has started or when explicitly permitted */}
-            {allowScreenshot && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                  Screenshot / Proof Evidence (Required for Disputes)
-                </label>
-                <MediaUploadZone
-                  category="dispute_evidence"
-                  entityId={matchId}
-                  initialUrl={evidenceUrl}
-                  onUploadSuccess={(url) => setEvidenceUrl(url)}
-                  onRemove={() => setEvidenceUrl('')}
-                  label="Upload screenshot proof"
-                  helperText="Upload JPEG, PNG, or WebP screenshot (max 2MB). Uploaded screenshots are stored securely in Cloudinary."
-                  aspectRatio="banner"
-                />
-              </div>
-            )}
 
             <div className="flex gap-2 pt-2">
               <Button

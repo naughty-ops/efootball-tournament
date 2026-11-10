@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerTournamentsClient from './PlayerTournamentsClient';
+import CompetitionSubNav from '@/components/competition/CompetitionSubNav';
 import { getPlayerProfile, getPlayerTournaments, getPlayerPaymentRegistrations } from '@/services/playerDashboardService';
 import { getManualPaymentSettings } from '@/services/paymentSettingsService';
 import type { Metadata } from 'next';
@@ -50,27 +51,32 @@ export default async function PlayerTournamentsPage() {
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        <PlayerDashboardSwipeWrapper currentSection="tournaments">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
-              My Tournaments
-            </h1>
-            <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
-              Manage your registrations, track tournament progress, and find your next match.
-            </p>
-          </div>
-
+        <PlayerDashboardSwipeWrapper currentSection="tournaments" className="space-y-6 sm:space-y-8">
+        {/* Competition Center Unified Sub-Nav */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CompetitionSubNav
+            activeTab="tournaments"
+            tournamentCount={tournamentsResult.data?.length ?? 0}
+          />
           <Button
             asChild
-            className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full h-11 px-6 shadow-lg gap-2 shrink-0 cursor-pointer"
+            className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full h-11 px-6 shadow-lg gap-2 shrink-0 cursor-pointer w-fit"
           >
             <Link href="/tournaments">
               <Compass className="h-4 w-4 text-[#08088F]" />
-              <span>Browse Tournaments</span>
+              <span>Browse All Tournaments</span>
             </Link>
           </Button>
+        </div>
+
+        {/* Page Header */}
+        <div className="border-b border-white/10 pb-6">
+          <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
+            My Tournaments
+          </h1>
+          <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
+            Manage your registrations, track tournament progress, and find your next match.
+          </p>
         </div>
 
         <PlayerTournamentsClient

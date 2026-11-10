@@ -16,6 +16,10 @@ import {
   Radio,
   Flame,
   ShieldAlert,
+  Wallet,
+  MessageCircle,
+  Settings,
+  Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,13 +32,14 @@ import {
   getPlayerTournaments,
   getPlayerMatches,
 } from '@/services/playerDashboardService';
+import { getPlayerWalletOverview } from '@/services/walletService';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Player Dashboard | eFootball Tournament',
-  description: 'Manage your eFootball tournament registrations, matches, and player profile.',
+  description: 'Manage your eFootball tournament registrations, matches, earnings, and player profile.',
 };
 
 interface PageProps {
@@ -52,11 +57,12 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
     redirect('/auth/login?error=unauthorized');
   }
 
-  // Fetch player profile, recent tournaments, and matches in parallel (single batch, 0 duplicate queries)
-  const [profile, tournamentsRes, matchesRes] = await Promise.all([
+  // Fetch player profile, tournaments, matches, and wallet overview in parallel
+  const [profile, tournamentsRes, matchesRes, walletOverview] = await Promise.all([
     getPlayerProfile(supabase, user.id, user),
     getPlayerTournaments(supabase, user.id),
     getPlayerMatches(supabase, user.id),
+    getPlayerWalletOverview(user.id),
   ]);
 
   const tournaments = tournamentsRes.data || [];
@@ -84,7 +90,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#08088F] text-white pb-16">
+    <div className="min-h-screen bg-[#08088F] text-white pb-16 lg:pb-24">
       {/* Navigation Header */}
       <PlayerDashboardHeader
         userEmail={email}
@@ -94,8 +100,8 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         avatarUrl={profile?.avatar_url || '/avatars/default-avatar.svg'}
       />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        <PlayerDashboardSwipeWrapper currentSection="overview">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8 lg:space-y-10">
+        <PlayerDashboardSwipeWrapper currentSection="overview" className="space-y-6 sm:space-y-8 lg:space-y-10">
         {/* Admin Unauthorized Alert */}
         {showAdminDeniedAlert && (
           <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-[#FFFF00]/40 text-[#FFFF00] text-xs font-bold flex items-center justify-between shadow-md animate-in fade-in">
@@ -110,7 +116,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         )}
 
         {/* Welcome Hero Banner */}
-        <div className="relative overflow-hidden rounded-[32px] bg-[#1010C5] p-6 sm:p-8 text-white shadow-2xl border border-white/20">
+        <div className="relative overflow-hidden rounded-[32px] bg-[#1010C5] p-6 sm:p-8 lg:p-10 pb-8 sm:pb-10 lg:pb-12 xl:pb-14 text-white shadow-2xl border border-white/20 mb-6 sm:mb-8 lg:mb-10">
           <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 max-w-full bg-[#3434FF]/30 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3">
@@ -153,65 +159,77 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Hero Quick CTA */}
-            <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
-              <Button asChild className="bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] font-black text-xs shadow-lg rounded-full h-11 px-6 gap-2 uppercase tracking-wider">
-                <Link href="/tournaments">
-                  <Compass className="h-4 w-4 text-[#08088F]" />
-                  <span>Discover Tournaments</span>
+            {/* Hero Quick Actions: View Matches, My Tournaments, Wallet, Contact Admin */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-row md:grid md:grid-cols-2 gap-2 shrink-0">
+              <Button asChild className="bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] font-black text-xs shadow-lg rounded-full h-10 px-4 gap-1.5 uppercase tracking-wider">
+                <Link href="/dashboard/matches">
+                  <Swords className="h-3.5 w-3.5 text-[#08088F]" />
+                  <span>View Matches</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10 text-xs font-black rounded-full h-11 px-6 gap-2 bg-transparent uppercase tracking-wider">
-                <Link href="/dashboard/matches">
-                  <Swords className="h-4 w-4 text-[#FFFF00]" />
-                  <span>View Fixtures</span>
+              <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10 text-xs font-black rounded-full h-10 px-4 gap-1.5 bg-transparent uppercase tracking-wider">
+                <Link href="/dashboard/tournaments">
+                  <Trophy className="h-3.5 w-3.5 text-[#FFFF00]" />
+                  <span>My Tourneys</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10 text-xs font-black rounded-full h-10 px-4 gap-1.5 bg-transparent uppercase tracking-wider">
+                <Link href="/dashboard/wallet">
+                  <Wallet className="h-3.5 w-3.5 text-[#00E676]" />
+                  <span>My Wallet</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/15 text-xs font-black rounded-full h-10 px-4 gap-1.5 uppercase tracking-wider">
+                <Link href="/dashboard/settings">
+                  <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
+                  <span>Contact Admin</span>
                 </Link>
               </Button>
             </div>
           </div>
         </div>
 
-        {/* 4 Primary Metric KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        {/* 5 Primary Metric KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* 1. Registered Tournaments */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl p-4 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
               <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Tournaments
               </span>
-              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Trophy className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-2 sm:mt-3">
+            <div className="mt-2">
               <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.registeredTournamentsCount}
               </span>
-              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Joined</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 font-medium">Joined</span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1.5 truncate">
+            <p className="text-[10px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1.5 truncate">
               <span className="h-1.5 w-1.5 rounded-full bg-[#FFFF00] shrink-0" />
               <span>{stats.activeTournamentsCount} Active</span>
             </p>
           </Card>
 
           {/* 2. Upcoming / Live Matches */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl p-4 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
               <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Matches
               </span>
-              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Swords className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-2 sm:mt-3">
+            <div className="mt-2">
               <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.upcomingMatchesCount + stats.liveMatchesCount}
               </span>
-              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Queued</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 font-medium">Queued</span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1 truncate">
+            <p className="text-[10px] text-[#D9DCFF]/90 font-medium mt-1 flex items-center gap-1 truncate">
               {stats.liveMatchesCount > 0 ? (
                 <span className="text-[#FF168B] font-black flex items-center gap-1 animate-pulse">
                   <Flame className="h-3 w-3 shrink-0" />
@@ -224,50 +242,75 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
           </Card>
 
           {/* 3. Matches Completed */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl p-4 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
               <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Played
               </span>
-              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <Calendar className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-2 sm:mt-3">
+            <div className="mt-2">
               <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.matchesPlayedCount}
               </span>
-              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 sm:ml-2 font-medium">Games</span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 font-medium">Games</span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-[#D9DCFF]/80 font-medium mt-1 truncate">
+            <p className="text-[10px] text-[#D9DCFF]/80 font-medium mt-1 truncate">
               {stats.matchesWonCount}W - {stats.matchesDrawnCount}D - {stats.matchesLostCount}L
             </p>
           </Card>
 
           {/* 4. Win Rate */}
-          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl sm:rounded-[28px] p-4 sm:p-5 hover:border-[#FFFF00] transition-all text-white">
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl p-4 hover:border-[#FFFF00] transition-all text-white">
             <div className="flex items-center justify-between">
               <span className="text-[10px] min-[360px]:text-xs font-black text-[#D9DCFF] uppercase tracking-wider truncate">
                 Win Rate
               </span>
-              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center shrink-0">
                 <TrendingUp className="h-4 w-4 text-[#FFFF00]" />
               </div>
             </div>
-            <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+            <div className="mt-2 flex items-baseline gap-1.5">
               <span className="text-2xl sm:text-3xl font-black font-display text-[#FFFF00]">
                 {stats.winRate}%
               </span>
-              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 font-medium truncate">
+              <span className="text-[10px] text-[#D9DCFF]/70 font-medium truncate">
                 ({stats.matchesWonCount}W)
               </span>
             </div>
-            <div className="w-full bg-[#0A0A7A] rounded-full h-1.5 sm:h-2 mt-2 overflow-hidden border border-white/10">
+            <div className="w-full bg-[#0A0A7A] rounded-full h-1.5 mt-2 overflow-hidden border border-white/10">
               <div
                 className="bg-[#FFFF00] h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(255,255,0,0.5)]"
                 style={{ width: `${Math.min(100, Math.max(0, stats.winRate))}%` }}
               />
             </div>
+          </Card>
+
+          {/* 5. Total Lifetime Earnings */}
+          <Card className="bg-[#1818D4] border-white/20 shadow-xl rounded-2xl p-4 hover:border-[#00C853] transition-all text-white col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] min-[360px]:text-xs font-black text-[#00E676] uppercase tracking-wider truncate">
+                Earnings
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-[#00C853]/15 text-[#00E676] border border-[#00C853]/30 flex items-center justify-center shrink-0">
+                <Wallet className="h-4 w-4 text-[#00E676]" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl sm:text-3xl font-black font-display text-[#00E676]">
+                ₹{(walletOverview?.totalEarningsInr || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </span>
+              <span className="text-[10px] sm:text-xs text-[#D9DCFF]/70 ml-1.5 font-medium">Won</span>
+            </div>
+            <p className="text-[10px] text-white/70 font-medium mt-1 truncate">
+              {(walletOverview?.pendingEarningsInr || 0) > 0 ? (
+                <span className="text-amber-300 font-bold">₹{walletOverview.pendingEarningsInr} pending</span>
+              ) : (
+                <span>24h direct payouts</span>
+              )}
+            </p>
           </Card>
         </div>
 
@@ -480,29 +523,29 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
           </Link>
 
           <Link
-            href="/dashboard/tickets"
+            href="/dashboard/wallet"
             className="p-5 rounded-[28px] bg-[#1010C5] border border-white/20 hover:border-[#FFFF00] hover:shadow-[0_0_20px_rgba(52,52,255,0.4)] transition-all group flex items-center justify-between text-white shadow-xl"
           >
             <div className="space-y-1">
               <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-[#FFFF00]" />
-                My Tickets & Support
+                <Wallet className="h-4 w-4 text-[#00E676]" />
+                Wallet & Payouts
               </span>
-              <p className="text-[11px] text-[#D9DCFF]/80">Track disputes and inquiries</p>
+              <p className="text-[11px] text-[#D9DCFF]/80">Track earnings & 24h settlements</p>
             </div>
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>
 
           <Link
-            href="/dashboard/profile"
+            href="/dashboard/settings"
             className="p-5 rounded-[28px] bg-[#1010C5] border border-white/20 hover:border-[#FFFF00] hover:shadow-[0_0_20px_rgba(52,52,255,0.4)] transition-all group flex items-center justify-between text-white shadow-xl"
           >
             <div className="space-y-1">
               <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                <Gamepad2 className="h-4 w-4 text-[#FFFF00]" />
-                eFootball ID & Verification
+                <Settings className="h-4 w-4 text-[#FFFF00]" />
+                Account Settings
               </span>
-              <p className="text-[11px] text-[#D9DCFF]/80">Manage tag and contact number</p>
+              <p className="text-[11px] text-[#D9DCFF]/80">Credentials, bank, & contact admin</p>
             </div>
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>

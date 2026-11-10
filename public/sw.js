@@ -105,7 +105,21 @@ self.addEventListener('fetch', (event) => {
   ) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request)
+        if (cachedResponse) {
+          // Revalidate in background
+          fetch(request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                const responseClone = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+              }
+            })
+            .catch(() => {});
+          return cachedResponse;
+        }
+
+        // Cache miss: fetch from network with safe fallback Response
+        return fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const responseClone = networkResponse.clone();
@@ -113,9 +127,10 @@ self.addEventListener('fetch', (event) => {
             }
             return networkResponse;
           })
-          .catch(() => cachedResponse);
-
-        return cachedResponse || fetchPromise;
+          .catch(() => {
+            // Must return a valid Response instance so respondWith does not throw TypeError
+            return new Response('', { status: 504, statusText: 'Gateway Timeout / Offline' });
+          });
       })
     );
     return;

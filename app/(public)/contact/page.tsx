@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, MessageSquare, Send, CheckCircle2, ShieldAlert, UploadCloud, FileImage, X } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2, ShieldAlert, Swords, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,29 +21,6 @@ export default function ContactPage() {
     message: '',
   });
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      setError('File size exceeds the 2 MB limit. Please select a smaller screenshot.');
-      setSelectedFile(null);
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setError('Only image files (JPEG, PNG, WEBP) are accepted as proof.');
-      setSelectedFile(null);
-      return;
-    }
-
-    setError(null);
-    setSelectedFile(file);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
@@ -55,19 +32,12 @@ export default function ContactPage() {
       setIsSubmitting(true);
       setError(null);
 
-      let evidenceFormData: FormData | undefined;
-      if (selectedFile) {
-        evidenceFormData = new FormData();
-        evidenceFormData.append('file', selectedFile);
-      }
-
       const res = await createSupportTicketAction({
         name: formData.name,
         email: formData.email,
         category: formData.category,
         subject: formData.subject || `${formData.category.replace(/_/g, ' ')} Inquiry`,
         description: formData.message,
-        evidenceFile: evidenceFormData,
       });
 
       if (res.success && res.data) {
@@ -146,7 +116,6 @@ export default function ContactPage() {
                         subject: '',
                         message: '',
                       });
-                      setSelectedFile(null);
                     }}
                     variant="outline"
                     size="sm"
@@ -240,48 +209,19 @@ export default function ContactPage() {
                   />
                 </div>
 
-                {/* Optional Screenshot Attachment */}
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-[#D9DCFF] block mb-1.5">
-                    Screenshot Evidence (Optional, Max 2 MB)
-                  </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  {selectedFile ? (
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-[#0A0A7A] border border-[#00C853]/40 text-xs">
-                      <div className="flex items-center gap-2 text-[#00C853] truncate">
-                        <FileImage className="h-4 w-4 shrink-0" />
-                        <span className="truncate font-bold">{selectedFile.name}</span>
-                        <span className="text-[10px] text-white/50">
-                          ({(selectedFile.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                        className="text-white/60 hover:text-white"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-3 px-4 rounded-2xl border border-dashed border-white/20 bg-[#0A0A7A]/50 hover:bg-[#0A0A7A] text-white/70 hover:text-white flex items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      <UploadCloud className="h-4 w-4 text-[#FFFF00]" />
-                      <span>Attach Screenshot Proof</span>
-                    </button>
-                  )}
+                {/* Match Disputes Notice */}
+                <div className="p-3.5 rounded-2xl bg-[#0A0A7A] border border-white/15 text-xs space-y-1.5">
+                  <div className="flex items-center gap-2 text-[#FFFF00] font-black uppercase text-[11px] tracking-wider">
+                    <Swords className="h-3.5 w-3.5" />
+                    <span>Match Score Dispute Evidence</span>
+                  </div>
+                  <p className="text-[#D9DCFF]/80 text-[11px] leading-relaxed">
+                    Screenshot proof for match conflicts can only be uploaded directly from your active match room in{' '}
+                    <Link href="/dashboard/matches" className="text-[#FFFF00] underline hover:no-underline font-bold inline-flex items-center gap-0.5">
+                      My Matches
+                      <ArrowRight className="h-3 w-3 inline" />
+                    </Link>.
+                  </p>
                 </div>
 
                 <Button
