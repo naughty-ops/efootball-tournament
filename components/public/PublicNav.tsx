@@ -24,7 +24,8 @@ interface PublicNavProps {
 }
 
 export default function PublicNav({ onItemClick, className }: PublicNavProps) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const [liveCount, setLiveCount] = useState<number>(0);
   const activeTabRef = useRef<HTMLAnchorElement>(null);
 

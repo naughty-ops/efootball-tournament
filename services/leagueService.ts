@@ -103,12 +103,25 @@ export function generateRoundRobinSchedule(
  */
 export async function generateLeagueFixtures(
   tournamentId: string,
-  roundsPerPair: number = 1
+  roundsPerPair: number = 1,
+  customClient?: any
 ): Promise<void> {
-  const supabase = createClient();
+  let supabase = customClient;
+  if (!supabase) {
+    if (typeof window === 'undefined') {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        supabase = createAdminClient();
+      } catch {
+        supabase = createClient();
+      }
+    } else {
+      supabase = createClient();
+    }
+  }
 
   // 1. Fetch Tournament
-  const tObj = await getTournamentById(tournamentId);
+  const tObj = await getTournamentById(tournamentId, supabase);
   if (!tObj) throw new Error('Tournament not found.');
 
   // 2. Fetch Participants (safe public projection)
@@ -150,12 +163,35 @@ export async function generateLeagueFixtures(
       .in('round_id', roundIds);
 
     const mList = (existingMatches || []) as Match[];
-    const hasCompleted = mList.some(
-      (m) => m.status === 'completed' || m.status === 'walkover' || m.score_a > 0 || m.score_b > 0
+    const hasActiveOrCompleted = mList.some(
+      (m) =>
+        m.status === 'completed' ||
+        m.status === 'walkover' ||
+        m.status === 'in_progress' ||
+        m.status === 'live' ||
+        m.status === 'disputed' ||
+        m.status === 'result_pending_admin' ||
+        m.status === 'waiting_for_players' ||
+        m.status === 'awaiting_result' ||
+        m.score_a > 0 ||
+        m.score_b > 0
     );
 
-    if (hasCompleted) {
-      throw new Error('Cannot regenerate league fixtures for a tournament containing completed match results.');
+    if (hasActiveOrCompleted) {
+      throw new Error(
+        'Cannot regenerate league fixtures: tournament contains active, started, disputed, or completed match results.'
+      );
+    }
+
+    const matchIds = mList.map((m) => m.id);
+    if (matchIds.length > 0) {
+      const { count: disputeCount } = await (supabase.from('match_disputes') as unknown as UnknownQuery)
+        .select('id', { count: 'exact', head: true })
+        .in('match_id', matchIds);
+
+      if (disputeCount && disputeCount > 0) {
+        throw new Error('Cannot regenerate fixtures: tournament contains existing dispute or evidence records.');
+      }
     }
 
     // Delete existing unplayed matches and rounds safely
@@ -193,6 +229,8 @@ export async function generateLeagueFixtures(
     for (const p of s.pairings) {
       matchPayloads.push({
         round_id: roundId,
+        tournament_id: tournamentId,
+        matchday: s.roundNumber,
         participant_a: p.participantA.id,
         participant_b: p.participantB.id,
         match_position: p.matchPosition,

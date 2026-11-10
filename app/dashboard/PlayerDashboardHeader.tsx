@@ -84,7 +84,8 @@ export default function PlayerDashboardHeader({
   isVerified = false,
 }: PlayerDashboardHeaderProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const effectiveAvatarUrl = avatarUrl || '/avatars/default-avatar.svg';
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -168,7 +169,7 @@ export default function PlayerDashboardHeader({
   };
 
   const isTabActive = (item: (typeof DASHBOARD_NAV_ITEMS)[0]) => {
-    const targetPath = pendingHref ?? pathname;
+    const targetPath = pendingHref ?? pathname ?? '';
     if (item.matches) return item.matches(targetPath);
     if (item.exact) return targetPath === item.href;
     return targetPath.startsWith(item.href);

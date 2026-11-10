@@ -74,115 +74,136 @@ export async function getOrCreatePlayerWallet(userId: string): Promise<{ id: str
  * Never trusts frontend or client-supplied amounts.
  */
 export async function getPlayerWalletOverview(userId: string): Promise<WalletOverview> {
-  const adminClient = createAdminClient();
+  const defaultOverview: WalletOverview = {
+    totalEarningsPaise: 0,
+    totalEarningsInr: 0,
+    pendingEarningsPaise: 0,
+    pendingEarningsInr: 0,
+    availablePayoutPaise: 0,
+    availablePayoutInr: 0,
+    processingPayoutPaise: 0,
+    processingPayoutInr: 0,
+    totalPaidPaise: 0,
+    totalPaidInr: 0,
+    unpaidRewardsPaise: 0,
+    unpaidRewardsInr: 0,
+    nextExpectedPayout: null,
+  };
 
-  // 1. Total awarded tournament prizes
-  const { data: awardedPrizes } = await (adminClient.from('prize_distributions') as any)
-    .select('prize_amount_paise')
-    .eq('player_id', userId)
-    .eq('status', 'awarded');
+  try {
+    const adminClient = createAdminClient();
 
-  let totalEarningsPaise = 0;
-  if (awardedPrizes && awardedPrizes.length > 0) {
-    totalEarningsPaise = awardedPrizes.reduce(
-      (sum: number, row: any) => sum + Number(row.prize_amount_paise || 0),
-      0
-    );
-  }
+    // 1. Total awarded tournament prizes
+    const { data: awardedPrizes } = await (adminClient.from('prize_distributions') as any)
+      .select('prize_amount_paise')
+      .eq('player_id', userId)
+      .eq('status', 'awarded');
 
-  // 2. Pending approval tournament prizes
-  const { data: pendingPrizes } = await (adminClient.from('prize_distributions') as any)
-    .select('prize_amount_paise')
-    .eq('player_id', userId)
-    .eq('status', 'pending_approval');
+    let totalEarningsPaise = 0;
+    if (awardedPrizes && awardedPrizes.length > 0) {
+      totalEarningsPaise = awardedPrizes.reduce(
+        (sum: number, row: any) => sum + Number(row.prize_amount_paise || 0),
+        0
+      );
+    }
 
-  let pendingEarningsPaise = 0;
-  if (pendingPrizes && pendingPrizes.length > 0) {
-    pendingEarningsPaise = pendingPrizes.reduce(
-      (sum: number, row: any) => sum + Number(row.prize_amount_paise || 0),
-      0
-    );
-  }
+    // 2. Pending approval tournament prizes
+    const { data: pendingPrizes } = await (adminClient.from('prize_distributions') as any)
+      .select('prize_amount_paise')
+      .eq('player_id', userId)
+      .eq('status', 'pending_approval');
 
-  // 3. Payout transactions breakdown (Available, Processing, Paid)
-  const { data: allPayouts } = await (adminClient.from('payout_transactions') as any)
-    .select(`
-      id,
-      amount_paise,
-      amount_inr,
-      payout_status,
-      deadline_at,
-      created_at,
-      prize_distribution_id,
-      prize_distributions:prize_distribution_id (
+    let pendingEarningsPaise = 0;
+    if (pendingPrizes && pendingPrizes.length > 0) {
+      pendingEarningsPaise = pendingPrizes.reduce(
+        (sum: number, row: any) => sum + Number(row.prize_amount_paise || 0),
+        0
+      );
+    }
+
+    // 3. Payout transactions breakdown (Available, Processing, Paid)
+    const { data: allPayouts } = await (adminClient.from('payout_transactions') as any)
+      .select(`
         id,
-        position_title,
-        tournaments:tournament_id (id, name)
-      )
-    `)
-    .eq('player_id', userId)
-    .order('deadline_at', { ascending: true, nullsFirst: false });
+        amount_paise,
+        amount_inr,
+        payout_status,
+        deadline_at,
+        created_at,
+        prize_distribution_id,
+        prize_distributions:prize_distribution_id (
+          id,
+          position_title,
+          tournaments:tournament_id (id, name)
+        )
+      `)
+      .eq('player_id', userId)
+      .order('deadline_at', { ascending: true, nullsFirst: false });
 
-  let availablePayoutPaise = 0;
-  let processingPayoutPaise = 0;
-  let totalPaidPaise = 0;
-  let nextExpectedPayout: WalletOverview['nextExpectedPayout'] = null;
+    let availablePayoutPaise = 0;
+    let processingPayoutPaise = 0;
+    let totalPaidPaise = 0;
+    let nextExpectedPayout: WalletOverview['nextExpectedPayout'] = null;
 
-  const now = new Date();
+    const now = new Date();
 
-  if (allPayouts && allPayouts.length > 0) {
-    for (const p of allPayouts) {
-      const paise = Number(p.amount_paise || 0);
-      if (p.payout_status === 'PAID') {
-        totalPaidPaise += paise;
-      } else if (p.payout_status === 'PROCESSING') {
-        processingPayoutPaise += paise;
-        if (!nextExpectedPayout) {
-          const deadline = p.deadline_at || new Date(new Date(p.created_at).getTime() + 24 * 3600 * 1000).toISOString();
-          const tName = p.prize_distributions?.tournaments?.name || 'Tournament Prize';
-          nextExpectedPayout = {
-            amountInr: Number(p.amount_inr || paiseToInr(paise)),
-            deadlineAt: deadline,
-            tournamentName: tName,
-            status: p.payout_status,
-            isOverdue: new Date(deadline).getTime() < now.getTime(),
-          };
-        }
-      } else if (p.payout_status === 'APPROVED' || p.payout_status === 'PENDING' || p.payout_status === 'PENDING_APPROVAL') {
-        availablePayoutPaise += paise;
-        if (!nextExpectedPayout) {
-          const deadline = p.deadline_at || new Date(new Date(p.created_at).getTime() + 24 * 3600 * 1000).toISOString();
-          const tName = p.prize_distributions?.tournaments?.name || 'Tournament Prize';
-          nextExpectedPayout = {
-            amountInr: Number(p.amount_inr || paiseToInr(paise)),
-            deadlineAt: deadline,
-            tournamentName: tName,
-            status: p.payout_status,
-            isOverdue: new Date(deadline).getTime() < now.getTime(),
-          };
+    if (allPayouts && allPayouts.length > 0) {
+      for (const p of allPayouts) {
+        const paise = Number(p.amount_paise || 0);
+        if (p.payout_status === 'PAID') {
+          totalPaidPaise += paise;
+        } else if (p.payout_status === 'PROCESSING') {
+          processingPayoutPaise += paise;
+          if (!nextExpectedPayout) {
+            const deadline = p.deadline_at || new Date(new Date(p.created_at).getTime() + 24 * 3600 * 1000).toISOString();
+            const tName = p.prize_distributions?.tournaments?.name || 'Tournament Prize';
+            nextExpectedPayout = {
+              amountInr: Number(p.amount_inr || paiseToInr(paise)),
+              deadlineAt: deadline,
+              tournamentName: tName,
+              status: p.payout_status,
+              isOverdue: new Date(deadline).getTime() < now.getTime(),
+            };
+          }
+        } else if (p.payout_status === 'APPROVED' || p.payout_status === 'PENDING' || p.payout_status === 'PENDING_APPROVAL') {
+          availablePayoutPaise += paise;
+          if (!nextExpectedPayout) {
+            const deadline = p.deadline_at || new Date(new Date(p.created_at).getTime() + 24 * 3600 * 1000).toISOString();
+            const tName = p.prize_distributions?.tournaments?.name || 'Tournament Prize';
+            nextExpectedPayout = {
+              amountInr: Number(p.amount_inr || paiseToInr(paise)),
+              deadlineAt: deadline,
+              tournamentName: tName,
+              status: p.payout_status,
+              isOverdue: new Date(deadline).getTime() < now.getTime(),
+            };
+          }
         }
       }
     }
+
+    // Unpaid rewards = Awarded prize money - Total Paid
+    const unpaidRewardsPaise = Math.max(0, totalEarningsPaise - totalPaidPaise);
+
+    return {
+      totalEarningsPaise,
+      totalEarningsInr: paiseToInr(totalEarningsPaise),
+      pendingEarningsPaise,
+      pendingEarningsInr: paiseToInr(pendingEarningsPaise),
+      availablePayoutPaise,
+      availablePayoutInr: paiseToInr(availablePayoutPaise),
+      processingPayoutPaise,
+      processingPayoutInr: paiseToInr(processingPayoutPaise),
+      totalPaidPaise,
+      totalPaidInr: paiseToInr(totalPaidPaise),
+      unpaidRewardsPaise,
+      unpaidRewardsInr: paiseToInr(unpaidRewardsPaise),
+      nextExpectedPayout,
+    };
+  } catch (err) {
+    console.warn('getPlayerWalletOverview: Fallback to default overview due to error:', err);
+    return defaultOverview;
   }
-
-  // Unpaid rewards = Awarded prize money - Total Paid
-  const unpaidRewardsPaise = Math.max(0, totalEarningsPaise - totalPaidPaise);
-
-  return {
-    totalEarningsPaise,
-    totalEarningsInr: paiseToInr(totalEarningsPaise),
-    pendingEarningsPaise,
-    pendingEarningsInr: paiseToInr(pendingEarningsPaise),
-    availablePayoutPaise,
-    availablePayoutInr: paiseToInr(availablePayoutPaise),
-    processingPayoutPaise,
-    processingPayoutInr: paiseToInr(processingPayoutPaise),
-    totalPaidPaise,
-    totalPaidInr: paiseToInr(totalPaidPaise),
-    unpaidRewardsPaise,
-    unpaidRewardsInr: paiseToInr(unpaidRewardsPaise),
-    nextExpectedPayout,
-  };
 }
 
 /**

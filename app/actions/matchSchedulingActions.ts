@@ -596,13 +596,18 @@ export async function resolveDisputeAction(data: {
       }
 
       // Authoritative score submission from Admin Desk
-      await submitMatchResult(data.matchId, data.tournamentId, {
-        result_type: 'normal',
-        score_a: finalScoreA,
-        score_b: finalScoreB,
-        decided_by: 'normal',
-        notes: data.adminNotes ? `Dispute resolved by Admin Desk: ${data.adminNotes}` : 'Dispute resolved by Admin Desk',
-      });
+      await submitMatchResult(
+        data.matchId,
+        data.tournamentId,
+        {
+          result_type: 'normal',
+          score_a: finalScoreA,
+          score_b: finalScoreB,
+          decided_by: 'normal',
+          notes: data.adminNotes ? `Dispute resolved by Admin Desk: ${data.adminNotes}` : 'Dispute resolved by Admin Desk',
+        },
+        adminClient
+      );
 
       await (adminClient.from('match_disputes') as any)
         .update({
@@ -701,9 +706,15 @@ export async function resolveDisputeAction(data: {
       },
     });
 
-    revalidatePath(`/admin/tournaments/${data.tournamentId}/disputes`);
-    revalidatePath(`/admin/tournaments/${data.tournamentId}/schedule`);
-    revalidatePath(`/tournaments/${data.tournamentId}`);
+    try {
+      revalidatePath(`/admin/tournaments/${data.tournamentId}/disputes`);
+      revalidatePath(`/admin/tournaments/${data.tournamentId}/schedule`);
+      revalidatePath(`/tournaments/${data.tournamentId}`);
+    } catch (revalidateErr) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('revalidatePath non-fatal warning in production:', revalidateErr);
+      }
+    }
 
     return { success: true, message: `Dispute resolved with decision: ${data.decision}` };
   } catch (err: any) {

@@ -24,7 +24,8 @@ export function PlayerDashboardSwipeWrapper({
   className,
 }: PlayerDashboardSwipeWrapperProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
   // Find index of current route

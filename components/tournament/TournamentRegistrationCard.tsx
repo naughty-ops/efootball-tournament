@@ -40,7 +40,8 @@ export function TournamentRegistrationCard({
   onRegisteredSuccess,
 }: TournamentRegistrationCardProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isRegistered, setIsRegistered] = useState(false);

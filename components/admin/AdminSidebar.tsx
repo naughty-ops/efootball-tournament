@@ -76,7 +76,8 @@ export default function AdminSidebar({
   unresolvedTicketCount = 0,
   hasUrgentTickets = false,
 }: AdminSidebarProps) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

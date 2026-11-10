@@ -59,14 +59,26 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
 
   // Fetch player profile, tournaments, matches, and wallet overview in parallel
   const [profile, tournamentsRes, matchesRes, walletOverview] = await Promise.all([
-    getPlayerProfile(supabase, user.id, user),
-    getPlayerTournaments(supabase, user.id),
-    getPlayerMatches(supabase, user.id),
-    getPlayerWalletOverview(user.id),
+    getPlayerProfile(supabase, user.id, user).catch((err) => {
+      console.warn('Dashboard getPlayerProfile error:', err);
+      return null;
+    }),
+    getPlayerTournaments(supabase, user.id).catch((err) => {
+      console.warn('Dashboard getPlayerTournaments error:', err);
+      return { data: [], error: 'Failed to load tournaments' };
+    }),
+    getPlayerMatches(supabase, user.id).catch((err) => {
+      console.warn('Dashboard getPlayerMatches error:', err);
+      return { data: [], error: 'Failed to load matches' };
+    }),
+    getPlayerWalletOverview(user.id).catch((err) => {
+      console.warn('Dashboard getPlayerWalletOverview error:', err);
+      return null;
+    }),
   ]);
 
-  const tournaments = tournamentsRes.data || [];
-  const matches = matchesRes.data || [];
+  const tournaments = tournamentsRes?.data || [];
+  const matches = matchesRes?.data || [];
   const stats = calculatePlayerOverviewStats(tournaments, matches);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
@@ -306,7 +318,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
             </div>
             <p className="text-[10px] text-white/70 font-medium mt-1 truncate">
               {(walletOverview?.pendingEarningsInr || 0) > 0 ? (
-                <span className="text-amber-300 font-bold">₹{walletOverview.pendingEarningsInr} pending</span>
+                <span className="text-amber-300 font-bold">₹{walletOverview?.pendingEarningsInr} pending</span>
               ) : (
                 <span>24h direct payouts</span>
               )}

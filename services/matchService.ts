@@ -125,9 +125,22 @@ export async function getMatchesByTournament(
  */
 export async function getMatchDetails(
   matchId: string,
-  tournamentId: string
+  tournamentId: string,
+  customClient?: any
 ): Promise<MatchDetailsOverview> {
-  const supabase = createClient();
+  let supabase = customClient;
+  if (!supabase) {
+    if (typeof window === 'undefined') {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        supabase = createAdminClient();
+      } catch {
+        supabase = createClient();
+      }
+    } else {
+      supabase = createClient();
+    }
+  }
 
   const { data: matchData, error: mErr } = await (supabase.from('matches') as unknown as UnknownQuery)
     .select('*')
@@ -591,10 +604,23 @@ export function determineWinner(
 export async function submitMatchResult(
   matchId: string,
   tournamentId: string,
-  input: MatchResultInput
+  input: MatchResultInput,
+  customClient?: any
 ): Promise<MatchDetailsOverview> {
-  const supabase = createClient();
-  const { match, round } = await getMatchDetails(matchId, tournamentId);
+  let supabase = customClient;
+  if (!supabase) {
+    if (typeof window === 'undefined') {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        supabase = createAdminClient();
+      } catch {
+        supabase = createClient();
+      }
+    } else {
+      supabase = createClient();
+    }
+  }
+  const { match, round } = await getMatchDetails(matchId, tournamentId, supabase);
 
   // Stage Protection Guards
   const { data: tData } = await (supabase.from('tournaments') as unknown as UnknownQuery)

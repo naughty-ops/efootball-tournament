@@ -248,8 +248,8 @@ export function useRealtimeMatches(
                 });
               }
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              if (err) {
-                console.warn('[Realtime matches channel error]', err);
+              if (err && process.env.NODE_ENV === 'development') {
+                console.warn('[Realtime matches channel notice]', err);
               }
               notifyStatusChange('reconnecting');
             }
@@ -257,7 +257,9 @@ export function useRealtimeMatches(
 
         entry.channel = channel;
       } catch (err) {
-        console.warn('[Realtime matches subscription error]:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Realtime matches subscription error]:', err);
+        }
         notifyStatusChange('disconnected');
       }
     }
@@ -279,10 +281,10 @@ export function useRealtimeMatches(
         try {
           const supabase = createClient();
           if (currentEntry.channel) {
-            supabase.removeChannel(currentEntry.channel);
+            supabase.removeChannel(currentEntry.channel).catch(() => {});
           }
-        } catch (cleanupErr) {
-          console.warn('[Realtime cleanup warning]:', cleanupErr);
+        } catch {
+          // Silent cleanup
         } finally {
           sharedChannelRegistry.delete(canonicalTopic);
         }

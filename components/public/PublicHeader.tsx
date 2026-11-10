@@ -10,7 +10,8 @@ import { User, LogIn, UserPlus, LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function PublicHeader() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
