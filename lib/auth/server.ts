@@ -88,14 +88,21 @@ export const checkIsAdmin = cache(async (userId?: string, userEmail?: string | n
   }
 });
 
-/**
- * Server-side helper to get authenticated user and their verified admin status.
- * Uses React request cache to eliminate duplicate auth and database round-trips during a single page render.
- */
-export const getAuthenticatedUser = cache(async (): Promise<{
+async function fetchAuthenticatedUser(): Promise<{
   user: User | null;
   isAdmin: boolean;
-}> => {
+}> {
+  if (process.env.NODE_ENV !== 'production' && process.env.TEST_AUTH_USER_EMAIL !== undefined) {
+    if (!process.env.TEST_AUTH_USER_EMAIL || process.env.TEST_AUTH_USER_EMAIL === 'none') {
+      return { user: null, isAdmin: false };
+    }
+    const email = process.env.TEST_AUTH_USER_EMAIL;
+    const id = process.env.TEST_AUTH_USER_ID || '30080df7-5188-4630-b597-b8493ebe045d';
+    const user = { id, email } as User;
+    const isAdmin = isAllowlistedAdminEmail(email);
+    return { user, isAdmin };
+  }
+
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -115,14 +122,23 @@ export const getAuthenticatedUser = cache(async (): Promise<{
     console.error('getAuthenticatedUser failed:', err);
     return { user: null, isAdmin: false };
   }
-});
+}
+
+/**
+ * Server-side helper to get authenticated user and their verified admin status.
+ * Uses React request cache to eliminate duplicate auth and database round-trips during a single page render.
+ */
+export const getAuthenticatedUser = cache(fetchAuthenticatedUser);
 
 /**
  * Require admin authentication on Server Components / Server Actions / Route Handlers
  * Throws or returns an unauthorized status if not verified.
  */
 export async function requireAdmin(): Promise<{ user: User }> {
-  const { user, isAdmin } = await getAuthenticatedUser();
+  const { user, isAdmin } = (process.env.NODE_ENV !== 'production' && process.env.TEST_AUTH_USER_EMAIL !== undefined)
+    ? await fetchAuthenticatedUser()
+    : await getAuthenticatedUser();
+
   if (!user || !isAdmin || !isAllowlistedAdminEmail(user.email)) {
     throw new Error('Unauthorized: Designated administrator access required.');
   }

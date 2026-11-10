@@ -91,7 +91,7 @@ export async function saveHomeBanners(slides: CarouselSlide[]): Promise<void> {
   // 2. Persist to Supabase PostgreSQL DB and broadcast Realtime update
   try {
     const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { error } = await (supabase.from('site_settings') as any).upsert({
       key: SITE_SETTING_KEY,
       value: slides,

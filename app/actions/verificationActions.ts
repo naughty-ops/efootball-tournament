@@ -33,6 +33,7 @@ export interface AdminVerificationItem {
   adminNotes: string | null;
   verificationRevokedAt: string | null;
   verificationRevocationReason: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -412,6 +413,7 @@ export async function getAdminVerificationQueueAction(options: {
       adminNotes: p.admin_notes || null,
       verificationRevokedAt: p.verification_revoked_at || null,
       verificationRevocationReason: p.verification_revocation_reason || null,
+      avatarUrl: p.avatar_url || null,
       createdAt: p.created_at,
     }));
 
@@ -505,6 +507,7 @@ export async function getMemberVerificationDetailsAction(
       adminNotes: profile.admin_notes || null,
       verificationRevokedAt: profile.verification_revoked_at || null,
       verificationRevocationReason: profile.verification_revocation_reason || null,
+      avatarUrl: profile.avatar_url || null,
       createdAt: profile.created_at,
     };
 

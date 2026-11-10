@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useCallback } from 'react';
+import Image from 'next/image';
 import {
   CheckCircle2,
   XCircle,
@@ -918,8 +919,12 @@ export function AdminVerificationQueue({
                     {/* Column 1: Member Identity & Account Status */}
                     <div className="space-y-2 min-w-[240px]">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-[#1818D4] border border-white/20 flex items-center justify-center text-[#FFFF00] shrink-0 font-display text-base font-black">
-                          {item.displayName.charAt(0).toUpperCase()}
+                        <div className="h-10 w-10 rounded-full bg-[#1818D4] border border-white/20 flex items-center justify-center text-[#FFFF00] shrink-0 font-display text-base font-black overflow-hidden">
+                          {item.avatarUrl ? (
+                            <Image src={item.avatarUrl} alt={item.displayName} width={40} height={40} className="object-cover w-full h-full" />
+                          ) : (
+                            item.displayName.charAt(0).toUpperCase()
+                          )}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1312,8 +1317,12 @@ export function AdminVerificationQueue({
               <div className="space-y-6">
                 {/* Header identity */}
                 <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/15 flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-[#1818D4] border-2 border-[#FFFF00] flex items-center justify-center text-2xl font-black text-[#FFFF00] font-display shrink-0">
-                    {memberDetails.profile.displayName.charAt(0).toUpperCase()}
+                  <div className="h-16 w-16 rounded-full bg-[#1818D4] border-2 border-[#FFFF00] flex items-center justify-center text-2xl font-black text-[#FFFF00] font-display shrink-0 overflow-hidden">
+                    {memberDetails.profile.avatarUrl ? (
+                      <Image src={memberDetails.profile.avatarUrl} alt={memberDetails.profile.displayName} width={64} height={64} className="object-cover w-full h-full" />
+                    ) : (
+                      memberDetails.profile.displayName.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">

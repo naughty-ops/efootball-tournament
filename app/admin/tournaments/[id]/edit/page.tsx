@@ -31,6 +31,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ConfirmModal } from '@/components/ui/modal';
+import MediaUploadZone from '@/components/media/MediaUploadZone';
 import { getFixtureStatus } from '@/services/fixtureService';
 import type { Tournament } from '@/types/database';
 
@@ -68,10 +69,11 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
       format: 'knockout',
       status: 'draft',
       start_date: '',
+      banner_image: '',
+      cloudinary_public_id: null,
       end_date: '',
       registration_deadline: '',
       rules_text: '',
-      banner_image: '',
       max_participants: 32,
       rounds_per_pair: 1,
       qualifiers_per_group: 2,
@@ -121,6 +123,7 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
             registration_deadline: t.registration_deadline ? t.registration_deadline.split('T')[0] : '',
             rules_text: t.rules_text || '',
             banner_image: t.banner_image || '',
+            cloudinary_public_id: t.cloudinary_public_id || null,
             max_participants: t.max_participants,
             rounds_per_pair: t.rounds_per_pair || 1,
             qualifiers_per_group: t.qualifiers_per_group || 2,
@@ -300,6 +303,73 @@ export default function EditTournamentPage({ params }: { params: Promise<{ id: s
                   {errors.registration_deadline && (
                     <p className="text-xs text-red-300 mt-1 font-medium">{errors.registration_deadline.message}</p>
                   )}
+                </div>
+              </div>
+
+              {/* Tournament Banner Section */}
+              <div className="space-y-4 pt-2">
+                <label className="text-xs font-bold text-white flex items-center justify-between uppercase tracking-wider">
+                  <span>Tournament Banner Image</span>
+                  <span className="text-[10px] text-white/60 font-normal">Displayed on public lobby & tournament header</span>
+                </label>
+
+                {/* Cloudinary Custom Banner Upload */}
+                <MediaUploadZone
+                  category="tournament_banner"
+                  entityId={id}
+                  initialUrl={watch('banner_image')}
+                  onUploadSuccess={(url, publicId) => {
+                    setValue('banner_image', url, { shouldValidate: true });
+                    setValue('cloudinary_public_id', publicId);
+                  }}
+                  onRemove={() => {
+                    setValue('banner_image', '/images/banner1.webp', { shouldValidate: true });
+                    setValue('cloudinary_public_id', null);
+                  }}
+                  label="Update Tournament Banner"
+                  helperText="Upload JPEG, PNG, or WebP banner up to 5MB (optimized automatically via Cloudinary)."
+                  aspectRatio="banner"
+                />
+
+                {/* Preset Banner Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-white/70">Or Select a Quick Banner Preset:</span>
+                    <span className="text-[10px] text-white/40">Instant platform presets</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {BANNER_PRESETS.map((preset) => {
+                      const isCurrent = watch('banner_image') === preset.url;
+                      return (
+                        <button
+                          type="button"
+                          key={preset.url}
+                          onClick={() => {
+                            setValue('banner_image', preset.url, { shouldValidate: true });
+                            setValue('cloudinary_public_id', null);
+                          }}
+                          className={`text-[11px] px-3 py-1.5 rounded-full font-bold border transition-all cursor-pointer ${
+                            isCurrent
+                              ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00]'
+                              : 'bg-[#0A0A7A] hover:bg-white/10 text-white border-white/20'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <span className="text-[11px] text-white/60 block mb-1">Custom External Banner URL (Optional):</span>
+                  <Input
+                    placeholder="/images/banner1.jpg or https://..."
+                    disabled={isSubmitting}
+                    className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11 text-xs"
+                    {...register('banner_image')}
+                  />
+                  {errors.banner_image && <p className="text-xs text-red-300 mt-1 font-medium">{errors.banner_image.message}</p>}
                 </div>
               </div>
 

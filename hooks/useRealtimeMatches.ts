@@ -8,9 +8,9 @@ import { clearPublicCache } from '@/services/publicTournamentService';
 export type RealtimeConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
 export interface RealtimePayload {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   new: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   old: Record<string, any>;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
   table?: string;

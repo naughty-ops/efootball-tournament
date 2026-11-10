@@ -97,7 +97,7 @@ export async function getAdminViewerHistory(params: ViewerHistoryFilterParams = 
 
     // Fetch associated matches and participants for table display
     const matchIds = Array.from(new Set(allSessions.map((s) => s.match_id)));
-    let matchMap = new Map<string, any>();
+    const matchMap = new Map<string, any>();
     if (matchIds.length > 0) {
       const { data: matchesData } = await (supabase.from('matches') as unknown as UnknownQuery)
         .select('id, match_position, round_id')

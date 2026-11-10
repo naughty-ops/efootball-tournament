@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#240046" />
+      <stop offset="100%" stop-color="#3C096C" />
+    </linearGradient>
+    <linearGradient id="purple_accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C77DFF" />
+      <stop offset="100%" stop-color="#E0AAFF" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="url(#bg_purple)" stroke="url(#purple_accent)" stroke-width="6" />
+  <path d="M100 40 L150 65 V110 C150 140, 100 165, 100 165 C100 165, 50 140, 50 110 V65 Z" fill="#10002B" stroke="url(#purple_accent)" stroke-width="4" />
+  <polygon points="100,75 106,92 124,92 109,103 115,120 100,109 85,120 91,103 76,92 94,92" fill="#E0AAFF" />
+</svg>

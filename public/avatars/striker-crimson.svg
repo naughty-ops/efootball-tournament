@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_crimson" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A0E17" />
+      <stop offset="100%" stop-color="#800E13" />
+    </linearGradient>
+    <linearGradient id="crimson_accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF3366" />
+      <stop offset="100%" stop-color="#FF0055" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="url(#bg_crimson)" stroke="url(#crimson_accent)" stroke-width="6" />
+  <polygon points="100,30 115,75 160,80 125,110 135,155 100,130 65,155 75,110 40,80 85,75" fill="#240008" stroke="url(#crimson_accent)" stroke-width="3" />
+  <path d="M95 50 L115 85 L90 95 L115 145 L80 105 L105 95 Z" fill="#FFCC00" />
+</svg>

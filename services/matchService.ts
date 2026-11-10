@@ -621,8 +621,18 @@ export async function submitMatchResult(
 
   // 1. Update Current Match Result
   const updatePayload = {
-    score_a: input.result_type === 'normal' ? input.score_a : 0,
-    score_b: input.result_type === 'normal' ? input.score_b : 0,
+    score_a:
+      input.result_type === 'normal'
+        ? input.score_a
+        : input.result_type === 'walkover'
+        ? (input.walkover_winner_id === match.participant_a ? 3 : 0)
+        : 0,
+    score_b:
+      input.result_type === 'normal'
+        ? input.score_b
+        : input.result_type === 'walkover'
+        ? (input.walkover_winner_id === match.participant_b ? 3 : 0)
+        : 0,
     decided_by: input.result_type === 'normal' ? (input.decided_by || 'normal') : 'normal',
     penalty_score_a:
       input.result_type === 'normal' && input.decided_by === 'penalties' ? input.penalty_score_a : null,
@@ -848,4 +858,110 @@ export async function updateMatchSchedule(
   }
 
   return getMatchDetails(matchId, tournamentId);
+}
+
+export interface MatchDisputeRecord {
+  id: string;
+  match_id: string;
+  tournament_id: string;
+  reporter_participant_id: string;
+  opponent_participant_id: string | null;
+  reason:
+    | 'opponent_no_show'
+    | 'connection_failure'
+    | 'refusing_to_play'
+    | 'match_not_completed'
+    | 'incorrect_walkover'
+    | 'conflicting_scores'
+    | 'timeout_no_result'
+    | 'result_dispute'
+    | 'other';
+  details: string | null;
+  evidence_url: string | null;
+  reporter_screenshot_url?: string | null;
+  opponent_screenshot_url?: string | null;
+  reporter_score_a?: number | null;
+  reporter_score_b?: number | null;
+  opponent_score_a?: number | null;
+  opponent_score_b?: number | null;
+  status: 'open' | 'under_review' | 'resolved' | 'rejected';
+  admin_notes: string | null;
+  resolution_action: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  reporterName?: string;
+  opponentName?: string;
+  match?: MatchWithDetails;
+}
+
+export interface MatchActivityLogRecord {
+  id: string;
+  match_id: string;
+  tournament_id: string | null;
+  actor_id: string | null;
+  actor_role: 'player' | 'admin' | 'system';
+  action: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/**
+ * Fetch all disputes filed for a tournament with related player & match metadata
+ */
+export async function getTournamentDisputes(tournamentId: string): Promise<MatchDisputeRecord[]> {
+  const supabase = createClient();
+
+  const { data: disputes, error } = await (supabase.from('match_disputes') as unknown as UnknownQuery)
+    .select('*')
+    .eq('tournament_id', tournamentId)
+    .order('created_at', { ascending: false });
+
+  if (error || !disputes) {
+    console.error('getTournamentDisputes error:', error);
+    return [];
+  }
+
+  const rawDisputes = disputes as MatchDisputeRecord[];
+  if (rawDisputes.length === 0) return [];
+
+  const allParticipantIds = Array.from(
+    new Set(rawDisputes.flatMap((d) => [d.reporter_participant_id, d.opponent_participant_id]).filter(Boolean))
+  ) as string[];
+
+  const { data: pData } = await (supabase.from('participants') as unknown as UnknownQuery)
+    .select('id, username, real_name')
+    .in('id', allParticipantIds);
+
+  const nameMap = new Map<string, string>();
+  ((pData || []) as any[]).forEach((p) => {
+    nameMap.set(p.id, p.real_name || p.username || 'Player');
+  });
+
+  const matches = await getAllAdminMatches({ tournamentId });
+  const matchMap = new Map<string, MatchWithDetails>(matches.map((m) => [m.id, m]));
+
+  return rawDisputes.map((d) => ({
+    ...d,
+    reporterName: nameMap.get(d.reporter_participant_id) || 'Unknown Player',
+    opponentName: d.opponent_participant_id ? nameMap.get(d.opponent_participant_id) || 'Opponent' : 'N/A',
+    match: matchMap.get(d.match_id),
+  }));
+}
+
+/**
+ * Fetch match activity audit logs for a match
+ */
+export async function getMatchActivityLogs(matchId: string): Promise<MatchActivityLogRecord[]> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.from('match_activity_logs') as unknown as UnknownQuery)
+    .select('*')
+    .eq('match_id', matchId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+  return data as MatchActivityLogRecord[];
 }

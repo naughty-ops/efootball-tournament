@@ -2,6 +2,7 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { isAllowlistedAdminEmail, getAuthenticatedUser } from '@/lib/auth/server';
 import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
+import { getTicketOverviewStats } from '@/services/ticketService';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -27,5 +28,20 @@ export default async function AdminLayout({
     redirect('/dashboard?error=admin_unauthorized');
   }
 
-  return <AdminLayoutClient adminEmail={user.email}>{children}</AdminLayoutClient>;
+  let ticketStats = { totalOpen: 0, urgent: 0 };
+  try {
+    ticketStats = await getTicketOverviewStats();
+  } catch (err) {
+    console.error('Failed to load ticket stats in admin layout:', err);
+  }
+
+  return (
+    <AdminLayoutClient
+      adminEmail={user.email}
+      unresolvedTicketCount={ticketStats.totalOpen}
+      hasUrgentTickets={ticketStats.urgent > 0}
+    >
+      {children}
+    </AdminLayoutClient>
+  );
 }

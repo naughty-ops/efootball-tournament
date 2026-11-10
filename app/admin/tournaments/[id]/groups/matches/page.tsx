@@ -317,7 +317,7 @@ export default function AdminGroupMatchesPage({
           </div>
           <h3 className="text-lg font-bold text-[#0B3323]">No matches found</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-6">
-            No fixtures matched your search query "{searchQuery}". Try searching for another player or clearing your filters.
+            No fixtures matched your search query &ldquo;{searchQuery}&rdquo;. Try searching for another player or clearing your filters.
           </p>
           <Button
             type="button"

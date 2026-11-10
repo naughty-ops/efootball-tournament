@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Users, BarChart3, Vote, ArrowLeft, Loader2, RefreshCw, ChevronLeft, ChevronRight, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,7 @@ export default function AdminViewerHistoryPage() {
   const [totalSessions, setTotalSessions] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const loadViewerHistory = async () => {
+  const loadViewerHistory = useCallback(async () => {
     setLoading(true);
     try {
       const [res, mList] = await Promise.all([
@@ -36,11 +36,11 @@ export default function AdminViewerHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMatchId, selectedDevice, page]);
 
   useEffect(() => {
-    loadViewerHistory();
-  }, [selectedMatchId, selectedDevice, page]);
+    void loadViewerHistory();
+  }, [loadViewerHistory]);
 
   return (
     <div className="space-y-6 pb-12 font-sans">

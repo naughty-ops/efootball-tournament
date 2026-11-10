@@ -243,8 +243,17 @@ export default function PublicTournamentClientView({
     } else if (tab === 'matches' && !loadedTabsRef.current.has('matches')) {
       setLoadingTabData(true);
       try {
-        const mRes = await getPublicMatches(tournamentId).catch(() => []);
+        const [mRes, gRes] = await Promise.all([
+          getPublicMatches(tournamentId).catch(() => []),
+          !loadedTabsRef.current.has('groups')
+            ? getPublicGroupStage(tournamentId).catch(() => null)
+            : Promise.resolve(groupStage),
+        ]);
         setRounds(mRes);
+        if (gRes) {
+          setGroupStage(gRes);
+          loadedTabsRef.current.add('groups');
+        }
         loadedTabsRef.current.add('matches');
       } finally {
         setLoadingTabData(false);
@@ -259,7 +268,7 @@ export default function PublicTournamentClientView({
         setLoadingTabData(false);
       }
     }
-  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData]);
+  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData, groupStage]);
 
   const handleTabChange = (newTab: TabKey) => {
     setActiveTab(newTab);
@@ -305,7 +314,7 @@ export default function PublicTournamentClientView({
     } catch (err) {
       console.error('Error refreshing tournament:', err);
     }
-  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData]);
+  }, [tournamentId, isLocked, tournament?.is_private, fetchAuthorizedData, groupStage]);
 
   // Intelligent realtime handler: patch local match scores immediately without database hammer
   const handleRealtimeUpdate = useCallback(

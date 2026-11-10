@@ -175,6 +175,7 @@ export const tournamentSchema = z
       )
       .optional()
       .nullable(),
+    cloudinary_public_id: z.string().optional().nullable(),
     max_participants: z
       .number({ message: 'Max participants is required' })
       .int('Must be a whole integer')

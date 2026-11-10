@@ -170,7 +170,7 @@ export function LiveMatchPredictionsWidget({
 
       {isMatchCompleted && !userPred && (
         <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold text-center">
-          You didn't make a prediction for this match.
+          You didn&apos;t make a prediction for this match.
         </div>
       )}
 

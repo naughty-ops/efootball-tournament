@@ -214,11 +214,27 @@ export default function AdminMatchesPage({ params }: { params: Promise<{ id: str
           </p>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="font-bold gap-2 rounded-xl text-xs border-border">
-          <Link href={`/admin/tournaments/${tournamentId}/bracket`}>
-            <span>View Full Bracket</span>
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button asChild size="sm" className="bg-[#00C853] hover:bg-[#00B048] text-[#08088F] font-bold gap-1.5 rounded-xl text-xs shadow-md">
+            <Link href={`/admin/tournaments/${tournamentId}/schedule`}>
+              <Clock className="h-4 w-4" />
+              <span>Scheduler Desk</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="font-bold gap-1.5 rounded-xl text-xs border-rose-500/30 text-rose-600 hover:bg-rose-50">
+            <Link href={`/admin/tournaments/${tournamentId}/disputes`}>
+              <AlertCircle className="h-4 w-4" />
+              <span>Disputes Desk</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="font-bold gap-2 rounded-xl text-xs border-border">
+            <Link href={`/admin/tournaments/${tournamentId}/bracket`}>
+              <span>View Full Bracket</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar: Status & Round Selector */}

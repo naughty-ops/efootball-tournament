@@ -125,7 +125,7 @@ export async function cancelRegistrationAction(tournamentId: string): Promise<Ac
  * Persists changes to Supabase Auth metadata and profiles table.
  */
 export async function updatePlayerProfileAction(
-  input: { fullName?: string; efootballId?: string; whatsappNumber?: string }
+  input: { fullName?: string; efootballId?: string; whatsappNumber?: string; avatarUrl?: string | null; avatarId?: string | null }
 ): Promise<ActionResponse> {
   try {
     const supabase = await createClient();
@@ -171,6 +171,7 @@ export async function updatePlayerProfileAction(
       efootball_id_verified: true, // eid verified by format
       efootball_verification_status: 'verified',
       whatsapp_number: validatedWhatsapp,
+      ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
       ...(whatsappChanged ? {
         whatsapp_verified: false,
         whatsapp_verification_status: 'not_submitted',
@@ -202,6 +203,8 @@ export async function updatePlayerProfileAction(
         efootball_id_verified: true,
         efootball_verification_status: 'verified',
         whatsapp_number: validatedWhatsapp,
+        ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
+        ...(input.avatarId !== undefined ? { avatar_id: input.avatarId } : {}),
         ...(whatsappChanged ? {
           whatsapp_verified: false,
           whatsapp_verification_status: 'not_submitted',

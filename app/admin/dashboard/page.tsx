@@ -1,6 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
-import { Trophy, Users, Swords, Activity, Plus, ShieldCheck, User } from 'lucide-react';
+import {
+  Trophy,
+  Users,
+  Swords,
+  Activity,
+  Plus,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +23,7 @@ export default async function AdminDashboardPage() {
   const admin = await requireAdmin();
   const supabase = await createClient();
 
-  // Fetch real system statistics on server in parallel
+  // Fetch platform-wide statistics in parallel
   const [tRes, pRes, mRes] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true }),
     supabase.from('participants').select('*', { count: 'exact', head: true }),
@@ -40,7 +48,7 @@ export default async function AdminDashboardPage() {
             </Badge>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
-            Admin Overview
+            Tournament Operations Control Centre
           </h1>
           <p className="text-xs sm:text-sm text-white/70 mt-1">
             Logged in as: <span className="font-bold text-[#FFFF00]">{admin.user.email}</span>
@@ -59,7 +67,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Real Live Analytics Summary Stats */}
+      {/* PLATFORM CORE METRICS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="bg-[#1818D4] border border-white/20 rounded-[28px] shadow-lg text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -147,7 +155,7 @@ export default async function AdminDashboardPage() {
               </div>
             </div>
             <p className="text-xs text-white/70 pt-3 border-t border-white/10">
-              Manage tournament lifecycle, player application approvals, bracket generation, and match disputes directly from the admin navigation.
+              Manage tournament lifecycle, player application approvals, bracket generation, and match scheduling directly from the admin navigation.
             </p>
           </div>
         </CardContent>

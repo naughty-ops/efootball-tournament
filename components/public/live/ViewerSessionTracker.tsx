@@ -9,7 +9,7 @@ interface ViewerSessionTrackerProps {
 
 export function ViewerSessionTracker({ matchId }: ViewerSessionTrackerProps) {
   const sessionIdRef = useRef<string | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     // Generate non-PII browser session ID

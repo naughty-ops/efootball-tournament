@@ -19,6 +19,8 @@ import {
   Trash2,
   RotateCcw,
   CreditCard,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -495,6 +497,20 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                       </Link>
                     </Button>
 
+                    <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-[#00C853] text-[#0B3323] hover:bg-[#00C853] hover:text-white font-bold transition-colors">
+                      <Link href={`/admin/tournaments/${tournament.id}/schedule`}>
+                        <Clock className="h-4 w-4 text-[#00C853]" />
+                        <span>Match Scheduling Desk</span>
+                      </Link>
+                    </Button>
+
+                    <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-rose-500 text-rose-600 hover:bg-rose-500 hover:text-white font-bold transition-colors">
+                      <Link href={`/admin/tournaments/${tournament.id}/disputes`}>
+                        <ShieldAlert className="h-4 w-4 text-rose-500" />
+                        <span>Dispute & Walkover Desk</span>
+                      </Link>
+                    </Button>
+
                     <Button
                       variant="outline"
                       onClick={() => setIsRegenerateModalOpen(true)}
@@ -558,6 +574,20 @@ export default function TournamentDetailsPage({ params }: { params: Promise<{ id
                     <Link href={`/admin/tournaments/${tournament.id}/groups/matches`}>
                       <Swords className="h-4 w-4" />
                       <span>Manage League Fixtures & Scores</span>
+                    </Link>
+                  </Button>
+
+                  <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-[#00C853] text-[#0B3323] hover:bg-[#00C853] hover:text-white font-bold transition-colors">
+                    <Link href={`/admin/tournaments/${tournament.id}/schedule`}>
+                      <Clock className="h-4 w-4 text-[#00C853]" />
+                      <span>Match Scheduling Desk</span>
+                    </Link>
+                  </Button>
+
+                  <Button asChild variant="outline" className="w-full justify-start gap-2 text-xs h-9 border-rose-500 text-rose-600 hover:bg-rose-500 hover:text-white font-bold transition-colors">
+                    <Link href={`/admin/tournaments/${tournament.id}/disputes`}>
+                      <ShieldAlert className="h-4 w-4 text-rose-500" />
+                      <span>Dispute & Walkover Desk</span>
                     </Link>
                   </Button>
                 </>

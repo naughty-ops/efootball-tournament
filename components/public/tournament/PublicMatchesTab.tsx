@@ -13,11 +13,12 @@ interface PublicMatchesTabProps {
 }
 
 function MatchCard({ match }: { match: FullMatchData }) {
-  const isLive = match.status === 'live';
-  const isCompleted = match.status === 'completed' || match.status === 'walkover';
+  const statusLower = (match.status || '').toLowerCase();
+  const isLive = ['live', 'in_progress', 'waiting_for_players', 'awaiting_result', 'result_verification'].includes(statusLower);
+  const isCompleted = ['completed', 'walkover', 'forfeited', 'cancelled'].includes(statusLower);
   const isPenalty = isCompleted && match.decided_by === 'penalties';
-  const isDraw = isCompleted && match.status === 'completed' && match.score_a === match.score_b && !match.winner_id && !isPenalty;
-  const isWalkover = match.status === 'walkover';
+  const isDraw = isCompleted && statusLower === 'completed' && match.score_a === match.score_b && !match.winner_id && !isPenalty;
+  const isWalkover = statusLower === 'walkover' || statusLower === 'forfeited';
 
   return (
     <div
@@ -182,7 +183,11 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
   if (rounds.length > 0) {
     for (const r of rounds) {
       if (r.matches.length === 0) continue;
-      const isCompleted = r.matches.length > 0 && r.matches.every((m) => m.status === 'completed' || m.status === 'walkover');
+      const isCompleted =
+        r.matches.length > 0 &&
+        r.matches.every((m) =>
+          ['completed', 'walkover', 'forfeited', 'cancelled'].includes((m.status || '').toLowerCase())
+        );
       const isFinal = r.name.toLowerCase().includes('grand final') || r.name.toLowerCase() === 'final';
 
       matchdaySections.push({
@@ -208,7 +213,11 @@ export default function PublicMatchesTab({ rounds, groupStage }: PublicMatchesTa
 
       let rNum = 1;
       for (const [rId, mList] of roundMap) {
-        const isCompleted = mList.length > 0 && mList.every((m) => m.status === 'completed' || m.status === 'walkover');
+        const isCompleted =
+          mList.length > 0 &&
+          mList.every((m) =>
+            ['completed', 'walkover', 'forfeited', 'cancelled'].includes((m.status || '').toLowerCase())
+          );
         matchdaySections.push({
           id: rId,
           label: isSingleLeague ? `Matchday ${rNum}` : `${gDet.group.name} — Round ${rNum}`,

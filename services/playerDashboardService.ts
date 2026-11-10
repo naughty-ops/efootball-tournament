@@ -43,8 +43,21 @@ export interface PlayerMatchItem {
   tournamentName: string;
   roundName: string;
   roundNumber: number;
+  matchday?: number | null;
   matchPosition: number | null;
   scheduledTime: string | null;
+  actualStartTime?: string | null;
+  completionDeadline?: string | null;
+  submissionDeadline?: string | null;
+  checkinDeadline?: string | null;
+  gracePeriodMinutes?: number;
+  userParticipantId?: string | null;
+  opponentParticipantId?: string | null;
+  userStartedAt?: string | null;
+  opponentStartedAt?: string | null;
+  walkoverRequestedBy?: string | null;
+  walkoverRequestedAt?: string | null;
+  forfeitReason?: string | null;
   status: string;
   isLive: boolean;
   userSide: 'home' | 'away'; // 'home' = participant_a, 'away' = participant_b
@@ -59,6 +72,18 @@ export interface PlayerMatchItem {
   result: 'win' | 'loss' | 'draw' | null;
   decidedBy: string | null;
   liveRoomName: string | null;
+  userSubmission?: {
+    myScore: number;
+    opponentScore: number;
+    screenshotUrl?: string | null;
+    createdAt: string;
+  } | null;
+  opponentSubmission?: {
+    myScore: number;
+    opponentScore: number;
+    screenshotUrl?: string | null;
+    createdAt: string;
+  } | null;
   createdAt: string;
 }
 
@@ -121,6 +146,8 @@ export async function getPlayerProfile(
         verification_revoked_at: null,
         verification_revoked_by: null,
         verification_revocation_reason: null,
+        avatar_url: meta.avatar_url || '/avatars/default-avatar.svg',
+        avatar_id: meta.avatar_id || null,
         created_at: fallbackUser.created_at || new Date().toISOString(),
         updated_at: fallbackUser.updated_at || new Date().toISOString(),
       };
@@ -154,6 +181,8 @@ export async function getPlayerProfile(
         verification_revoked_at: null,
         verification_revoked_by: null,
         verification_revocation_reason: null,
+        avatar_url: meta.avatar_url || '/avatars/default-avatar.svg',
+        avatar_id: meta.avatar_id || null,
         created_at: fallbackUser.created_at || new Date().toISOString(),
         updated_at: fallbackUser.updated_at || new Date().toISOString(),
       };
@@ -288,11 +317,23 @@ export async function getPlayerMatches(
     const matchSelectFields = `
       id,
       round_id,
+      tournament_id,
       group_id,
       match_position,
       participant_a,
       participant_b,
       scheduled_time,
+      actual_start_time,
+      completion_deadline,
+      submission_deadline,
+      checkin_deadline,
+      grace_period_minutes,
+      player_a_started_at,
+      player_b_started_at,
+      forfeit_reason,
+      walkover_requested_by,
+      walkover_requested_at,
+      matchday,
       status,
       score_a,
       score_b,
@@ -317,7 +358,20 @@ export async function getPlayerMatches(
       if (typeof activeQuery.in === 'function') {
         const [activeRes, completedRes] = await Promise.all([
           activeQuery
-            .in('status', ['live', 'pending', 'ready', 'scheduled'])
+            .in('status', [
+              'live', 'LIVE',
+              'pending', 'PENDING',
+              'ready', 'READY',
+              'scheduled', 'SCHEDULED',
+              'waiting_for_players', 'WAITING_FOR_PLAYERS',
+              'in_progress', 'IN_PROGRESS',
+              'awaiting_result', 'AWAITING_RESULT',
+              'result_verification', 'RESULT_VERIFICATION',
+              'under_review', 'UNDER_REVIEW',
+              'disputed', 'DISPUTED',
+              'result_pending_admin', 'RESULT_PENDING_ADMIN',
+              'admin_review', 'ADMIN_REVIEW',
+            ])
             .order('scheduled_time', { ascending: true, nullsFirst: false })
             .order('created_at', { ascending: false })
             .limit(activeLimit),
@@ -325,7 +379,12 @@ export async function getPlayerMatches(
             .from('matches')
             .select(matchSelectFields)
             .or(orFilter)
-            .in('status', ['completed', 'walkover'])
+            .in('status', [
+              'completed', 'COMPLETED',
+              'walkover', 'WALKOVER',
+              'forfeited', 'FORFEITED',
+              'cancelled', 'CANCELLED',
+            ])
             .order('scheduled_time', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
             .limit(completedLimit),
@@ -561,6 +620,28 @@ export async function getPlayerMatches(
       }
     }
 
+    // 3.5. Fetch match_submissions for active and recent matches
+    const matchIds = rawMatches.map((m: any) => m.id);
+    const submissionMap = new Map<string, any[]>();
+    if (matchIds.length > 0) {
+      try {
+        const { data: subData } = await (supabase as any)
+          .from('match_submissions')
+          .select('match_id, participant_id, my_score, opponent_score, screenshot_url, created_at')
+          .in('match_id', matchIds);
+
+        if (subData) {
+          subData.forEach((s: any) => {
+            const list = submissionMap.get(s.match_id) || [];
+            list.push(s);
+            submissionMap.set(s.match_id, list);
+          });
+        }
+      } catch (subErr) {
+        console.warn('match_submissions fetch warning in player dashboard:', subErr);
+      }
+    }
+
     // 4. Map each match into PlayerMatchItem with authoritative result and side
     const mappedMatches: PlayerMatchItem[] = rawMatches.map((m: any) => {
       const isUserParticipantA = userParticipantSet.has(m.participant_a);
@@ -584,7 +665,7 @@ export async function getPlayerMatches(
 
       // Authoritative result calculation:
       let result: 'win' | 'loss' | 'draw' | null = null;
-      if (m.status === 'completed' || m.status === 'walkover') {
+      if (m.status === 'completed' || m.status === 'walkover' || m.status === 'COMPLETED') {
         if (m.winner_id) {
           result = m.winner_id === userParticipantId ? 'win' : 'loss';
         } else if (userScore > opponentScore) {
@@ -597,16 +678,56 @@ export async function getPlayerMatches(
         }
       }
 
+      const userStartedAt = isUserParticipantA ? m.player_a_started_at : m.player_b_started_at;
+      const opponentStartedAt = isUserParticipantA ? m.player_b_started_at : m.player_a_started_at;
+
+      const matchSubs = submissionMap.get(m.id) || [];
+      const userSub = matchSubs.find((s: any) => s.participant_id === userParticipantId);
+      const oppSub = matchSubs.find((s: any) => s.participant_id === opponentId);
+
+      const userSubmission = userSub
+        ? {
+            myScore: userSub.my_score,
+            opponentScore: userSub.opponent_score,
+            screenshotUrl: userSub.screenshot_url,
+            createdAt: userSub.created_at,
+          }
+        : null;
+
+      const opponentSubmission = oppSub
+        ? {
+            myScore: oppSub.my_score,
+            opponentScore: oppSub.opponent_score,
+            screenshotUrl: oppSub.screenshot_url,
+            createdAt: oppSub.created_at,
+          }
+        : null;
+
       return {
         id: m.id,
-        tournamentId: roundData?.tournament_id || '',
+        tournamentId: m.tournament_id || roundData?.tournament_id || '',
         tournamentName,
         roundName: roundData?.name || `Round ${roundData?.round_number || 1}`,
         roundNumber: roundData?.round_number || 1,
+        matchday: m.matchday ?? null,
         matchPosition: m.match_position ?? null,
         scheduledTime: m.scheduled_time,
+        actualStartTime: m.actual_start_time,
+        completionDeadline: m.completion_deadline,
+        submissionDeadline: m.submission_deadline || m.completion_deadline,
+        checkinDeadline: m.checkin_deadline,
+        gracePeriodMinutes: m.grace_period_minutes ?? 15,
+        userParticipantId,
+        opponentParticipantId: opponentId,
+        userStartedAt,
+        opponentStartedAt,
+        walkoverRequestedBy: m.walkover_requested_by,
+        walkoverRequestedAt: m.walkover_requested_at,
+        forfeitReason: m.forfeit_reason,
         status: m.status,
-        isLive: m.status === 'live',
+        isLive: ['live', 'in_progress', 'waiting_for_players', 'awaiting_result', 'result_verification'].includes(
+          (m.status || '').toLowerCase()
+        ),
         userSide,
         userScore,
         opponentScore,
@@ -619,6 +740,8 @@ export async function getPlayerMatches(
         result,
         decidedBy: m.decided_by,
         liveRoomName: m.live_room_name,
+        userSubmission,
+        opponentSubmission,
         createdAt: m.created_at,
       };
     });

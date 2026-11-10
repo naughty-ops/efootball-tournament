@@ -34,6 +34,7 @@ import { createTournamentAction, checkTournamentNameAvailabilityAction } from '@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import MediaUploadZone from '@/components/media/MediaUploadZone';
 
 const STEPS = [
   { id: 1, title: 'Basics', icon: FileText, desc: 'Name & Schedule' },
@@ -459,21 +460,35 @@ export default function CreateTournamentPage() {
               </div>
 
               {/* Banner Image & Presets */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-4 pt-2">
                 <label className="text-xs font-bold text-white flex items-center justify-between uppercase tracking-wider">
-                  <span>Banner Image URL / Asset Path</span>
+                  <span>Tournament Banner Image</span>
                   <span className="text-[10px] text-white/60 font-normal">Displayed on public lobby & tournament header</span>
                 </label>
-                <Input
-                  placeholder="/images/banner1.jpg or https://..."
-                  disabled={isSubmitting}
-                  className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11"
-                  {...register('banner_image')}
-                />
-                {errors.banner_image && <p className="text-xs text-red-300 mt-1 font-medium">{errors.banner_image.message}</p>}
 
-                <div>
-                  <span className="text-[11px] font-bold text-white/70 block mb-1.5">Quick Banner Presets:</span>
+                {/* Cloudinary Custom Banner Upload */}
+                <MediaUploadZone
+                  category="tournament_banner"
+                  initialUrl={watch('banner_image')}
+                  onUploadSuccess={(url, publicId) => {
+                    setValue('banner_image', url, { shouldValidate: true });
+                    setValue('cloudinary_public_id', publicId);
+                  }}
+                  onRemove={() => {
+                    setValue('banner_image', '/images/banner1.webp', { shouldValidate: true });
+                    setValue('cloudinary_public_id', null);
+                  }}
+                  label="Upload Custom Tournament Banner"
+                  helperText="Supports high-resolution JPEG, PNG, or WebP banner up to 5MB (optimized automatically via Cloudinary)."
+                  aspectRatio="banner"
+                />
+
+                {/* Direct URL or preset fallback */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-white/70">Or Select a Quick Banner Preset:</span>
+                    <span className="text-[10px] text-white/40">Instant platform presets</span>
+                  </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {BANNER_PRESETS.map((preset) => {
                       const isCurrent = watch('banner_image') === preset.url;
@@ -481,7 +496,10 @@ export default function CreateTournamentPage() {
                         <button
                           type="button"
                           key={preset.url}
-                          onClick={() => setValue('banner_image', preset.url, { shouldValidate: true })}
+                          onClick={() => {
+                            setValue('banner_image', preset.url, { shouldValidate: true });
+                            setValue('cloudinary_public_id', null);
+                          }}
                           className={`text-[11px] px-3 py-1.5 rounded-full font-bold border transition-all cursor-pointer ${
                             isCurrent
                               ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00]'
@@ -495,20 +513,16 @@ export default function CreateTournamentPage() {
                   </div>
                 </div>
 
-                {watch('banner_image') && (
-                  <div className="relative w-full aspect-[21/9] min-h-[140px] max-h-[220px] rounded-2xl overflow-hidden border border-white/20 shadow-inner bg-[#0A0A7A]">
-                    <Image
-                      src={watch('banner_image') || '/images/banner1.webp'}
-                      alt="Banner Preview"
-                      fill
-                      sizes="(max-width: 640px) 100vw, 400px"
-                      className="object-cover object-center"
-                    />
-                    <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold">
-                      Live Banner Preview
-                    </span>
-                  </div>
-                )}
+                <div className="pt-1">
+                  <span className="text-[11px] text-white/60 block mb-1">Custom External Banner URL (Optional):</span>
+                  <Input
+                    placeholder="/images/banner1.jpg or https://..."
+                    disabled={isSubmitting}
+                    className="bg-[#0A0A7A] border-white/20 text-white placeholder:text-white/40 focus:border-[#FFFF00] rounded-xl h-11 text-xs"
+                    {...register('banner_image')}
+                  />
+                  {errors.banner_image && <p className="text-xs text-red-300 mt-1 font-medium">{errors.banner_image.message}</p>}
+                </div>
               </div>
 
               {/* Private Tournament Access Settings */}

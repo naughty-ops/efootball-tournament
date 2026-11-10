@@ -117,7 +117,7 @@ export function calculatePrizeSplit(
 
   let championRupees = Math.round(firstPaise / 100);
   let runnerUpRupees = Math.round(secondPaise / 100);
-  let thirdPlaceRupees = Math.round(thirdPaise / 100);
+  const thirdPlaceRupees = Math.round(thirdPaise / 100);
 
   // If prize pool exists but custom allocations weren't set, default to 70% / 30%
   if (hasPrizeMoney && championRupees === 0 && runnerUpRupees === 0 && thirdPlaceRupees === 0) {

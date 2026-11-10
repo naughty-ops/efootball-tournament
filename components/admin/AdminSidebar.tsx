@@ -14,6 +14,9 @@ import {
   X,
   GitBranch,
   Globe,
+  ImageIcon,
+  Sparkles,
+  Ticket,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -35,6 +38,7 @@ const navSections: NavSection[] = [
     title: 'Tournament Operations',
     items: [
       { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Tickets', href: '/admin/tickets', icon: Ticket },
       { label: 'Tournaments', href: '/admin/tournaments', icon: Trophy },
       { label: 'Participants', href: '/admin/participants', icon: Users },
       { label: 'Brackets', href: '/admin/brackets', icon: GitBranch },
@@ -45,6 +49,8 @@ const navSections: NavSection[] = [
     title: 'Website Management',
     items: [
       { label: 'Homepage Control', href: '/admin/cms/homepage', icon: Globe },
+      { label: 'Media Assets', href: '/admin/media', icon: ImageIcon },
+      { label: 'Avatar Library', href: '/admin/avatars', icon: Sparkles },
     ],
   },
   {
@@ -58,9 +64,16 @@ const navSections: NavSection[] = [
 interface AdminSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  unresolvedTicketCount?: number;
+  hasUrgentTickets?: boolean;
 }
 
-export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({
+  isOpen = false,
+  onClose,
+  unresolvedTicketCount = 0,
+  hasUrgentTickets = false,
+}: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -139,20 +152,45 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    const isTicketsNav = item.href === '/admin/tickets';
+
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={onClose}
                         className={cn(
-                          'flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-150 touch-target',
+                          'flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-150 touch-target relative',
                           isActive
                             ? 'bg-[#FFFF00] text-[#08088F] shadow-[0_0_15px_rgba(255,255,0,0.35)]'
                             : 'text-[#D9DCFF] hover:bg-white/10 hover:text-white'
                         )}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+
+                        {isTicketsNav && (
+                          <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                            {hasUrgentTickets && (
+                              <span className="relative flex h-2 w-2" title="Urgent tickets pending">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              </span>
+                            )}
+                            {unresolvedTicketCount > 0 && (
+                              <span
+                                className={cn(
+                                  'px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black',
+                                  isActive
+                                    ? 'bg-[#08088F] text-[#FFFF00]'
+                                    : 'bg-[#FF3B30] text-white'
+                                )}
+                              >
+                                {unresolvedTicketCount}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </Link>
                     );
                   })}

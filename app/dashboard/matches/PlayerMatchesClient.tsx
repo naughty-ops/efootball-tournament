@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Swords,
   Calendar,
@@ -18,6 +19,12 @@ import {
   Shield,
   Search,
   User,
+  Play,
+  ShieldAlert,
+  Loader2,
+  Flag,
+  FileImage,
+  UploadCloud,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +34,15 @@ import { cn, formatDate } from '@/lib/utils';
 import { SwipeableTabBar, SwipeableTabContainer } from '@/components/ui/SwipeableTabs';
 import type { PlayerMatchItem } from '@/services/playerDashboardService';
 import OpponentWhatsAppButton from '@/components/dashboard/OpponentWhatsAppButton';
+import MatchCountdownTimer from '@/components/match/MatchCountdownTimer';
+import ReportMatchIssueModal from '@/components/match/ReportMatchIssueModal';
+import SubmitMatchScoreModal from '@/components/match/SubmitMatchScoreModal';
+import UploadMatchEvidenceModal from '@/components/match/UploadMatchEvidenceModal';
+import {
+  recordPlayerCheckinAction,
+  requestWalkoverAction,
+  startPlayerMatchAction,
+} from '@/app/actions/matchSchedulingActions';
 
 interface PlayerMatchesClientProps {
   initialMatches: PlayerMatchItem[];
@@ -46,20 +62,77 @@ export default function PlayerMatchesClient({
   userDisplayName,
   initialError,
 }: PlayerMatchesClientProps) {
+  const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [disputeModalMatch, setDisputeModalMatch] = useState<PlayerMatchItem | null>(null);
+  const [submitScoreMatch, setSubmitScoreMatch] = useState<PlayerMatchItem | null>(null);
+  const [uploadEvidenceMatch, setUploadEvidenceMatch] = useState<PlayerMatchItem | null>(null);
+
+  const handleStartMatch = async (match: PlayerMatchItem) => {
+    if (!match.userParticipantId) {
+      setFeedbackMsg({ type: 'error', text: 'Participant ID not found for this match' });
+      return;
+    }
+
+    setActionLoadingId(match.id);
+    setFeedbackMsg(null);
+
+    const res = await startPlayerMatchAction(match.id, match.userParticipantId);
+    setActionLoadingId(null);
+
+    if (!res.success) {
+      setFeedbackMsg({ type: 'error', text: res.error || 'Failed to start match' });
+      return;
+    }
+
+    setFeedbackMsg({
+      type: 'success',
+      text: res.message || 'Confirmed start! Waiting for opponent confirmation.',
+    });
+    router.refresh();
+  };
+
+  const handleRequestWalkover = async (match: PlayerMatchItem) => {
+    if (!match.userParticipantId) {
+      setFeedbackMsg({ type: 'error', text: 'Participant ID not found' });
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to request a walkover? This will be verified by the admin desk.')) {
+      return;
+    }
+
+    setActionLoadingId(match.id);
+    setFeedbackMsg(null);
+
+    const res = await requestWalkoverAction(match.id, match.userParticipantId, 'Opponent no-show after grace period');
+    setActionLoadingId(null);
+
+    if (!res.success) {
+      setFeedbackMsg({ type: 'error', text: res.error || 'Failed to request walkover' });
+      return;
+    }
+
+    setFeedbackMsg({ type: 'success', text: res.message || 'Walkover request filed for review' });
+    router.refresh();
+  };
 
   // Calculate real, data-backed match metrics
   const stats = useMemo(() => {
     const total = initialMatches.length;
     const liveCount = initialMatches.filter((m) => m.isLive).length;
-    const upcomingCount = initialMatches.filter(
-      (m) => !m.isLive && m.status !== 'completed' && m.status !== 'walkover'
-    ).length;
-    const completedMatches = initialMatches.filter(
-      (m) => m.status === 'completed' || m.status === 'walkover'
-    );
+    const completedMatches = initialMatches.filter((m) => {
+      const s = (m.status || '').toLowerCase();
+      return s === 'completed' || s === 'walkover' || s === 'forfeited' || s === 'cancelled';
+    });
     const completedCount = completedMatches.length;
+    const upcomingCount = initialMatches.filter((m) => {
+      const s = (m.status || '').toLowerCase();
+      return !m.isLive && s !== 'completed' && s !== 'walkover' && s !== 'forfeited' && s !== 'cancelled';
+    }).length;
     const wins = completedMatches.filter((m) => m.result === 'win').length;
     const draws = completedMatches.filter((m) => m.result === 'draw').length;
     const losses = completedMatches.filter((m) => m.result === 'loss').length;
@@ -83,11 +156,15 @@ export default function PlayerMatchesClient({
     return initialMatches.filter((m) => {
       // Tab matching
       let matchesTab = true;
-      if (selectedTab === 'live') matchesTab = m.isLive;
-      else if (selectedTab === 'upcoming') {
-        matchesTab = !m.isLive && m.status !== 'completed' && m.status !== 'walkover';
+      const statusLower = (m.status || '').toLowerCase();
+      const isCompleted = ['completed', 'walkover', 'forfeited', 'cancelled'].includes(statusLower);
+
+      if (selectedTab === 'live') {
+        matchesTab = m.isLive;
+      } else if (selectedTab === 'upcoming') {
+        matchesTab = !m.isLive && !isCompleted;
       } else if (selectedTab === 'completed') {
-        matchesTab = m.status === 'completed' || m.status === 'walkover';
+        matchesTab = isCompleted;
       }
 
       // Search matching
@@ -207,6 +284,33 @@ export default function PlayerMatchesClient({
         </div>
       </div>
 
+      {/* Feedback Banner */}
+      {feedbackMsg && (
+        <div
+          className={cn(
+            'p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-200',
+            feedbackMsg.type === 'success'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+              : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {feedbackMsg.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            )}
+            <span>{feedbackMsg.text}</span>
+          </div>
+          <button
+            onClick={() => setFeedbackMsg(null)}
+            className="text-white/60 hover:text-white text-xs underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* 3. Matches Grid */}
       <SwipeableTabContainer
         activeTab={selectedTab}
@@ -256,31 +360,72 @@ export default function PlayerMatchesClient({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredMatches.map((m) => {
-            const isCompleted = m.status === 'completed' || m.status === 'walkover';
+            const statusUpper = (m.status || '').toUpperCase();
+            const isCompleted = ['COMPLETED', 'WALKOVER', 'FORFEITED', 'CANCELLED'].includes(statusUpper);
+            const isDisputed = statusUpper === 'DISPUTED';
+            const isTimeout = statusUpper === 'RESULT_PENDING_ADMIN';
+            const isInProgress = ['IN_PROGRESS', 'AWAITING_RESULT', 'RESULT_VERIFICATION', 'LIVE'].includes(statusUpper);
+            const isReview = ['UNDER_REVIEW', 'ADMIN_REVIEW', 'DISPUTED', 'RESULT_PENDING_ADMIN'].includes(statusUpper);
             const isWon = m.result === 'win';
             const isLost = m.result === 'loss';
-            const isDrawn = m.result === 'draw';
+            const isLoadingThis = actionLoadingId === m.id;
+
+            const checkinTime = m.checkinDeadline
+              ? new Date(m.checkinDeadline).getTime()
+              : m.scheduledTime
+              ? new Date(m.scheduledTime).getTime() + (m.gracePeriodMinutes ?? 15) * 60 * 1000
+              : null;
+            const gracePeriodExpired = checkinTime ? Date.now() > checkinTime : false;
+
+            const bothStarted = Boolean(
+              (m.userStartedAt && m.opponentStartedAt) ||
+              m.actualStartTime ||
+              isInProgress ||
+              isDisputed ||
+              isTimeout
+            );
+
+            const canStartMatch = !m.userStartedAt && !isCompleted && !isReview && !bothStarted;
+            const canSubmitScore = bothStarted && !isCompleted && !isTimeout;
+            const canRequestWalkover =
+              Boolean(m.userStartedAt) &&
+              !m.opponentStartedAt &&
+              gracePeriodExpired &&
+              !m.walkoverRequestedBy &&
+              !isCompleted &&
+              !isReview;
 
             return (
               <Card
                 key={m.id}
                 className={cn(
-                  'p-4 sm:p-5 bg-[#1818D4] border rounded-[28px] shadow-xl transition-all space-y-4 flex flex-col justify-between text-white min-h-[220px]',
-                  m.isLive
-                    ? 'border-[#FF168B] ring-2 ring-[#FF168B]/40 shadow-[0_0_20px_rgba(255,22,139,0.25)]'
+                  'p-4 sm:p-5 bg-[#1818D4] border rounded-[28px] shadow-xl transition-all space-y-4 flex flex-col justify-between text-white min-h-[260px]',
+                  isDisputed
+                    ? 'border-rose-500/80 bg-[#170a2c] shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                    : isTimeout
+                    ? 'border-amber-500/70 bg-[#1c1208]'
+                    : isInProgress
+                    ? 'border-[#00C853] ring-2 ring-[#00C853]/30 shadow-[0_0_20px_rgba(0,200,83,0.2)]'
+                    : isReview
+                    ? 'border-amber-500/50 bg-[#1414A0]'
                     : 'border-white/20 hover:border-[#FFFF00]/50'
                 )}
               >
-                {/* Header: Tournament + Round + Side + Status */}
+                {/* Header: Tournament + Round + Matchday + Status */}
                 <div className="flex items-start justify-between gap-2 border-b border-white/10 pb-3">
                   <div>
                     <span className="text-sm font-black text-white font-display uppercase tracking-wider block line-clamp-1">
                       {m.tournamentName}
                     </span>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="text-[11px] text-white/70 font-semibold">
                         {m.roundName}
                       </span>
+                      {m.matchday && (
+                        <span className="text-[10px] font-black text-white/90 uppercase px-2 py-0.5 rounded-full bg-[#08088F] border border-white/10">
+                          Matchday {m.matchday}
+                        </span>
+                      )}
                       <span className="text-[10px] font-black text-[#FFFF00] uppercase px-2 py-0.5 rounded-full bg-[#0A0A7A] border border-white/10">
                         {m.userSide.toUpperCase()}
                       </span>
@@ -288,10 +433,25 @@ export default function PlayerMatchesClient({
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {m.isLive ? (
-                      <Badge className="bg-[#FF168B] text-white font-black text-[10px] animate-pulse px-2.5 py-0.5 border-0 gap-1 rounded-full uppercase tracking-wider shadow-md">
+                    {isDisputed ? (
+                      <Badge className="bg-rose-500 text-white font-black text-[10px] px-2.5 py-0.5 border-0 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 animate-pulse">
+                        <ShieldAlert className="w-3 h-3" />
+                        DISPUTED
+                      </Badge>
+                    ) : isTimeout ? (
+                      <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 border-0 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        PENDING ADMIN
+                      </Badge>
+                    ) : isInProgress ? (
+                      <Badge className="bg-[#00C853] text-[#08088F] font-black text-[10px] animate-pulse px-2.5 py-0.5 border-0 gap-1 rounded-full uppercase tracking-wider shadow-md">
                         <Radio className="h-3 w-3" />
-                        LIVE
+                        IN PROGRESS
+                      </Badge>
+                    ) : isReview ? (
+                      <Badge className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 border-0 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                        <ShieldAlert className="w-3 h-3" />
+                        {m.status.toUpperCase()}
                       </Badge>
                     ) : isCompleted ? (
                       isWon ? (
@@ -309,10 +469,120 @@ export default function PlayerMatchesClient({
                       )
                     ) : (
                       <Badge variant="secondary" className="bg-[#0A0A7A] text-white border border-white/20 text-[10px] font-black rounded-full uppercase tracking-wider">
-                        {m.status}
+                        {m.status.toUpperCase()}
                       </Badge>
                     )}
                   </div>
+                </div>
+
+                {/* Status Banners: Conflicting Scores (Scenario B) / Timeout / In-Progress */}
+                {isDisputed && (
+                  <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+                      <div>
+                        <span className="font-bold">Conflicting Scores Reported!</span>
+                        <p className="text-[11px] text-rose-300/80">
+                          {m.userSubmission?.screenshotUrl
+                            ? 'Screenshot evidence submitted. Awaiting Admin Desk decision.'
+                            : 'Both players reported different scores. Please upload a screenshot of your match result.'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setUploadEvidenceMatch(m)}
+                      className="h-8 text-xs font-black bg-rose-500 hover:bg-rose-600 text-white rounded-full px-4 shrink-0 uppercase tracking-wider cursor-pointer"
+                    >
+                      <FileImage className="w-3.5 h-3.5 mr-1" />
+                      {m.userSubmission?.screenshotUrl ? 'Re-upload Proof' : 'Upload Screenshot Proof'}
+                    </Button>
+                  </div>
+                )}
+
+                {isTimeout && (
+                  <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 shrink-0 text-amber-400" />
+                      <div>
+                        <span className="font-bold">30-Minute Result Window Expired</span>
+                        <p className="text-[11px] text-amber-300/80">
+                          Submission deadline passed without verified results. An administrator is reviewing this match.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDisputeModalMatch(m)}
+                      className="h-8 text-xs font-bold border-amber-500/50 text-amber-300 hover:bg-amber-500/20 rounded-full px-3 shrink-0"
+                    >
+                      <Flag className="w-3.5 h-3.5 mr-1 text-amber-400" />
+                      Report Issue
+                    </Button>
+                  </div>
+                )}
+
+                {/* Score Submission Status Banner for In-Progress Matches */}
+                {bothStarted && !isCompleted && !isDisputed && !isTimeout && (
+                  <div className="p-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {m.userSubmission ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-yellow-400 shrink-0" />
+                      )}
+                      <span>
+                        {m.userSubmission ? (
+                          <>
+                            Your submission: <strong className="text-white font-mono">{m.userSubmission.myScore} - {m.userSubmission.opponentScore}</strong>
+                            {m.opponentSubmission ? ' • Opponent submitted' : ' • Waiting for opponent score'}
+                          </>
+                        ) : (
+                          <>30-min Result Window Active. Submit final score when finished.</>
+                        )}
+                      </span>
+                    </div>
+                    {m.userSubmission ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSubmitScoreMatch(m)}
+                        className="h-7 text-[11px] font-bold text-[#FFFF00] hover:text-white hover:bg-white/10 rounded-full px-2.5 cursor-pointer"
+                      >
+                        Edit Score
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setSubmitScoreMatch(m)}
+                        className="h-7 text-[11px] font-black bg-[#00C853] hover:bg-[#00B048] text-[#08088F] rounded-full px-3 uppercase tracking-wider cursor-pointer"
+                      >
+                        Submit Score
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Countdown & Timing Ribbon */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-xs text-white/70">
+                    <Calendar className="h-3.5 w-3.5 text-white/50" />
+                    <span>{m.scheduledTime ? formatDate(m.scheduledTime) : 'Schedule pending'}</span>
+                  </div>
+                  <MatchCountdownTimer
+                    scheduledTime={m.scheduledTime}
+                    checkinDeadline={m.checkinDeadline}
+                    completionDeadline={m.submissionDeadline || m.completionDeadline}
+                    status={m.status}
+                    isLive={m.isLive}
+                    userStarted={Boolean(m.userStartedAt)}
+                    opponentStarted={Boolean(m.opponentStartedAt)}
+                  />
                 </div>
 
                 {/* Score / Matchup Display */}
@@ -347,6 +617,15 @@ export default function PlayerMatchesClient({
                           </span>
                         )}
                       </div>
+                    ) : bothStarted ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">LIVE</span>
+                        <div className="flex items-center gap-1 text-sm font-black text-white/70">
+                          <span>{m.userSubmission ? m.userSubmission.myScore : '-'}</span>
+                          <span className="text-white/40">:</span>
+                          <span>{m.userSubmission ? m.userSubmission.opponentScore : '-'}</span>
+                        </div>
+                      </div>
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-[#08088F] border border-white/20 mx-auto flex items-center justify-center text-[10px] font-black text-[#FFFF00]">
                         VS
@@ -371,31 +650,124 @@ export default function PlayerMatchesClient({
                   </div>
                 </div>
 
-                {/* Footer: Scheduled time or live room link */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/70">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-white/50" />
-                    <span>
-                      {m.scheduledTime ? formatDate(m.scheduledTime) : 'Schedule pending'}
-                    </span>
+                {/* Independent Check-In / Match Start Status Bar */}
+                {!isCompleted && (
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
+                    {/* Your Start / Arrival */}
+                    <div className="p-2 rounded-xl bg-[#0A0A7A] border border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-white/70">Your Status:</span>
+                      {m.userStartedAt ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-400 text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Started
+                        </span>
+                      ) : (
+                        <span className="font-bold text-yellow-400 text-[11px]">Not Started</span>
+                      )}
+                    </div>
+
+                    {/* Opponent Start / Arrival */}
+                    <div className="p-2 rounded-xl bg-[#0A0A7A] border border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-white/70">Opponent:</span>
+                      {m.opponentStartedAt ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-400 text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Started
+                        </span>
+                      ) : (
+                        <span className="font-bold text-white/50 text-[11px]">Awaiting Start</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons: START MATCH, SUBMIT SCORE, UPLOAD PROOF, CLAIM WALKOVER, REPORT ISSUE, VIEW BRACKET */}
+                <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {/* Report Match Issue (Pre-match or general issue, no screenshot proof needed) */}
+                    {!isCompleted && !isDisputed && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDisputeModalMatch(m)}
+                        className="h-8 text-xs font-bold border-rose-500/40 text-rose-300 hover:bg-rose-500/20 rounded-full gap-1 cursor-pointer"
+                        title="Report match issue to Admin Desk"
+                      >
+                        <Flag className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Report Issue</span>
+                      </Button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {m.isLive ? (
-                      <Button asChild size="sm" className="h-8 text-xs font-black bg-[#FF168B] hover:bg-[#FF168B]/90 text-white rounded-full gap-1.5 shadow-md uppercase tracking-wider cursor-pointer">
-                        <Link href={`/live/${m.id}`}>
-                          <span>Join Live Match</span>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-black text-[#FFFF00] hover:text-white hover:bg-white/10 rounded-full gap-1 uppercase tracking-wider cursor-pointer">
-                        <Link href={`/tournaments/${m.tournamentId}`}>
-                          <span>View Bracket</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </Link>
+                    {/* Prominent START MATCH button (does NOT trigger any livestream) */}
+                    {canStartMatch && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleStartMatch(m)}
+                        disabled={isLoadingThis}
+                        className="h-8 text-xs font-black bg-[#00C853] hover:bg-[#00B048] text-[#08088F] rounded-full gap-1.5 shadow-lg uppercase tracking-wider animate-bounce hover:animate-none cursor-pointer"
+                      >
+                        {isLoadingThis ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        )}
+                        <span>Start Match</span>
                       </Button>
                     )}
+
+                    {/* Submit Score Action when match is in progress */}
+                    {canSubmitScore && !m.userSubmission && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setSubmitScoreMatch(m)}
+                        className="h-8 text-xs font-black bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] rounded-full gap-1.5 shadow-lg uppercase tracking-wider cursor-pointer"
+                      >
+                        <Trophy className="w-3.5 h-3.5" />
+                        <span>Submit Score</span>
+                      </Button>
+                    )}
+
+                    {/* Upload Screenshot Proof Action when match is disputed */}
+                    {isDisputed && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => setUploadEvidenceMatch(m)}
+                        className="h-8 text-xs font-black bg-rose-500 hover:bg-rose-600 text-white rounded-full gap-1.5 shadow-md uppercase tracking-wider cursor-pointer"
+                      >
+                        <FileImage className="w-3.5 h-3.5" />
+                        <span>Upload Proof</span>
+                      </Button>
+                    )}
+
+                    {/* Walkover Claim Button */}
+                    {canRequestWalkover && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleRequestWalkover(m)}
+                        disabled={isLoadingThis}
+                        className="h-8 text-xs font-black bg-rose-600 hover:bg-rose-700 text-white rounded-full gap-1 shadow-md uppercase tracking-wider cursor-pointer"
+                      >
+                        {isLoadingThis ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                        )}
+                        <span>Claim No-Show Walkover</span>
+                      </Button>
+                    )}
+
+                    {/* View Bracket Link */}
+                    <Button asChild variant="ghost" size="sm" className="h-8 text-xs font-black text-[#FFFF00] hover:text-white hover:bg-white/10 rounded-full gap-1 uppercase tracking-wider cursor-pointer">
+                      <Link href={`/tournaments/${m.tournamentId}`}>
+                        <span>View Bracket</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -404,6 +776,81 @@ export default function PlayerMatchesClient({
         </div>
       )}
       </SwipeableTabContainer>
+
+      {/* Report Issue Modal (Strictly without screenshot proof for pre-match/general reports) */}
+      {disputeModalMatch && (
+        <ReportMatchIssueModal
+          isOpen={Boolean(disputeModalMatch)}
+          onClose={() => setDisputeModalMatch(null)}
+          matchId={disputeModalMatch.id}
+          tournamentId={disputeModalMatch.tournamentId}
+          reporterParticipantId={disputeModalMatch.userParticipantId || ''}
+          opponentParticipantId={disputeModalMatch.opponentParticipantId}
+          opponentName={disputeModalMatch.opponentDisplayName || disputeModalMatch.opponentUsername}
+          allowScreenshot={false}
+          onSuccess={() => {
+            setFeedbackMsg({
+              type: 'success',
+              text: 'Issue submitted. Admin Match Desk will investigate promptly.',
+            });
+            router.refresh();
+          }}
+        />
+      )}
+
+      {/* Submit Match Score Modal (30-Minute Result Submission Window) */}
+      {submitScoreMatch && (
+        <SubmitMatchScoreModal
+          isOpen={Boolean(submitScoreMatch)}
+          onClose={() => setSubmitScoreMatch(null)}
+          matchId={submitScoreMatch.id}
+          tournamentId={submitScoreMatch.tournamentId}
+          participantId={submitScoreMatch.userParticipantId || ''}
+          userDisplayName={userDisplayName}
+          opponentDisplayName={submitScoreMatch.opponentDisplayName || submitScoreMatch.opponentUsername}
+          userSide={submitScoreMatch.userSide}
+          existingMyScore={submitScoreMatch.userSubmission?.myScore}
+          existingOpponentScore={submitScoreMatch.userSubmission?.opponentScore}
+          onSuccess={(result) => {
+            if (result.matching || result.verified || result.status === 'completed') {
+              setFeedbackMsg({
+                type: 'success',
+                text: 'Both scores matched! Result automatically verified and marked COMPLETED.',
+              });
+            } else if (result.conflict || result.status === 'disputed') {
+              setFeedbackMsg({
+                type: 'error',
+                text: 'Conflicting scores reported! Match marked DISPUTED. Please upload screenshot proof.',
+              });
+            } else {
+              setFeedbackMsg({
+                type: 'success',
+                text: 'Score submitted successfully! Waiting for opponent score submission.',
+              });
+            }
+            router.refresh();
+          }}
+        />
+      )}
+
+      {/* Upload Match Evidence Modal (Cloudinary Upload for Conflicting Scores) */}
+      {uploadEvidenceMatch && (
+        <UploadMatchEvidenceModal
+          isOpen={Boolean(uploadEvidenceMatch)}
+          onClose={() => setUploadEvidenceMatch(null)}
+          matchId={uploadEvidenceMatch.id}
+          tournamentId={uploadEvidenceMatch.tournamentId}
+          participantId={uploadEvidenceMatch.userParticipantId || ''}
+          existingScreenshotUrl={uploadEvidenceMatch.userSubmission?.screenshotUrl}
+          onSuccess={() => {
+            setFeedbackMsg({
+              type: 'success',
+              text: 'Screenshot proof uploaded to Cloudinary! Admin dispute ticket updated.',
+            });
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Vote, BarChart3, Users, ArrowLeft, Loader2, RefreshCw, ChevronLeft, ChevronRight, Download, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -26,7 +26,7 @@ export default function AdminPredictionHistoryPage() {
   });
   const [loading, setLoading] = useState<boolean>(true);
 
-  const loadPredictionHistory = async () => {
+  const loadPredictionHistory = useCallback(async () => {
     setLoading(true);
     try {
       const [res, mList] = await Promise.all([
@@ -48,11 +48,11 @@ export default function AdminPredictionHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMatchId, selectedResult, page]);
 
   useEffect(() => {
-    loadPredictionHistory();
-  }, [selectedMatchId, selectedResult, page]);
+    void loadPredictionHistory();
+  }, [loadPredictionHistory]);
 
   const handleExportCSV = () => {
     if (rows.length === 0) return;

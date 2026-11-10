@@ -16,6 +16,7 @@
     "@tanstack/react-query": "^5.101.4",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "livekit-client": "^2.22.3",
     "livekit-server-sdk": "^2.19.0",

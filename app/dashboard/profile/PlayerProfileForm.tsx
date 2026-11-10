@@ -33,6 +33,10 @@ import { requestWhatsAppVerificationAction } from '@/app/actions/verificationAct
 import { updatePlayerProfileAction } from '@/app/actions/playerActions';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile, WhatsAppVerificationStatus } from '@/types/database';
+import AvatarPickerModal from '@/components/avatar/AvatarPickerModal';
+import { DEFAULT_AVATAR_URL } from '@/lib/avatar/constants';
+import Image from 'next/image';
+import { Sparkles } from 'lucide-react';
 
 const ADMIN_WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_ADMIN_WHATSAPP_NUMBER || '+919207516227';
@@ -63,6 +67,9 @@ export default function PlayerProfileForm({
   const displayName = profile?.display_name || userEmail.split('@')[0] || 'Player';
   const efootballId = profile?.efootball_id || 'Not Set';
   const whatsappNumber = profile?.whatsapp_number || 'Not Set';
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialProfile?.avatar_url || null);
+  const [avatarId, setAvatarId] = useState<string | null>(initialProfile?.avatar_id || null);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   // Form input states for editing
   const [editName, setEditName] = useState(displayName);
@@ -120,6 +127,8 @@ export default function PlayerProfileForm({
         fullName: editName,
         efootballId: normId,
         whatsappNumber: editWhatsapp,
+        avatarUrl,
+        avatarId,
       });
 
       if (res.success && res.data?.profile) {
@@ -264,9 +273,19 @@ export default function PlayerProfileForm({
       <Card className="bg-[#1818D4] border border-white/20 shadow-2xl rounded-[32px] p-4 sm:p-8 text-white relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            {/* Player Avatar Initial */}
-            <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-full bg-[#0A0A7A] border-2 border-[#FFFF00] flex items-center justify-center text-2xl sm:text-3xl font-black text-[#FFFF00] shadow-[0_0_20px_rgba(255,255,0,0.25)] shrink-0 font-display">
-              {displayName.charAt(0).toUpperCase()}
+            {/* Player Avatar */}
+            <div
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#0A0A7A] border-2 border-[#FFFF00] flex items-center justify-center text-2xl sm:text-3xl font-black text-[#FFFF00] shadow-[0_0_20px_rgba(255,255,0,0.25)] shrink-0 font-display overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+              title="Click to change avatar"
+            >
+              <Image
+                src={avatarUrl || DEFAULT_AVATAR_URL}
+                alt={displayName}
+                width={80}
+                height={80}
+                className="object-cover w-full h-full"
+              />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -297,7 +316,16 @@ export default function PlayerProfileForm({
           </div>
 
           {/* Action Row: Edit Profile Toggle / Verification Status */}
-          <div className="shrink-0 flex items-center gap-3 flex-wrap">
+          <div className="shrink-0 flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              variant="outline"
+              className="bg-[#0A0A7A] hover:bg-[#1010C5] text-white border border-white/20 font-black text-xs px-4 py-2 rounded-full gap-2 uppercase tracking-wider shadow cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[#FFFF00]" />
+              <span>Change Avatar</span>
+            </Button>
             {!isEditing ? (
               <Button
                 onClick={() => setIsEditing(true)}
@@ -402,6 +430,39 @@ export default function PlayerProfileForm({
             </Button>
           )}
         </div>
+
+        {/* Avatar Selection in Edit Mode */}
+        {isEditing && (
+          <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-full bg-[#050550] border-2 border-[#FFFF00] flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_15px_rgba(255,255,0,0.2)]">
+                <Image
+                  src={avatarUrl || DEFAULT_AVATAR_URL}
+                  alt={displayName}
+                  width={56}
+                  height={56}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs font-black uppercase tracking-wider text-white block">
+                  Official Competitor Avatar
+                </span>
+                <span className="text-[11px] text-white/60 block">
+                  Choose from administrator-approved avatars. Custom player image uploads are disabled for tournament fairness.
+                </span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider rounded-xl h-10 px-4 shadow-md shrink-0 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              Choose Avatar
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Display Name Input / View */}
@@ -673,6 +734,20 @@ export default function PlayerProfileForm({
           </div>
         </div>
       </Card>
+
+      {/* Official Avatar Selection Modal */}
+      <AvatarPickerModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        currentAvatarId={avatarId}
+        currentAvatarUrl={avatarUrl}
+        onAvatarSelected={(newUrl, newId) => {
+          setAvatarUrl(newUrl);
+          setAvatarId(newId);
+          setFeedback({ message: 'Avatar updated successfully!', type: 'success' });
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

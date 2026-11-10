@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Radio,
   Flame,
+  ShieldAlert,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,8 +71,12 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
 
   // Extract upcoming/live matches
   const liveMatches = matches.filter((m) => m.isLive);
-  const scheduledMatches = matches.filter((m) => m.status === 'scheduled' || m.status === 'ready');
-  const displayUpcomingMatches = [...liveMatches, ...scheduledMatches].slice(0, 3);
+  const upcomingMatches = matches.filter(
+    (m) =>
+      !m.isLive &&
+      !['completed', 'walkover', 'forfeited', 'cancelled'].includes((m.status || '').toLowerCase())
+  );
+  const displayUpcomingMatches = [...liveMatches, ...upcomingMatches].slice(0, 3);
 
   // Extract recent active/upcoming tournaments
   const activeTournaments = tournaments
@@ -86,6 +91,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         displayName={fullName}
         efootballId={efootballId !== 'Not Set' ? efootballId : undefined}
         isVerified={isVerified}
+        avatarUrl={profile?.avatar_url || '/avatars/default-avatar.svg'}
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
@@ -311,12 +317,12 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
                           {m.roundName}
                         </span>
                         {m.isLive ? (
-                          <span className="bg-[#FF168B] text-white font-black text-[10px] uppercase animate-pulse px-2.5 py-0.5 rounded-full">
-                            LIVE
+                          <span className="bg-[#00C853] text-[#08088F] font-black text-[10px] uppercase animate-pulse px-2.5 py-0.5 rounded-full">
+                            {m.status === 'in_progress' ? 'IN PROGRESS' : m.status === 'waiting_for_players' ? 'WAITING' : 'LIVE'}
                           </span>
                         ) : (
                           <span className="bg-[#0A0A7A] text-[#D9DCFF] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
-                            {m.status.toUpperCase()}
+                            {(m.status || 'SCHEDULED').replace(/_/g, ' ').toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -444,7 +450,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         </div>
 
         {/* Quick Portal Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
           <Link
             href="/dashboard/tournaments"
             className="p-5 rounded-[28px] bg-[#1010C5] border border-white/20 hover:border-[#FFFF00] hover:shadow-[0_0_20px_rgba(52,52,255,0.4)] transition-all group flex items-center justify-between text-white shadow-xl"
@@ -452,9 +458,9 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
             <div className="space-y-1">
               <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-[#FFFF00]" />
-                Tournament Registrations
+                Tournaments
               </span>
-              <p className="text-[11px] text-[#D9DCFF]/80">View your history and active brackets</p>
+              <p className="text-[11px] text-[#D9DCFF]/80">View history and active brackets</p>
             </div>
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>
@@ -468,7 +474,21 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
                 <Swords className="h-4 w-4 text-[#FFFF00]" />
                 Fixtures & Results
               </span>
-              <p className="text-[11px] text-[#D9DCFF]/80">Track schedules, scores, and opponent handles</p>
+              <p className="text-[11px] text-[#D9DCFF]/80">Track schedules, scores, and handles</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          <Link
+            href="/dashboard/tickets"
+            className="p-5 rounded-[28px] bg-[#1010C5] border border-white/20 hover:border-[#FFFF00] hover:shadow-[0_0_20px_rgba(52,52,255,0.4)] transition-all group flex items-center justify-between text-white shadow-xl"
+          >
+            <div className="space-y-1">
+              <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-[#FFFF00]" />
+                My Tickets & Support
+              </span>
+              <p className="text-[11px] text-[#D9DCFF]/80">Track disputes and inquiries</p>
             </div>
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>
@@ -482,7 +502,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
                 <Gamepad2 className="h-4 w-4 text-[#FFFF00]" />
                 eFootball ID & Verification
               </span>
-              <p className="text-[11px] text-[#D9DCFF]/80">Manage your gamer tag and contact number</p>
+              <p className="text-[11px] text-[#D9DCFF]/80">Manage tag and contact number</p>
             </div>
             <ArrowRight className="h-4 w-4 text-[#FFFF00] group-hover:translate-x-1 transition-transform" />
           </Link>

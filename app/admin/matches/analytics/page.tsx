@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tv, Users, Activity, Clock, Vote, BarChart3, ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -15,7 +15,7 @@ export default function AdminLiveAnalyticsPage() {
   const [selectedMatchId, setSelectedMatchId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const [summary, mList] = await Promise.all([
@@ -29,11 +29,11 @@ export default function AdminLiveAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMatchId]);
 
   useEffect(() => {
-    loadAnalytics();
-  }, [selectedMatchId]);
+    void loadAnalytics();
+  }, [loadAnalytics]);
 
   return (
     <div className="space-y-6 pb-12 font-sans">

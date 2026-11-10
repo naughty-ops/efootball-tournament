@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
@@ -49,7 +49,7 @@ export default function DedicatedLiveMatchPage({
   const [copied, setCopied] = useState(false);
 
   // 1. Fetch Match Data
-  const fetchMatchInfo = async () => {
+  const fetchMatchInfo = useCallback(async () => {
     try {
       const supabase = createClient();
 
@@ -122,11 +122,11 @@ export default function DedicatedLiveMatchPage({
       setMatchError('Unable to load match details.');
       setLoadingMatch(false);
     }
-  };
+  }, [matchId]);
 
   useEffect(() => {
-    fetchMatchInfo();
-  }, [matchId]);
+    void fetchMatchInfo();
+  }, [fetchMatchInfo]);
 
   // Realtime subscription for score updates
   useEffect(() => {

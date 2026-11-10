@@ -23,6 +23,7 @@ import { createClient } from '@/lib/supabase/client';
 export interface PlayerDashboardHeaderProps {
   userEmail: string;
   displayName?: string;
+  avatarUrl?: string | null;
   efootballId?: string;
   isVerified?: boolean;
 }
@@ -61,11 +62,13 @@ const DASHBOARD_NAV_ITEMS = [
 export default function PlayerDashboardHeader({
   userEmail,
   displayName,
+  avatarUrl,
   efootballId,
   isVerified = false,
 }: PlayerDashboardHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const effectiveAvatarUrl = avatarUrl || '/avatars/default-avatar.svg';
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -179,8 +182,8 @@ export default function PlayerDashboardHeader({
               aria-expanded={isDropdownOpen}
             >
               <div className="relative">
-                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-xs shadow-sm">
-                  {playerInitial}
+                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-xs shadow-sm overflow-hidden">
+                  <Image src={effectiveAvatarUrl} alt={playerPrimaryName} width={24} height={24} className="object-cover w-full h-full" />
                 </div>
                 <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0A0A7A]" />
               </div>
@@ -192,8 +195,8 @@ export default function PlayerDashboardHeader({
               <div className="absolute right-2 top-14 w-72 rounded-2xl bg-[#0B0B7C] border border-white/25 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-white/10">
                   <div className="relative">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-sm shadow-md">
-                      {playerInitial}
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-sm shadow-md overflow-hidden">
+                      <Image src={effectiveAvatarUrl} alt={playerPrimaryName} width={36} height={36} className="object-cover w-full h-full" />
                     </div>
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0B0B7C]" />
                   </div>
@@ -333,8 +336,8 @@ export default function PlayerDashboardHeader({
               aria-expanded={isDropdownOpen}
             >
               <div className="relative">
-                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-xs shadow-sm">
-                  {playerInitial}
+                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-xs shadow-sm overflow-hidden">
+                  <Image src={effectiveAvatarUrl} alt={playerPrimaryName} width={24} height={24} className="object-cover w-full h-full" />
                 </div>
                 <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0A0A7A]" />
               </div>
@@ -352,8 +355,8 @@ export default function PlayerDashboardHeader({
               <div className="absolute right-0 top-12 w-80 rounded-2xl bg-[#0B0B7C]/95 backdrop-blur-2xl border border-white/25 shadow-2xl p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center gap-3 pb-3 border-b border-white/15">
                   <div className="relative">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-base shadow-md">
-                      {playerInitial}
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-base shadow-md overflow-hidden">
+                      <Image src={effectiveAvatarUrl} alt={playerPrimaryName} width={40} height={40} className="object-cover w-full h-full" />
                     </div>
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0B0B7C]" />
                   </div>

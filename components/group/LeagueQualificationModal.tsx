@@ -67,7 +67,7 @@ export function LeagueQualificationModal({
     try {
       const supabase = createClient();
       // Update qualifiers_per_group and lock qualification status
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { error: updateErr } = await (supabase.from('tournaments') as any)
         .update({
           qualifiers_per_group: qualifiersCount,
@@ -93,7 +93,7 @@ export function LeagueQualificationModal({
     try {
       const supabase = createClient();
       // Unlock qualification status
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { error: updateErr } = await (supabase.from('tournaments') as any)
         .update({
           is_group_stage_finalized: false,
