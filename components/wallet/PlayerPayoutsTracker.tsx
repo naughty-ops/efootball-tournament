@@ -99,7 +99,7 @@ export default function PlayerPayoutsTracker({ payouts }: PlayerPayoutsTrackerPr
       </CardHeader>
 
       <CardContent className="p-0">
-        {payouts.length === 0 ? (
+        {(payouts || []).length === 0 ? (
           <div className="py-12 px-4 text-center">
             <Receipt className="h-10 w-10 text-white/30 mx-auto mb-2" />
             <p className="text-sm font-bold text-white/70">No prize payouts recorded yet.</p>

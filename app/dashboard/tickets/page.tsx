@@ -43,14 +43,16 @@ export default async function PlayerTicketsPage() {
   }
 
   const [profile, tickets] = await Promise.all([
-    getPlayerProfile(supabase, user.id),
-    getPlayerTickets(user.id),
+    getPlayerProfile(supabase, user.id, user).catch(() => null),
+    getPlayerTickets(user.id).catch(() => []),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';
   const efootballId = profile?.efootball_id || user.user_metadata?.efootball_id;
   const isVerified = profile?.efootball_id_verified === true;
+
+  const safeTickets = tickets || [];
 
   return (
     <div className="min-h-screen bg-[#08088F] text-white pb-16">

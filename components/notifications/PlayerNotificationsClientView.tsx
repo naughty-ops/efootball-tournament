@@ -43,22 +43,24 @@ const CATEGORIES = [
 ] as const;
 
 export default function PlayerNotificationsClientView({
-  initialNotifications,
+  initialNotifications = [],
   openTicketsCount = 0,
 }: PlayerNotificationsClientViewProps) {
-  const [notifications, setNotifications] = useState<PlayerNotificationItem[]>(initialNotifications);
+  const safeInitial = initialNotifications || [];
+  const [notifications, setNotifications] = useState<PlayerNotificationItem[]>(safeInitial);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [isPending, startTransition] = useTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.isRead).length,
+    () => (notifications || []).filter((n) => !n.isRead).length,
     [notifications]
   );
 
   const filteredNotifications = useMemo(() => {
-    if (activeCategory === 'all') return notifications;
-    return notifications.filter((n) => {
+    const list = notifications || [];
+    if (activeCategory === 'all') return list;
+    return list.filter((n) => {
       const type = (n.type || '').toLowerCase();
       if (activeCategory === 'financial') {
         return type.includes('financial') || type.includes('prize') || type.includes('wallet') || type.includes('payout');

@@ -952,86 +952,91 @@ export async function getTicketAuditLogs(
  * Fetches a player's own tickets for the player dashboard
  */
 export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]> {
-  const adminClient = createAdminClient();
+  try {
+    const adminClient = createAdminClient();
 
-  const [supportRes, participantRes] = await Promise.all([
-    (adminClient.from('support_tickets') as any)
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
-    (adminClient.from('participants') as any)
-      .select('id, tournament_id')
-      .eq('user_id', userId),
-  ]);
+    const [supportRes, participantRes] = await Promise.all([
+      (adminClient.from('support_tickets') as any)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+      (adminClient.from('participants') as any)
+        .select('id, tournament_id')
+        .eq('user_id', userId),
+    ]);
 
-  const rawSupport = (supportRes.data || []) as any[];
-  const participantIds = ((participantRes.data || []) as any[]).map((p) => p.id);
+    const rawSupport = (supportRes.data || []) as any[];
+    const participantIds = ((participantRes.data || []) as any[]).map((p) => p.id);
 
-  let rawDisputes: any[] = [];
-  if (participantIds.length > 0) {
-    const { data: dData } = await (adminClient.from('match_disputes') as any)
-      .select('*')
-      .in('reporter_participant_id', participantIds)
-      .order('created_at', { ascending: false });
-    rawDisputes = dData || [];
+    let rawDisputes: any[] = [];
+    if (participantIds.length > 0) {
+      const { data: dData } = await (adminClient.from('match_disputes') as any)
+        .select('*')
+        .in('reporter_participant_id', participantIds)
+        .order('created_at', { ascending: false });
+      rawDisputes = dData || [];
+    }
+
+    const supportTickets: UnifiedTicket[] = rawSupport.map((st) => {
+      const stStatus = normalizeTicketStatus(st.status);
+      const dl = calculateTicketDeadline(st.created_at, false, stStatus);
+      return {
+        id: st.id,
+        source: 'support',
+        ticket_number: st.ticket_number,
+        category: st.category,
+        subject: st.subject,
+        description: st.description,
+        priority: (st.priority || 'normal') as TicketPriority,
+        status: stStatus,
+        created_at: st.created_at,
+        updated_at: st.updated_at,
+        resolved_at: st.resolved_at,
+        resolution_notes: st.resolution_notes,
+        ticket_age_str: formatTicketAge(st.created_at),
+        is_overdue: dl.isOverdue,
+        response_deadline_iso: dl.deadlineIso,
+        deadline_status: dl.status,
+        has_new_player_reply: false,
+        player_name: st.player_name,
+        player_email: st.player_email,
+        evidence_url: st.evidence_url,
+      };
+    });
+
+    const disputeTickets: UnifiedTicket[] = rawDisputes.map((d) => {
+      const readableReason = (d.reason || 'match_dispute').replace(/_/g, ' ');
+      const stStatus = normalizeTicketStatus(d.status);
+      const dl = calculateTicketDeadline(d.created_at, true, stStatus);
+      return {
+        id: d.id,
+        source: 'dispute',
+        ticket_number: d.ticket_number,
+        category: normalizeDisputeCategory(d.reason),
+        subject: `Match Dispute: ${readableReason.charAt(0).toUpperCase() + readableReason.slice(1)}`,
+        description: d.details || `Dispute for match ${d.match_id}`,
+        priority: (d.priority || 'high') as TicketPriority,
+        status: stStatus,
+        created_at: d.created_at,
+        updated_at: d.updated_at,
+        resolved_at: d.resolved_at,
+        resolution_notes: d.admin_notes,
+        ticket_age_str: formatTicketAge(d.created_at),
+        is_overdue: dl.isOverdue,
+        response_deadline_iso: dl.deadlineIso,
+        deadline_status: dl.status,
+        has_new_player_reply: false,
+        player_name: 'You',
+        player_email: '',
+        evidence_url: d.evidence_url || d.reporter_screenshot_url,
+      };
+    });
+
+    const all = [...supportTickets, ...disputeTickets];
+    all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return all;
+  } catch (err) {
+    console.warn('getPlayerTickets: Failed to load tickets, returning empty list:', err);
+    return [];
   }
-
-  const supportTickets: UnifiedTicket[] = rawSupport.map((st) => {
-    const stStatus = normalizeTicketStatus(st.status);
-    const dl = calculateTicketDeadline(st.created_at, false, stStatus);
-    return {
-      id: st.id,
-      source: 'support',
-      ticket_number: st.ticket_number,
-      category: st.category,
-      subject: st.subject,
-      description: st.description,
-      priority: (st.priority || 'normal') as TicketPriority,
-      status: stStatus,
-      created_at: st.created_at,
-      updated_at: st.updated_at,
-      resolved_at: st.resolved_at,
-      resolution_notes: st.resolution_notes,
-      ticket_age_str: formatTicketAge(st.created_at),
-      is_overdue: dl.isOverdue,
-      response_deadline_iso: dl.deadlineIso,
-      deadline_status: dl.status,
-      has_new_player_reply: false,
-      player_name: st.player_name,
-      player_email: st.player_email,
-      evidence_url: st.evidence_url,
-    };
-  });
-
-  const disputeTickets: UnifiedTicket[] = rawDisputes.map((d) => {
-    const readableReason = (d.reason || 'match_dispute').replace(/_/g, ' ');
-    const stStatus = normalizeTicketStatus(d.status);
-    const dl = calculateTicketDeadline(d.created_at, true, stStatus);
-    return {
-      id: d.id,
-      source: 'dispute',
-      ticket_number: d.ticket_number,
-      category: normalizeDisputeCategory(d.reason),
-      subject: `Match Dispute: ${readableReason.charAt(0).toUpperCase() + readableReason.slice(1)}`,
-      description: d.details || `Dispute for match ${d.match_id}`,
-      priority: (d.priority || 'high') as TicketPriority,
-      status: stStatus,
-      created_at: d.created_at,
-      updated_at: d.updated_at,
-      resolved_at: d.resolved_at,
-      resolution_notes: d.admin_notes,
-      ticket_age_str: formatTicketAge(d.created_at),
-      is_overdue: dl.isOverdue,
-      response_deadline_iso: dl.deadlineIso,
-      deadline_status: dl.status,
-      has_new_player_reply: false,
-      player_name: 'You',
-      player_email: '',
-      evidence_url: d.evidence_url || d.reporter_screenshot_url,
-    };
-  });
-
-  const all = [...supportTickets, ...disputeTickets];
-  all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return all;
 }

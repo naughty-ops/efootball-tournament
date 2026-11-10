@@ -28,14 +28,16 @@ export default async function PlayerMatchesPage() {
 
   // Derive identity strictly from server-side verified auth.uid()
   const [profile, matchesResult] = await Promise.all([
-    getPlayerProfile(supabase, user.id),
-    getPlayerMatches(supabase, user.id),
+    getPlayerProfile(supabase, user.id, user).catch(() => null),
+    getPlayerMatches(supabase, user.id).catch(() => ({ data: [], error: null })),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';
   const efootballId = profile?.efootball_id || user.user_metadata?.efootball_id;
   const isVerified = profile?.efootball_id_verified === true;
+
+  const safeMatches = matchesResult?.data || [];
 
   return (
     <div className="min-h-screen bg-[#08088F] text-white pb-16">
@@ -53,7 +55,7 @@ export default async function PlayerMatchesPage() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CompetitionSubNav
             activeTab="matches"
-            matchCount={matchesResult.data?.length ?? 0}
+            matchCount={safeMatches.length}
           />
           <Button
             asChild
@@ -77,9 +79,9 @@ export default async function PlayerMatchesPage() {
         </div>
 
         <PlayerMatchesClient
-          initialMatches={matchesResult.data}
+          initialMatches={safeMatches}
           userDisplayName={fullName}
-          initialError={matchesResult.error}
+          initialError={matchesResult?.error || null}
         />
         </PlayerDashboardSwipeWrapper>
       </main>

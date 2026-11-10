@@ -219,114 +219,124 @@ export async function getPlayerWalletTransactions(
     pageSize?: number;
   }
 ): Promise<{ transactions: WalletTransactionItem[]; totalCount: number }> {
-  const adminClient = createAdminClient();
-  const page = Math.max(1, options?.page || 1);
-  const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
-  const offset = (page - 1) * pageSize;
+  try {
+    const adminClient = createAdminClient();
+    const page = Math.max(1, options?.page || 1);
+    const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
+    const offset = (page - 1) * pageSize;
 
-  let query = (adminClient.from('wallet_transactions') as any)
-    .select(
-      `
-      id,
-      transaction_ref,
-      wallet_id,
-      user_id,
-      transaction_type,
-      amount_paise,
-      amount_inr,
-      status,
-      reference_type,
-      reference_id,
-      tournament_id,
-      description,
-      idempotency_key,
-      created_at,
-      tournaments:tournament_id (id, name)
-    `,
-      { count: 'exact' }
-    )
-    .eq('user_id', userId);
+    let query = (adminClient.from('wallet_transactions') as any)
+      .select(
+        `
+        id,
+        transaction_ref,
+        wallet_id,
+        user_id,
+        transaction_type,
+        amount_paise,
+        amount_inr,
+        status,
+        reference_type,
+        reference_id,
+        tournament_id,
+        description,
+        idempotency_key,
+        created_at,
+        tournaments:tournament_id (id, name)
+      `,
+        { count: 'exact' }
+      )
+      .eq('user_id', userId);
 
-  if (options?.type && options.type !== 'all') {
-    query = query.eq('transaction_type', options.type);
-  }
+    if (options?.type && options.type !== 'all') {
+      query = query.eq('transaction_type', options.type);
+    }
 
-  if (options?.status && options.status !== 'all') {
-    query = query.eq('status', options.status);
-  }
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
 
-  if (options?.search && options.search.trim()) {
-    const term = `%${options.search.trim()}%`;
-    query = query.or(`description.ilike.${term},transaction_ref.ilike.${term}`);
-  }
+    if (options?.search && options.search.trim()) {
+      const term = `%${options.search.trim()}%`;
+      query = query.or(`description.ilike.${term},transaction_ref.ilike.${term}`);
+    }
 
-  query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1);
+    query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1);
 
-  const { data, count, error } = await query;
-  if (error) {
-    console.error('Error fetching wallet transactions:', error);
+    const { data, count, error } = await query;
+    if (error) {
+      console.warn('Error fetching wallet transactions:', error);
+      return { transactions: [], totalCount: 0 };
+    }
+
+    const transactions: WalletTransactionItem[] = (data || []).map((row: any) => ({
+      id: row.id,
+      transactionRef: row.transaction_ref,
+      walletId: row.wallet_id,
+      userId: row.user_id,
+      transactionType: row.transaction_type,
+      amountPaise: Number(row.amount_paise),
+      amountInr: Number(row.amount_inr),
+      status: row.status,
+      referenceType: row.reference_type,
+      referenceId: row.reference_id,
+      tournamentId: row.tournament_id,
+      tournamentName: row.tournaments?.name || null,
+      description: row.description,
+      idempotencyKey: row.idempotency_key,
+      createdAt: row.created_at,
+    }));
+
+    return { transactions, totalCount: count || 0 };
+  } catch (err) {
+    console.warn('getPlayerWalletTransactions: Catch error, returning empty:', err);
     return { transactions: [], totalCount: 0 };
   }
-
-  const transactions: WalletTransactionItem[] = (data || []).map((row: any) => ({
-    id: row.id,
-    transactionRef: row.transaction_ref,
-    walletId: row.wallet_id,
-    userId: row.user_id,
-    transactionType: row.transaction_type,
-    amountPaise: Number(row.amount_paise),
-    amountInr: Number(row.amount_inr),
-    status: row.status,
-    referenceType: row.reference_type,
-    referenceId: row.reference_id,
-    tournamentId: row.tournament_id,
-    tournamentName: row.tournaments?.name || null,
-    description: row.description,
-    idempotencyKey: row.idempotency_key,
-    createdAt: row.created_at,
-  }));
-
-  return { transactions, totalCount: count || 0 };
 }
 
 /**
  * Aggregates monthly earnings and payouts for the performance chart.
  */
 export async function getPlayerMonthlyEarnings(userId: string): Promise<MonthlyEarningsPoint[]> {
-  const adminClient = createAdminClient();
+  try {
+    const adminClient = createAdminClient();
 
-  const { data, error } = await (adminClient.from('wallet_transactions') as any)
-    .select('transaction_type, amount_inr, status, created_at')
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: true });
+    const { data, error } = await (adminClient.from('wallet_transactions') as any)
+      .select('transaction_type, amount_inr, status, created_at')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: true });
 
-  if (error || !data || data.length === 0) {
+    if (error || !data || data.length === 0) {
+      return [];
+    }
+
+    const monthMap = new Map<string, { month: string; yearMonth: string; prizesInr: number; payoutsInr: number }>();
+
+    for (const row of data) {
+      const d = new Date(row.created_at);
+      const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+      if (!monthMap.has(yearMonth)) {
+        monthMap.set(yearMonth, { month, yearMonth, prizesInr: 0, payoutsInr: 0 });
+      }
+
+      const current = monthMap.get(yearMonth)!;
+      const amount = Number(row.amount_inr || 0);
+
+      if (row.transaction_type === 'TOURNAMENT_PRIZE' || row.transaction_type === 'BONUS_REWARD') {
+        current.prizesInr += amount;
+      } else if (row.transaction_type === 'PAYOUT_COMPLETED') {
+        current.payoutsInr += amount;
+      }
+    }
+
+    return Array.from(monthMap.values()).sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+  } catch (err) {
+    console.warn('getPlayerMonthlyEarnings error:', err);
     return [];
   }
-
-  const monthMap = new Map<string, { month: string; yearMonth: string; prizesInr: number; payoutsInr: number }>();
-
-  for (const row of data) {
-    const d = new Date(row.created_at);
-    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const month = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-    if (!monthMap.has(yearMonth)) {
-      monthMap.set(yearMonth, { month, yearMonth, prizesInr: 0, payoutsInr: 0 });
-    }
-
-    const current = monthMap.get(yearMonth)!;
-    const amount = Number(row.amount_inr || 0);
-
-    if (row.transaction_type === 'TOURNAMENT_PRIZE' || row.transaction_type === 'BONUS_REWARD') {
-      current.prizesInr += amount;
-    } else if (row.transaction_type === 'PAYOUT_COMPLETED') {
-      current.payoutsInr += amount;
-    }
-  }
-
-  return Array.from(monthMap.values()).sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
 }
 
 /**
@@ -568,30 +578,35 @@ export async function getPlayerPerformanceAnalytics(
  * Plaintext and encrypted account numbers are never returned here.
  */
 export async function getPlayerPaymentMethods(userId: string): Promise<PlayerPaymentMethod[]> {
-  const adminClient = createAdminClient();
+  try {
+    const adminClient = createAdminClient();
 
-  const { data, error } = await (adminClient.from('player_payment_methods') as any)
-    .select('id, user_id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id, is_preferred, created_at, updated_at')
-    .eq('user_id', userId)
-    .order('is_preferred', { ascending: false });
+    const { data, error } = await (adminClient.from('player_payment_methods') as any)
+      .select('id, user_id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id, is_preferred, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('is_preferred', { ascending: false });
 
-  if (error || !data) {
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((m: any) => ({
+      id: m.id,
+      userId: m.user_id,
+      paymentMethodType: m.payment_method_type,
+      accountHolderName: m.account_holder_name,
+      bankName: m.bank_name,
+      maskedAccountNumber: m.masked_account_number,
+      ifscCode: m.ifsc_code,
+      upiId: m.upi_id,
+      isPreferred: Boolean(m.is_preferred),
+      createdAt: m.created_at,
+      updatedAt: m.updated_at,
+    }));
+  } catch (err) {
+    console.warn('getPlayerPaymentMethods error:', err);
     return [];
   }
-
-  return data.map((m: any) => ({
-    id: m.id,
-    userId: m.user_id,
-    paymentMethodType: m.payment_method_type,
-    accountHolderName: m.account_holder_name,
-    bankName: m.bank_name,
-    maskedAccountNumber: m.masked_account_number,
-    ifscCode: m.ifsc_code,
-    upiId: m.upi_id,
-    isPreferred: Boolean(m.is_preferred),
-    createdAt: m.created_at,
-    updatedAt: m.updated_at,
-  }));
 }
 
 /**
@@ -784,113 +799,118 @@ export async function setPreferredPaymentMethod(
  * Retrieves player's payout history with 24-hour SLA tracking and payment details.
  */
 export async function getPlayerPayouts(userId: string): Promise<PayoutTransactionRecord[]> {
-  const adminClient = createAdminClient();
+  try {
+    const adminClient = createAdminClient();
 
-  const { data, error } = await (adminClient.from('payout_transactions') as any)
-    .select(`
-      id,
-      payout_reference,
-      player_id,
-      prize_distribution_id,
-      amount_paise,
-      amount_inr,
-      payment_method_id,
-      payment_method_type,
-      payout_status,
-      utr_reference,
-      processed_by,
-      paid_at,
-      eligible_at,
-      deadline_at,
-      receipt_url,
-      receipt_reference,
-      failure_reason,
-      created_at,
-      updated_at
-    `)
-    .eq('player_id', userId)
-    .order('created_at', { ascending: false });
+    const { data, error } = await (adminClient.from('payout_transactions') as any)
+      .select(`
+        id,
+        payout_reference,
+        player_id,
+        prize_distribution_id,
+        amount_paise,
+        amount_inr,
+        payment_method_id,
+        payment_method_type,
+        payout_status,
+        utr_reference,
+        processed_by,
+        paid_at,
+        eligible_at,
+        deadline_at,
+        receipt_url,
+        receipt_reference,
+        failure_reason,
+        created_at,
+        updated_at
+      `)
+      .eq('player_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (error || !data) {
+    if (error || !data) {
+      return [];
+    }
+
+    // Gather prize distribution ids to fetch tournament names and positions
+    const distIds = data.map((r: any) => r.prize_distribution_id).filter(Boolean);
+    const tournamentMap = new Map<string, { name: string; positionTitle: string }>();
+
+    if (distIds.length > 0) {
+      const { data: dists } = await (adminClient.from('prize_distributions') as any)
+        .select('id, position_title, tournament_id, tournaments:tournament_id (id, name)')
+        .in('id', distIds);
+
+      if (dists) {
+        for (const d of dists) {
+          tournamentMap.set(d.id, {
+            name: d.tournaments?.name || 'Tournament',
+            positionTitle: d.position_title || 'Winner',
+          });
+        }
+      }
+    }
+
+    // Gather payment methods to show masked bank/UPI
+    const pmIds = data.map((r: any) => r.payment_method_id).filter(Boolean);
+    const pmMap = new Map<string, any>();
+    if (pmIds.length > 0) {
+      const { data: pms } = await (adminClient.from('player_payment_methods') as any)
+        .select('id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id')
+        .in('id', pmIds);
+      if (pms) {
+        for (const pm of pms) {
+          pmMap.set(pm.id, pm);
+        }
+      }
+    }
+
+    return data.map((row: any) => {
+      const distInfo = row.prize_distribution_id ? tournamentMap.get(row.prize_distribution_id) : null;
+      const pm = row.payment_method_id ? pmMap.get(row.payment_method_id) : null;
+
+      let paymentDetails: DecryptedPaymentDetails | null = null;
+      if (pm) {
+        paymentDetails = {
+          id: pm.id,
+          paymentMethodType: pm.payment_method_type,
+          accountHolderName: pm.account_holder_name,
+          bankName: pm.bank_name,
+          maskedAccountNumber: pm.masked_account_number,
+          ifscCode: pm.ifsc_code,
+          upiId: pm.upi_id,
+          isPreferred: false,
+        };
+      }
+
+      return {
+        id: row.id,
+        payoutReference: row.payout_reference,
+        playerId: row.player_id,
+        prizeDistributionId: row.prize_distribution_id,
+        tournamentName: distInfo?.name || null,
+        positionTitle: distInfo?.positionTitle || null,
+        amountPaise: Number(row.amount_paise),
+        amountInr: Number(row.amount_inr),
+        paymentMethodId: row.payment_method_id,
+        paymentMethodType: row.payment_method_type,
+        payoutStatus: row.payout_status,
+        utrReference: null, // Admin details / UTR kept internal and not shared to users
+        processedBy: null, // Admin user ID kept internal
+        paidAt: row.paid_at,
+        eligibleAt: row.eligible_at || row.created_at,
+        deadlineAt: row.deadline_at || new Date(new Date(row.created_at).getTime() + 24 * 3600 * 1000).toISOString(),
+        receiptUrl: row.receipt_url,
+        receiptReference: row.receipt_reference,
+        failureReason: row.failure_reason,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        paymentDetails,
+      };
+    });
+  } catch (err) {
+    console.warn('getPlayerPayouts error:', err);
     return [];
   }
-
-  // Gather prize distribution ids to fetch tournament names and positions
-  const distIds = data.map((r: any) => r.prize_distribution_id).filter(Boolean);
-  const tournamentMap = new Map<string, { name: string; positionTitle: string }>();
-
-  if (distIds.length > 0) {
-    const { data: dists } = await (adminClient.from('prize_distributions') as any)
-      .select('id, position_title, tournament_id, tournaments:tournament_id (id, name)')
-      .in('id', distIds);
-
-    if (dists) {
-      for (const d of dists) {
-        tournamentMap.set(d.id, {
-          name: d.tournaments?.name || 'Tournament',
-          positionTitle: d.position_title || 'Winner',
-        });
-      }
-    }
-  }
-
-  // Gather payment methods to show masked bank/UPI
-  const pmIds = data.map((r: any) => r.payment_method_id).filter(Boolean);
-  const pmMap = new Map<string, any>();
-  if (pmIds.length > 0) {
-    const { data: pms } = await (adminClient.from('player_payment_methods') as any)
-      .select('id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id')
-      .in('id', pmIds);
-    if (pms) {
-      for (const pm of pms) {
-        pmMap.set(pm.id, pm);
-      }
-    }
-  }
-
-  return data.map((row: any) => {
-    const distInfo = row.prize_distribution_id ? tournamentMap.get(row.prize_distribution_id) : null;
-    const pm = row.payment_method_id ? pmMap.get(row.payment_method_id) : null;
-
-    let paymentDetails: DecryptedPaymentDetails | null = null;
-    if (pm) {
-      paymentDetails = {
-        id: pm.id,
-        paymentMethodType: pm.payment_method_type,
-        accountHolderName: pm.account_holder_name,
-        bankName: pm.bank_name,
-        maskedAccountNumber: pm.masked_account_number,
-        ifscCode: pm.ifsc_code,
-        upiId: pm.upi_id,
-        isPreferred: false,
-      };
-    }
-
-    return {
-      id: row.id,
-      payoutReference: row.payout_reference,
-      playerId: row.player_id,
-      prizeDistributionId: row.prize_distribution_id,
-      tournamentName: distInfo?.name || null,
-      positionTitle: distInfo?.positionTitle || null,
-      amountPaise: Number(row.amount_paise),
-      amountInr: Number(row.amount_inr),
-      paymentMethodId: row.payment_method_id,
-      paymentMethodType: row.payment_method_type,
-      payoutStatus: row.payout_status,
-      utrReference: null, // Admin details / UTR kept internal and not shared to users
-      processedBy: null, // Admin user ID kept internal
-      paidAt: row.paid_at,
-      eligibleAt: row.eligible_at || row.created_at,
-      deadlineAt: row.deadline_at || new Date(new Date(row.created_at).getTime() + 24 * 3600 * 1000).toISOString(),
-      receiptUrl: row.receipt_url,
-      receiptReference: row.receipt_reference,
-      failureReason: row.failure_reason,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      paymentDetails,
-    };
-  });
 }
 
 /**

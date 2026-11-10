@@ -29,16 +29,19 @@ export default async function PlayerTournamentsPage() {
 
   // Derive identity strictly from server-side verified auth.uid()
   const [profile, tournamentsResult, paymentRegistrations, paymentSettings] = await Promise.all([
-    getPlayerProfile(supabase, user.id),
-    getPlayerTournaments(supabase, user.id),
-    getPlayerPaymentRegistrations(supabase, user.id),
-    getManualPaymentSettings(supabase),
+    getPlayerProfile(supabase, user.id, user).catch(() => null),
+    getPlayerTournaments(supabase, user.id).catch(() => ({ data: [], error: null })),
+    getPlayerPaymentRegistrations(supabase, user.id).catch(() => []),
+    getManualPaymentSettings(supabase).catch(() => null),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';
   const efootballId = profile?.efootball_id || user.user_metadata?.efootball_id;
   const isVerified = profile?.efootball_id_verified === true;
+
+  const safeTournaments = tournamentsResult?.data || [];
+  const safePaymentRegistrations = paymentRegistrations || [];
 
   return (
     <div className="min-h-screen bg-[#08088F] text-white pb-16">
@@ -56,7 +59,7 @@ export default async function PlayerTournamentsPage() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <CompetitionSubNav
             activeTab="tournaments"
-            tournamentCount={tournamentsResult.data?.length ?? 0}
+            tournamentCount={safeTournaments.length}
           />
           <Button
             asChild
@@ -80,15 +83,15 @@ export default async function PlayerTournamentsPage() {
         </div>
 
         <PlayerTournamentsClient
-          initialTournaments={tournamentsResult.data}
-          initialPaymentRegistrations={paymentRegistrations}
-          paymentSettings={paymentSettings}
+          initialTournaments={safeTournaments}
+          initialPaymentRegistrations={safePaymentRegistrations}
+          paymentSettings={paymentSettings || undefined}
           playerProfile={{
             display_name: fullName,
             efootball_id: efootballId,
             whatsapp_number: profile?.whatsapp_number,
           }}
-          initialError={tournamentsResult.error}
+          initialError={tournamentsResult?.error || null}
         />
         </PlayerDashboardSwipeWrapper>
       </main>

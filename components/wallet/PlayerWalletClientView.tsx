@@ -30,11 +30,14 @@ interface PlayerWalletClientViewProps {
 
 export default function PlayerWalletClientView({
   overview,
-  transactions,
-  paymentMethods,
-  payouts,
+  transactions = [],
+  paymentMethods = [],
+  payouts = [],
 }: PlayerWalletClientViewProps) {
-  const hasPaymentMethod = paymentMethods.length > 0;
+  const safePaymentMethods = paymentMethods || [];
+  const safeTransactions = transactions || [];
+  const safePayouts = payouts || [];
+  const hasPaymentMethod = safePaymentMethods.length > 0;
 
   return (
     <div className="space-y-6 pb-12">
@@ -67,13 +70,13 @@ export default function PlayerWalletClientView({
       />
 
       {/* 2. Earnings & Payout Performance Analytics (Day / Week / Month Filters) */}
-      <WalletPerformanceChart transactions={transactions} />
+      <WalletPerformanceChart transactions={safeTransactions} />
 
       {/* 3. Direct Payout SLA Tracker (24-Hour Countdown, Status, UTR) */}
-      <PlayerPayoutsTracker payouts={payouts} />
+      <PlayerPayoutsTracker payouts={safePayouts} />
 
       {/* 4. Complete Earnings Ledger & Transaction History */}
-      <WalletTransactionsTable initialTransactions={transactions} />
+      <WalletTransactionsTable initialTransactions={safeTransactions} />
     </div>
   );
 }

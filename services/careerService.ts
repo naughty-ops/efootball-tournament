@@ -45,10 +45,33 @@ export interface PlayerCareerData {
   unlockedCount: number;
 }
 
+export const DEFAULT_CAREER_DATA: PlayerCareerData = {
+  stats: {
+    matchesPlayed: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    winRate: 0,
+    tournamentsEntered: 0,
+    championshipsWon: 0,
+    runnerUpFinishes: 0,
+    totalPrizeMoneyInr: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    rankTier: 'Bronze',
+  },
+  formGuide: [],
+  headToHead: [],
+  achievements: [],
+  totalAchievementPoints: 0,
+  unlockedCount: 0,
+};
+
 export async function getPlayerCareerData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<PlayerCareerData> {
+  try {
   // 1. Fetch user's participant records across tournaments
   const { data: userParticipants } = await supabase
     .from('participants')
@@ -308,25 +331,29 @@ export async function getPlayerCareerData(
     };
   });
 
-  return {
-    stats: {
-      matchesPlayed,
-      wins,
-      draws,
-      losses,
-      winRate,
-      tournamentsEntered: tournamentIds.length,
-      championshipsWon: championshipsCount,
-      runnerUpFinishes: runnerUpCount,
-      totalPrizeMoneyInr: totalPrizeMoney,
-      currentStreak,
-      longestStreak,
-      rankTier,
-    },
-    formGuide,
-    headToHead: headToHeadList,
-    achievements,
-    totalAchievementPoints,
-    unlockedCount,
-  };
+    return {
+      stats: {
+        matchesPlayed,
+        wins,
+        draws,
+        losses,
+        winRate,
+        tournamentsEntered: tournamentIds.length,
+        championshipsWon: championshipsCount,
+        runnerUpFinishes: runnerUpCount,
+        totalPrizeMoneyInr: totalPrizeMoney,
+        currentStreak,
+        longestStreak,
+        rankTier,
+      },
+      formGuide,
+      headToHead: headToHeadList,
+      achievements,
+      totalAchievementPoints,
+      unlockedCount,
+    };
+  } catch (err) {
+    console.warn('getPlayerCareerData error:', err);
+    return DEFAULT_CAREER_DATA;
+  }
 }

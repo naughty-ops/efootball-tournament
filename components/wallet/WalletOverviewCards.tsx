@@ -32,7 +32,7 @@ export default function WalletOverviewCards({
   const [isOverdue, setIsOverdue] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!overview.nextExpectedPayout?.deadlineAt) {
+    if (!overview?.nextExpectedPayout?.deadlineAt) {
       setCountdownText('');
       return;
     }
@@ -57,7 +57,13 @@ export default function WalletOverviewCards({
     updateCountdown();
     const interval = setInterval(updateCountdown, 60000); // update every minute
     return () => clearInterval(interval);
-  }, [overview.nextExpectedPayout?.deadlineAt]);
+  }, [overview?.nextExpectedPayout?.deadlineAt]);
+
+  const totalEarnings = overview?.totalEarningsInr || 0;
+  const pendingEarnings = overview?.pendingEarningsInr || 0;
+  const availablePayout = overview?.availablePayoutInr || 0;
+  const totalPaid = overview?.totalPaidInr || 0;
+  const nextPayout = overview?.nextExpectedPayout || null;
 
   return (
     <div className="space-y-4">
@@ -77,7 +83,7 @@ export default function WalletOverviewCards({
             </div>
             <div className="mt-2.5">
               <div className="text-2xl font-black text-white font-display">
-                ₹{overview.totalEarningsInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <p className="text-[10px] text-white/60 mt-1 font-medium">Confirmed prize entitlement</p>
             </div>
@@ -98,7 +104,7 @@ export default function WalletOverviewCards({
             </div>
             <div className="mt-2.5">
               <div className="text-2xl font-black text-white font-display">
-                ₹{overview.pendingEarningsInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{pendingEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <p className="text-[10px] text-white/60 mt-1 font-medium">Awaiting eligibility approval</p>
             </div>
@@ -119,7 +125,7 @@ export default function WalletOverviewCards({
             </div>
             <div className="mt-2.5">
               <div className="text-2xl font-black text-white font-display">
-                ₹{overview.availablePayoutInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{availablePayout.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <p className="text-[10px] text-white/60 mt-1 font-medium">Approved rewards in payout queue</p>
             </div>
@@ -140,7 +146,7 @@ export default function WalletOverviewCards({
             </div>
             <div className="mt-2.5">
               <div className="text-2xl font-black text-white font-display">
-                ₹{overview.totalPaidInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <p className="text-[10px] text-white/60 mt-1 font-medium">Completed manual settlements</p>
             </div>
@@ -151,7 +157,7 @@ export default function WalletOverviewCards({
         <Card className={`border rounded-2xl shadow-lg relative overflow-hidden transition-all ${
           isOverdue
             ? 'bg-gradient-to-br from-[#7A0A0A] to-[#450505] border-red-500/60'
-            : overview.nextExpectedPayout
+            : nextPayout
             ? 'bg-gradient-to-br from-[#0B0B8C] via-[#0E0EA5] to-[#1212B0] border-[#00C853]/60'
             : 'bg-[#0A0A7A] border-white/20'
         }`}>
@@ -171,10 +177,10 @@ export default function WalletOverviewCards({
             </div>
 
             <div className="mt-2.5">
-              {overview.nextExpectedPayout ? (
+              {nextPayout ? (
                 <>
                   <div className="text-2xl font-black text-white font-display">
-                    ₹{overview.nextExpectedPayout.amountInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{nextPayout.amountInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="mt-1">
                     <span className={`inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
@@ -186,7 +192,7 @@ export default function WalletOverviewCards({
                     </span>
                   </div>
                   <p className="text-[10px] text-white/60 mt-1 truncate">
-                    {overview.nextExpectedPayout.tournamentName}
+                    {nextPayout.tournamentName}
                   </p>
                 </>
               ) : (

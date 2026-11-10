@@ -25,9 +25,9 @@ export default async function PlayerSettingsPage() {
   }
 
   const [profile, paymentMethods, tickets] = await Promise.all([
-    getPlayerProfile(supabase, user.id, user),
-    getPlayerPaymentMethods(user.id),
-    getPlayerTickets(user.id),
+    getPlayerProfile(supabase, user.id, user).catch(() => null),
+    getPlayerPaymentMethods(user.id).catch(() => []),
+    getPlayerTickets(user.id).catch(() => []),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
@@ -36,6 +36,9 @@ export default async function PlayerSettingsPage() {
   const isVerified = profile?.efootball_id_verified === true;
   const isEmailVerified = !!user.email_confirmed_at;
   const userCreatedAt = user.created_at || '';
+
+  const safePaymentMethods = paymentMethods || [];
+  const safeTickets = tickets || [];
 
   return (
     <div className="min-h-screen bg-[#08088F] text-white pb-16">
@@ -66,8 +69,8 @@ export default async function PlayerSettingsPage() {
             userEmail={email}
             isEmailVerified={isEmailVerified}
             userCreatedAt={userCreatedAt}
-            paymentMethods={paymentMethods}
-            tickets={tickets}
+            paymentMethods={safePaymentMethods}
+            tickets={safeTickets}
           />
         </PlayerDashboardSwipeWrapper>
       </main>

@@ -8,7 +8,7 @@ import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerCareerClientView from '@/components/career/PlayerCareerClientView';
 import { getPlayerProfile } from '@/services/playerDashboardService';
-import { getPlayerCareerData } from '@/services/careerService';
+import { getPlayerCareerData, DEFAULT_CAREER_DATA } from '@/services/careerService';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +29,16 @@ export default async function PlayerCareerPage() {
   }
 
   const [profile, careerData] = await Promise.all([
-    getPlayerProfile(supabase, user.id),
-    getPlayerCareerData(supabase, user.id),
+    getPlayerProfile(supabase, user.id, user).catch(() => null),
+    getPlayerCareerData(supabase, user.id).catch(() => DEFAULT_CAREER_DATA),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';
   const efootballId = profile?.efootball_id || user.user_metadata?.efootball_id;
   const isVerified = profile?.efootball_id_verified === true;
+
+  const safeCareerData = careerData || DEFAULT_CAREER_DATA;
 
   return (
     <div className="min-h-screen bg-[#08088F] text-white pb-16">
@@ -67,7 +69,7 @@ export default async function PlayerCareerPage() {
           </div>
 
           <PlayerCareerClientView
-            careerData={careerData}
+            careerData={safeCareerData}
             displayName={fullName}
           />
         </PlayerDashboardSwipeWrapper>

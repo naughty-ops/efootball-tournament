@@ -44,7 +44,7 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
     const now = Date.now();
     const oneDayMs = 24 * 3600 * 1000;
 
-    return initialTransactions.filter((tx) => {
+    return (initialTransactions || []).filter((tx) => {
       const matchesSearch =
         !searchTerm.trim() ||
         tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||

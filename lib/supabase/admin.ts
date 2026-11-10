@@ -11,9 +11,15 @@ export function createAdminClient() {
       ? process.env.NEXT_PUBLIC_SUPABASE_URL
       : 'https://placeholder.supabase.co';
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!serviceRoleKey) {
-    throw new Error('createAdminClient: SUPABASE_SERVICE_ROLE_KEY is not defined in server environment');
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    'placeholder';
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() && !process.env.SUPABASE_SERVICE_KEY?.trim()) {
+    console.warn('createAdminClient: SUPABASE_SERVICE_ROLE_KEY not configured, falling back to public key.');
   }
 
   return createSupabaseJsClient<Database>(supabaseUrl, serviceRoleKey, {
