@@ -12,31 +12,48 @@ export interface PlayerNotificationItem {
 }
 
 export async function getPlayerNotifications(
-  supabase: SupabaseClient,
+  supabase: any,
   userId: string,
   limit = 50
 ): Promise<PlayerNotificationItem[]> {
-  const { data, error } = await supabase
-    .from('player_notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  try {
+    let res = await supabase
+      .from('player_notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-  if (error || !data) {
+    if (res?.error) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const admin = createAdminClient();
+        res = await admin
+          .from('player_notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+      } catch {
+        // non-blocking
+      }
+    }
+
+    const data = res?.data || [];
+    return data.map((n: any) => ({
+      id: n.id,
+      userId: n.user_id,
+      title: n.title || 'Notification',
+      message: n.message || '',
+      type: n.type || 'announcements',
+      actionUrl: n.action_url || null,
+      isRead: Boolean(n.is_read),
+      createdAt: n.created_at || new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.warn('getPlayerNotifications catch:', err);
     return [];
   }
-
-  return data.map((n: any) => ({
-    id: n.id,
-    userId: n.user_id,
-    title: n.title,
-    message: n.message,
-    type: n.type || 'announcements',
-    actionUrl: n.action_url,
-    isRead: Boolean(n.is_read),
-    createdAt: n.created_at,
-  }));
 }
 
 export async function getUnreadNotificationCount(

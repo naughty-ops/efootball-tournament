@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
-import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerNotificationsClientView from '@/components/notifications/PlayerNotificationsClientView';
 import { getPlayerProfile } from '@/services/playerDashboardService';
 import { getPlayerNotifications } from '@/services/notificationService';
@@ -56,21 +55,19 @@ export default async function PlayerNotificationsPage() {
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        <PlayerDashboardSwipeWrapper currentSection="notifications">
-          <div className="border-b border-white/10 pb-6">
-            <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
-              Alerts & Notifications
-            </h1>
-            <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
-              Stay updated with system announcements, tournament call-ups, match confirmations, and prize payouts.
-            </p>
-          </div>
+        <div className="border-b border-white/10 pb-6">
+          <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
+            Alerts & Notifications
+          </h1>
+          <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
+            Stay updated with system announcements, tournament call-ups, match confirmations, and prize payouts.
+          </p>
+        </div>
 
-          <PlayerNotificationsClientView
-            initialNotifications={safeNotifications}
-            openTicketsCount={openTicketsCount}
-          />
-        </PlayerDashboardSwipeWrapper>
+        <PlayerNotificationsClientView
+          initialNotifications={safeNotifications}
+          openTicketsCount={openTicketsCount}
+        />
       </main>
     </div>
   );

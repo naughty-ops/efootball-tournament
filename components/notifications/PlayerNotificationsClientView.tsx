@@ -259,7 +259,7 @@ export default function PlayerNotificationsClientView({
                     </p>
                     <div className="flex items-center gap-2 pt-1 text-[11px] text-white/50">
                       <Clock className="w-3 h-3" />
-                      <span>{formatDate(notif.createdAt)}</span>
+                      <span suppressHydrationWarning>{formatDate(notif.createdAt)}</span>
                       <span className="text-white/20">•</span>
                       <span className="uppercase text-[10px] font-bold text-white/40 tracking-wider">
                         {notif.type}
