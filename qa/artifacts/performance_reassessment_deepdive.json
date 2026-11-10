@@ -1,0 +1,147 @@
+{
+  "timestamp": "2026-11-10T14:16:38.641Z",
+  "mobile320": {
+    "label": "Production Mobile Compact (320px)",
+    "viewport": "320x700",
+    "coldRun": {
+      "run": 1,
+      "fcp": 700,
+      "lcp": 700,
+      "cls": 0.002,
+      "ttfb": 34,
+      "domContentLoaded": 738,
+      "load": 752
+    },
+    "warmRuns": [
+      {
+        "run": 2,
+        "fcp": 272,
+        "lcp": 272,
+        "cls": 0.002,
+        "ttfb": 36,
+        "domContentLoaded": 274,
+        "load": 758
+      },
+      {
+        "run": 3,
+        "fcp": 516,
+        "lcp": 516,
+        "cls": 0.002,
+        "ttfb": 38,
+        "domContentLoaded": 516,
+        "load": 573
+      }
+    ],
+    "avgWarm": {
+      "fcp": 394,
+      "ttfb": 37,
+      "load": 666
+    },
+    "slowResources": [
+      {
+        "name": "matches?select=id%2Cround_id%2Cgroup_id%2Cparticipant_a%2Cparticipant_b%2Cscheduled_time%2Cstatus%2Cscore_a%2Cscore_b%2Cwinner_id%2Cnotes%2Cmatch_position%2Cupdated_at&status=eq.live&order=updated_at.desc",
+        "initiatorType": "fetch",
+        "duration": 605,
+        "transferSize": 0
+      },
+      {
+        "name": "?_rsc=_nNpHJd5A_AP-Ykq",
+        "initiatorType": "fetch",
+        "duration": 353,
+        "transferSize": 822
+      },
+      {
+        "name": "?_rsc=m4NrIhnF_atOTAyF",
+        "initiatorType": "fetch",
+        "duration": 331,
+        "transferSize": 8829
+      },
+      {
+        "name": "login?_rsc=ATp2-S7LgcywPbPi",
+        "initiatorType": "fetch",
+        "duration": 326,
+        "transferSize": 2881
+      },
+      {
+        "name": "222d3efb-06eb-4204-a045-2aafeb0d1b71?_rsc=_nNpHJd5A_AP-Ykq",
+        "initiatorType": "fetch",
+        "duration": 302,
+        "transferSize": 516
+      }
+    ]
+  },
+  "desktop1920": {
+    "label": "Production Desktop FHD (1920px)",
+    "viewport": "1920x1080",
+    "coldRun": {
+      "run": 1,
+      "fcp": 484,
+      "lcp": 484,
+      "cls": 0.002,
+      "ttfb": 38,
+      "domContentLoaded": 489,
+      "load": 489
+    },
+    "warmRuns": [
+      {
+        "run": 2,
+        "fcp": 488,
+        "lcp": 488,
+        "cls": 0.002,
+        "ttfb": 36,
+        "domContentLoaded": 467,
+        "load": 982
+      },
+      {
+        "run": 3,
+        "fcp": 376,
+        "lcp": 376,
+        "cls": 0.002,
+        "ttfb": 39,
+        "domContentLoaded": 360,
+        "load": 403
+      }
+    ],
+    "avgWarm": {
+      "fcp": 432,
+      "ttfb": 38,
+      "load": 693
+    },
+    "slowResources": [
+      {
+        "name": "about?_rsc=_nNpHJd5A_AP-Ykq",
+        "initiatorType": "fetch",
+        "duration": 601,
+        "transferSize": 894
+      },
+      {
+        "name": "contact?_rsc=_nNpHJd5A_AP-Ykq",
+        "initiatorType": "fetch",
+        "duration": 553,
+        "transferSize": 896
+      },
+      {
+        "name": "?_rsc=_nNpHJd5A_AP-Ykq",
+        "initiatorType": "fetch",
+        "duration": 312,
+        "transferSize": 822
+      },
+      {
+        "name": "?_rsc=m4NrIhnF_atOTAyF",
+        "initiatorType": "fetch",
+        "duration": 303,
+        "transferSize": 8829
+      },
+      {
+        "name": "matches?select=id%2Cround_id%2Cgroup_id%2Cparticipant_a%2Cparticipant_b%2Cscheduled_time%2Cstatus%2Cscore_a%2Cscore_b%2Cwinner_id%2Cnotes%2Cmatch_position%2Cupdated_at&status=eq.live&order=updated_at.desc",
+        "initiatorType": "fetch",
+        "duration": 276,
+        "transferSize": 0
+      }
+    ]
+  },
+  "rootCauseAnalysis": {
+    "coldVsWarmExplanation": "Vercel serverless functions experience cold starts (2-4s) on the first invocation after idle. Subsequent warm executions exhibit instant TTFB (35-45ms) and fast FCP (< 800ms).",
+    "slowestAssets": "Heavy uncompressed banner images and unbundled chunks contribute to cold load times."
+  }
+}

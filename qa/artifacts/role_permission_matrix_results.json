@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-11-10T11:10:45.302Z",
+  "primary_admin_email": "ye.agrajj@gmail.com",
+  "matrix": [
+    {
+      "role": "guest",
+      "rank": 0,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": false,
+      "viewAdminPortal": false,
+      "streamBroadcasterToken": false,
+      "moderateTicketsAndDisputes": false,
+      "adminManageTournaments": false,
+      "financialPrizeDistribute": false,
+      "financialPayoutDisburse": false,
+      "superAdminUserRoles": false,
+      "verdict": "PASS"
+    },
+    {
+      "role": "normal_player",
+      "rank": 0,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": true,
+      "viewAdminPortal": false,
+      "streamBroadcasterToken": false,
+      "moderateTicketsAndDisputes": false,
+      "adminManageTournaments": false,
+      "financialPrizeDistribute": false,
+      "financialPayoutDisburse": false,
+      "superAdminUserRoles": false,
+      "verdict": "PASS"
+    },
+    {
+      "role": "streamer",
+      "rank": 10,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": true,
+      "viewAdminPortal": true,
+      "streamBroadcasterToken": true,
+      "moderateTicketsAndDisputes": false,
+      "adminManageTournaments": false,
+      "financialPrizeDistribute": false,
+      "financialPayoutDisburse": false,
+      "superAdminUserRoles": false,
+      "verdict": "PASS"
+    },
+    {
+      "role": "moderator",
+      "rank": 20,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": true,
+      "viewAdminPortal": true,
+      "streamBroadcasterToken": true,
+      "moderateTicketsAndDisputes": true,
+      "adminManageTournaments": false,
+      "financialPrizeDistribute": false,
+      "financialPayoutDisburse": false,
+      "superAdminUserRoles": false,
+      "verdict": "PASS"
+    },
+    {
+      "role": "admin",
+      "rank": 30,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": true,
+      "viewAdminPortal": true,
+      "streamBroadcasterToken": true,
+      "moderateTicketsAndDisputes": true,
+      "adminManageTournaments": true,
+      "financialPrizeDistribute": true,
+      "financialPayoutDisburse": true,
+      "superAdminUserRoles": false,
+      "verdict": "PASS"
+    },
+    {
+      "role": "super_admin",
+      "rank": 40,
+      "viewPublicHub": true,
+      "viewPlayerDashboard": true,
+      "viewAdminPortal": true,
+      "streamBroadcasterToken": true,
+      "moderateTicketsAndDisputes": true,
+      "adminManageTournaments": true,
+      "financialPrizeDistribute": true,
+      "financialPayoutDisburse": true,
+      "superAdminUserRoles": true,
+      "verdict": "PASS"
+    }
+  ],
+  "db_admin_users": [
+    {
+      "id": "30080df7-5188-4630-b597-b8493ebe045d",
+      "email": "ye.agrajj@gmail.com",
+      "role": "super_admin"
+    }
+  ]
+}
