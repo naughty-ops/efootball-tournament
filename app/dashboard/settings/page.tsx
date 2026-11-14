@@ -27,7 +27,7 @@ export default async function PlayerSettingsPage() {
 
   const [profile, paymentMethods, tickets] = await Promise.all([
     getPlayerProfile(supabase, user.id, user).catch(() => null),
-    getPlayerPaymentMethods(user.id).catch(() => []),
+    getPlayerPaymentMethods(user.id, supabase).catch(() => []),
     getPlayerTickets(user.id).catch(() => []),
   ]);
 

@@ -10,6 +10,7 @@ import {
   distributeTournamentPrizes,
   updatePayoutStatus,
 } from '@/services/walletService';
+import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PaymentMethodType, PayoutStatus } from '@/types/wallet';
 
@@ -36,7 +37,8 @@ export async function saveBankAccountAction(params: {
       return { success: false, error: 'Authentication required. Please sign in.' };
     }
 
-    const res = await savePlayerBankAccount(user.id, params);
+    const supabase = await createClient();
+    const res = await savePlayerBankAccount(user.id, params, supabase);
     if (!res.success) {
       return res;
     }
@@ -64,7 +66,8 @@ export async function saveUpiDetailsAction(params: {
       return { success: false, error: 'Authentication required. Please sign in.' };
     }
 
-    const res = await savePlayerUpiDetails(user.id, params);
+    const supabase = await createClient();
+    const res = await savePlayerUpiDetails(user.id, params, supabase);
     if (!res.success) {
       return res;
     }
@@ -90,7 +93,8 @@ export async function setPreferredPaymentMethodAction(params: {
       return { success: false, error: 'Authentication required. Please sign in.' };
     }
 
-    const res = await setPreferredPaymentMethod(user.id, params.paymentMethodType);
+    const supabase = await createClient();
+    const res = await setPreferredPaymentMethod(user.id, params.paymentMethodType, supabase);
     if (!res.success) {
       return res;
     }
@@ -198,8 +202,8 @@ export async function markNotificationReadAction(notificationId: string): Promis
       return { success: false, error: 'Unauthorized' };
     }
 
-    const adminClient = createAdminClient();
-    await (adminClient.from('player_notifications') as any)
+    const supabase = await createClient();
+    await (supabase.from('player_notifications') as any)
       .update({ is_read: true })
       .eq('id', notificationId)
       .eq('user_id', user.id);

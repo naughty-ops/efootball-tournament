@@ -49,10 +49,10 @@ export default async function PlayerWalletPage() {
   // Fetch player profile for header and financial data in parallel with resilient fallbacks
   const [profile, overview, txResult, paymentMethods, payouts] = await Promise.all([
     getPlayerProfile(supabase, user.id, user).catch(() => null),
-    getPlayerWalletOverview(user.id).catch(() => defaultOverview),
-    getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }).catch(() => ({ transactions: [], totalCount: 0 })),
-    getPlayerPaymentMethods(user.id).catch(() => []),
-    getPlayerPayouts(user.id).catch(() => []),
+    getPlayerWalletOverview(user.id, supabase).catch(() => defaultOverview),
+    getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }, supabase).catch(() => ({ transactions: [], totalCount: 0 })),
+    getPlayerPaymentMethods(user.id, supabase).catch(() => []),
+    getPlayerPayouts(user.id, supabase).catch(() => []),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import {
   WalletOverview,
   WalletTransactionItem,
@@ -69,13 +69,38 @@ export function invalidateWalletCache(userId?: string) {
 }
 
 /**
+ * Resolves the optimal Supabase client for player-scoped wallet operations.
+ * 1. If a custom client is explicitly provided, it is returned immediately.
+ * 2. In a server context (Server Action / Server Component), attempts to use
+ *    `await createClient()`. When authenticated, this uses the user's session
+ *    cookies, guaranteeing that Postgres Row Level Security (RLS) policies
+ *    (e.g., auth.uid() = user_id) evaluate successfully with the 'authenticated' role.
+ * 3. Falls back to `createAdminClient()` if service role is configured or outside request context.
+ */
+async function getPlayerClient(customClient?: any) {
+  if (customClient) return customClient;
+
+  try {
+    const userClient = await createClient();
+    const { data: { user } } = await userClient.auth.getUser();
+    if (user) {
+      return userClient;
+    }
+  } catch {
+    // cookies() unavailable or outside request context
+  }
+
+  return createAdminClient();
+}
+
+/**
  * Ensures a player wallet record exists for the given user ID.
  */
-export async function getOrCreatePlayerWallet(userId: string): Promise<{ id: string; userId: string }> {
-  const adminClient = createAdminClient();
+export async function getOrCreatePlayerWallet(userId: string, customClient?: any): Promise<{ id: string; userId: string }> {
+  const client = await getPlayerClient(customClient);
   const now = new Date().toISOString();
 
-  const { data: existing } = await (adminClient.from('player_wallets') as any)
+  const { data: existing } = await (client.from('player_wallets') as any)
     .select('id, user_id')
     .eq('user_id', userId)
     .maybeSingle();
@@ -84,14 +109,26 @@ export async function getOrCreatePlayerWallet(userId: string): Promise<{ id: str
     return { id: existing.id, userId: existing.user_id };
   }
 
-  const { data: created, error } = await (adminClient.from('player_wallets') as any)
+  let { data: created, error } = await (client.from('player_wallets') as any)
     .insert({ user_id: userId, created_at: now, updated_at: now })
     .select('id, user_id')
     .single();
 
+  if ((error || !created) && isServiceRoleConfigured()) {
+    const adminFallback = createAdminClient();
+    const fallbackRes = await (adminFallback.from('player_wallets') as any)
+      .insert({ user_id: userId, created_at: now, updated_at: now })
+      .select('id, user_id')
+      .single();
+    if (!fallbackRes.error && fallbackRes.data) {
+      created = fallbackRes.data;
+      error = null;
+    }
+  }
+
   if (error || !created) {
     // If conflict due to race condition, re-query
-    const { data: fallback } = await (adminClient.from('player_wallets') as any)
+    const { data: fallback } = await (client.from('player_wallets') as any)
       .select('id, user_id')
       .eq('user_id', userId)
       .single();
@@ -106,7 +143,7 @@ export async function getOrCreatePlayerWallet(userId: string): Promise<{ id: str
  * Calculates authoritative financial overview figures from the database.
  * Never trusts frontend or client-supplied amounts.
  */
-export async function getPlayerWalletOverview(userId: string): Promise<WalletOverview> {
+export async function getPlayerWalletOverview(userId: string, customClient?: any): Promise<WalletOverview> {
   const cached = walletOverviewCache.get(userId);
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
@@ -129,10 +166,10 @@ export async function getPlayerWalletOverview(userId: string): Promise<WalletOve
   };
 
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
 
     // 1. Total awarded tournament prizes
-    const { data: awardedPrizes } = await (adminClient.from('prize_distributions') as any)
+    const { data: awardedPrizes } = await (client.from('prize_distributions') as any)
       .select('prize_amount_paise')
       .eq('player_id', userId)
       .eq('status', 'awarded');
@@ -146,7 +183,7 @@ export async function getPlayerWalletOverview(userId: string): Promise<WalletOve
     }
 
     // 2. Pending approval tournament prizes
-    const { data: pendingPrizes } = await (adminClient.from('prize_distributions') as any)
+    const { data: pendingPrizes } = await (client.from('prize_distributions') as any)
       .select('prize_amount_paise')
       .eq('player_id', userId)
       .eq('status', 'pending_approval');
@@ -160,7 +197,7 @@ export async function getPlayerWalletOverview(userId: string): Promise<WalletOve
     }
 
     // 3. Payout transactions breakdown (Available, Processing, Paid)
-    const { data: allPayouts } = await (adminClient.from('payout_transactions') as any)
+    const { data: allPayouts } = await (client.from('payout_transactions') as any)
       .select(`
         id,
         amount_paise,
@@ -257,15 +294,16 @@ export async function getPlayerWalletTransactions(
     status?: string;
     page?: number;
     pageSize?: number;
-  }
+  },
+  customClient?: any
 ): Promise<{ transactions: WalletTransactionItem[]; totalCount: number }> {
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
     const page = Math.max(1, options?.page || 1);
     const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
     const offset = (page - 1) * pageSize;
 
-    let query = (adminClient.from('wallet_transactions') as any)
+    let query = (client.from('wallet_transactions') as any)
       .select(
         `
         id,
@@ -337,11 +375,11 @@ export async function getPlayerWalletTransactions(
 /**
  * Aggregates monthly earnings and payouts for the performance chart.
  */
-export async function getPlayerMonthlyEarnings(userId: string): Promise<MonthlyEarningsPoint[]> {
+export async function getPlayerMonthlyEarnings(userId: string, customClient?: any): Promise<MonthlyEarningsPoint[]> {
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
 
-    const { data, error } = await (adminClient.from('wallet_transactions') as any)
+    const { data, error } = await (client.from('wallet_transactions') as any)
       .select('transaction_type, amount_inr, status, created_at')
       .eq('user_id', userId)
       .eq('status', 'completed')
@@ -385,11 +423,12 @@ export async function getPlayerMonthlyEarnings(userId: string): Promise<MonthlyE
  */
 export async function getPlayerPerformanceAnalytics(
   userId: string,
-  timeframe: PerformancePeriod = 'month'
+  timeframe: PerformancePeriod = 'month',
+  customClient?: any
 ): Promise<PerformanceAnalyticsData> {
-  const adminClient = createAdminClient();
+  const client = await getPlayerClient(customClient);
 
-  const { data: rows } = await (adminClient.from('wallet_transactions') as any)
+  const { data: rows } = await (client.from('wallet_transactions') as any)
     .select('transaction_type, amount_inr, status, created_at')
     .eq('user_id', userId)
     .eq('status', 'completed')
@@ -617,21 +656,50 @@ export async function getPlayerPerformanceAnalytics(
  * Retrieves player payment methods with masked account numbers.
  * Plaintext and encrypted account numbers are never returned here.
  */
-export async function getPlayerPaymentMethods(userId: string): Promise<PlayerPaymentMethod[]> {
+export async function getPlayerPaymentMethods(userId: string, customClient?: any): Promise<PlayerPaymentMethod[]> {
   const cached = paymentMethodsCache.get(userId);
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
   }
 
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
 
-    const { data, error } = await (adminClient.from('player_payment_methods') as any)
+    const { data, error } = await (client.from('player_payment_methods') as any)
       .select('id, user_id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id, is_preferred, created_at, updated_at')
       .eq('user_id', userId)
       .order('is_preferred', { ascending: false });
 
-    if (error || !data) {
+    if (error) {
+      console.warn('Error fetching player payment methods with client, trying admin fallback:', error);
+      if (isServiceRoleConfigured()) {
+        const adminClient = createAdminClient();
+        const { data: adminData } = await (adminClient.from('player_payment_methods') as any)
+          .select('id, user_id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id, is_preferred, created_at, updated_at')
+          .eq('user_id', userId)
+          .order('is_preferred', { ascending: false });
+        if (adminData) {
+          const fallbackMapped: PlayerPaymentMethod[] = adminData.map((m: any) => ({
+            id: m.id,
+            userId: m.user_id,
+            paymentMethodType: m.payment_method_type,
+            accountHolderName: m.account_holder_name,
+            bankName: m.bank_name,
+            maskedAccountNumber: m.masked_account_number,
+            ifscCode: m.ifsc_code,
+            upiId: m.upi_id,
+            isPreferred: Boolean(m.is_preferred),
+            createdAt: m.created_at,
+            updatedAt: m.updated_at,
+          }));
+          paymentMethodsCache.set(userId, { data: fallbackMapped, timestamp: Date.now() });
+          return fallbackMapped;
+        }
+      }
+      return [];
+    }
+
+    if (!data) {
       return [];
     }
 
@@ -669,7 +737,8 @@ export async function savePlayerBankAccount(
     confirmAccountNumber: string;
     ifscCode: string;
     isPreferred?: boolean;
-  }
+  },
+  customClient?: any
 ): Promise<{ success: boolean; error?: string }> {
   const holder = params.accountHolderName?.trim();
   const bank = params.bankName?.trim();
@@ -697,15 +766,15 @@ export async function savePlayerBankAccount(
   const maskedAccount = maskAccountNumber(acc);
   const isPreferred = params.isPreferred ?? false;
   const now = new Date().toISOString();
-  const adminClient = createAdminClient();
+  const client = await getPlayerClient(customClient);
 
   if (isPreferred) {
-    await (adminClient.from('player_payment_methods') as any)
+    await (client.from('player_payment_methods') as any)
       .update({ is_preferred: false, updated_at: now })
       .eq('user_id', userId);
   }
 
-  const { error } = await (adminClient.from('player_payment_methods') as any).upsert(
+  let { error } = await (client.from('player_payment_methods') as any).upsert(
     {
       user_id: userId,
       payment_method_type: 'bank_account',
@@ -720,25 +789,51 @@ export async function savePlayerBankAccount(
     { onConflict: 'user_id,payment_method_type' }
   );
 
-  if (error) {
-    console.error('Failed to save bank account:', error);
-    return { success: false, error: 'Failed to save bank account details.' };
+  if (error && isServiceRoleConfigured()) {
+    const adminFallback = createAdminClient();
+    const fallbackRes = await (adminFallback.from('player_payment_methods') as any).upsert(
+      {
+        user_id: userId,
+        payment_method_type: 'bank_account',
+        account_holder_name: holder,
+        bank_name: bank,
+        encrypted_account_number: encryptedAccount,
+        masked_account_number: maskedAccount,
+        ifsc_code: ifsc,
+        is_preferred: isPreferred,
+        updated_at: now,
+      },
+      { onConflict: 'user_id,payment_method_type' }
+    );
+    error = fallbackRes.error;
   }
 
+  if (error) {
+    console.error('Failed to save bank account:', error);
+    return { success: false, error: error.message || 'Failed to save bank account details.' };
+  }
+
+  paymentMethodsCache.delete(userId);
+  invalidateWalletCache(userId);
+
   // Audit log (never records plaintext or encrypted account number)
-  await (adminClient.from('financial_audit_logs') as any).insert({
-    actor_id: userId,
-    action: 'SAVE_BANK_ACCOUNT',
-    target_type: 'player_payment_methods',
-    target_id: userId,
-    new_state: {
-      payment_method_type: 'bank_account',
-      bank_name: bank,
-      masked_account_number: maskedAccount,
-      ifsc_code: ifsc,
-      is_preferred: isPreferred,
-    },
-  });
+  try {
+    await (client.from('financial_audit_logs') as any).insert({
+      actor_id: userId,
+      action: 'SAVE_BANK_ACCOUNT',
+      target_type: 'player_payment_methods',
+      target_id: userId,
+      new_state: {
+        payment_method_type: 'bank_account',
+        bank_name: bank,
+        masked_account_number: maskedAccount,
+        ifsc_code: ifsc,
+        is_preferred: isPreferred,
+      },
+    });
+  } catch (auditErr) {
+    console.warn('Audit log write error:', auditErr);
+  }
 
   return { success: true };
 }
@@ -752,7 +847,8 @@ export async function savePlayerUpiDetails(
     upiId: string;
     confirmUpiId: string;
     isPreferred?: boolean;
-  }
+  },
+  customClient?: any
 ): Promise<{ success: boolean; error?: string }> {
   const upi = params.upiId?.trim().toLowerCase();
   const confirmUpi = params.confirmUpiId?.trim().toLowerCase();
@@ -766,15 +862,15 @@ export async function savePlayerUpiDetails(
 
   const isPreferred = params.isPreferred ?? false;
   const now = new Date().toISOString();
-  const adminClient = createAdminClient();
+  const client = await getPlayerClient(customClient);
 
   if (isPreferred) {
-    await (adminClient.from('player_payment_methods') as any)
+    await (client.from('player_payment_methods') as any)
       .update({ is_preferred: false, updated_at: now })
       .eq('user_id', userId);
   }
 
-  const { error } = await (adminClient.from('player_payment_methods') as any).upsert(
+  let { error } = await (client.from('player_payment_methods') as any).upsert(
     {
       user_id: userId,
       payment_method_type: 'upi',
@@ -785,23 +881,45 @@ export async function savePlayerUpiDetails(
     { onConflict: 'user_id,payment_method_type' }
   );
 
-  if (error) {
-    console.error('Failed to save UPI details:', error);
-    return { success: false, error: 'Failed to save UPI details.' };
+  if (error && isServiceRoleConfigured()) {
+    const adminFallback = createAdminClient();
+    const fallbackRes = await (adminFallback.from('player_payment_methods') as any).upsert(
+      {
+        user_id: userId,
+        payment_method_type: 'upi',
+        upi_id: upi,
+        is_preferred: isPreferred,
+        updated_at: now,
+      },
+      { onConflict: 'user_id,payment_method_type' }
+    );
+    error = fallbackRes.error;
   }
 
+  if (error) {
+    console.error('Failed to save UPI details:', error);
+    return { success: false, error: error.message || 'Failed to save UPI details.' };
+  }
+
+  paymentMethodsCache.delete(userId);
+  invalidateWalletCache(userId);
+
   // Audit log
-  await (adminClient.from('financial_audit_logs') as any).insert({
-    actor_id: userId,
-    action: 'SAVE_UPI_DETAILS',
-    target_type: 'player_payment_methods',
-    target_id: userId,
-    new_state: {
-      payment_method_type: 'upi',
-      upi_id: upi,
-      is_preferred: isPreferred,
-    },
-  });
+  try {
+    await (client.from('financial_audit_logs') as any).insert({
+      actor_id: userId,
+      action: 'SAVE_UPI_DETAILS',
+      target_type: 'player_payment_methods',
+      target_id: userId,
+      new_state: {
+        payment_method_type: 'upi',
+        upi_id: upi,
+        is_preferred: isPreferred,
+      },
+    });
+  } catch (auditErr) {
+    console.warn('Audit log write error:', auditErr);
+  }
 
   return { success: true };
 }
@@ -811,33 +929,51 @@ export async function savePlayerUpiDetails(
  */
 export async function setPreferredPaymentMethod(
   userId: string,
-  paymentMethodType: PaymentMethodType
+  paymentMethodType: PaymentMethodType,
+  customClient?: any
 ): Promise<{ success: boolean; error?: string }> {
-  const adminClient = createAdminClient();
+  const client = await getPlayerClient(customClient);
   const now = new Date().toISOString();
 
   // Reset all
-  await (adminClient.from('player_payment_methods') as any)
+  await (client.from('player_payment_methods') as any)
     .update({ is_preferred: false, updated_at: now })
     .eq('user_id', userId);
 
   // Set selected
-  const { error } = await (adminClient.from('player_payment_methods') as any)
+  let { error } = await (client.from('player_payment_methods') as any)
     .update({ is_preferred: true, updated_at: now })
     .eq('user_id', userId)
     .eq('payment_method_type', paymentMethodType);
 
-  if (error) {
-    return { success: false, error: 'Failed to update preferred payment method.' };
+  if (error && isServiceRoleConfigured()) {
+    const adminFallback = createAdminClient();
+    const fallbackRes = await (adminFallback.from('player_payment_methods') as any)
+      .update({ is_preferred: true, updated_at: now })
+      .eq('user_id', userId)
+      .eq('payment_method_type', paymentMethodType);
+    error = fallbackRes.error;
   }
 
-  await (adminClient.from('financial_audit_logs') as any).insert({
-    actor_id: userId,
-    action: 'SET_PREFERRED_PAYMENT_METHOD',
-    target_type: 'player_payment_methods',
-    target_id: userId,
-    new_state: { preferred_method: paymentMethodType },
-  });
+  if (error) {
+    console.error('Failed to update preferred payment method:', error);
+    return { success: false, error: error.message || 'Failed to update preferred payment method.' };
+  }
+
+  paymentMethodsCache.delete(userId);
+  invalidateWalletCache(userId);
+
+  try {
+    await (client.from('financial_audit_logs') as any).insert({
+      actor_id: userId,
+      action: 'SET_PREFERRED_PAYMENT_METHOD',
+      target_type: 'player_payment_methods',
+      target_id: userId,
+      new_state: { preferred_method: paymentMethodType },
+    });
+  } catch (auditErr) {
+    console.warn('Audit log write error:', auditErr);
+  }
 
   return { success: true };
 }
@@ -845,16 +981,16 @@ export async function setPreferredPaymentMethod(
 /**
  * Retrieves player's payout history with 24-hour SLA tracking and payment details.
  */
-export async function getPlayerPayouts(userId: string): Promise<PayoutTransactionRecord[]> {
+export async function getPlayerPayouts(userId: string, customClient?: any): Promise<PayoutTransactionRecord[]> {
   const cached = payoutsCache.get(userId);
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
   }
 
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
 
-    const { data, error } = await (adminClient.from('payout_transactions') as any)
+    let { data, error } = await (client.from('payout_transactions') as any)
       .select(`
         id,
         payout_reference,
@@ -879,6 +1015,38 @@ export async function getPlayerPayouts(userId: string): Promise<PayoutTransactio
       .eq('player_id', userId)
       .order('created_at', { ascending: false });
 
+    if (error && isServiceRoleConfigured()) {
+      const adminFallback = createAdminClient();
+      const fallbackRes = await (adminFallback.from('payout_transactions') as any)
+        .select(`
+          id,
+          payout_reference,
+          player_id,
+          prize_distribution_id,
+          amount_paise,
+          amount_inr,
+          payment_method_id,
+          payment_method_type,
+          payout_status,
+          utr_reference,
+          processed_by,
+          paid_at,
+          eligible_at,
+          deadline_at,
+          receipt_url,
+          receipt_reference,
+          failure_reason,
+          created_at,
+          updated_at
+        `)
+        .eq('player_id', userId)
+        .order('created_at', { ascending: false });
+      if (!fallbackRes.error && fallbackRes.data) {
+        data = fallbackRes.data;
+        error = null;
+      }
+    }
+
     if (error || !data) {
       return [];
     }
@@ -888,7 +1056,7 @@ export async function getPlayerPayouts(userId: string): Promise<PayoutTransactio
     const tournamentMap = new Map<string, { name: string; positionTitle: string }>();
 
     if (distIds.length > 0) {
-      const { data: dists } = await (adminClient.from('prize_distributions') as any)
+      const { data: dists } = await (client.from('prize_distributions') as any)
         .select('id, position_title, tournament_id, tournaments:tournament_id (id, name)')
         .in('id', distIds);
 
@@ -906,7 +1074,7 @@ export async function getPlayerPayouts(userId: string): Promise<PayoutTransactio
     const pmIds = data.map((r: any) => r.payment_method_id).filter(Boolean);
     const pmMap = new Map<string, any>();
     if (pmIds.length > 0) {
-      const { data: pms } = await (adminClient.from('player_payment_methods') as any)
+      const { data: pms } = await (client.from('player_payment_methods') as any)
         .select('id, payment_method_type, account_holder_name, bank_name, masked_account_number, ifsc_code, upi_id')
         .in('id', pmIds);
       if (pms) {

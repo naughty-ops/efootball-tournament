@@ -1,6 +1,13 @@
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
+export function isServiceRoleConfigured(): boolean {
+  return Boolean(
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_KEY?.trim()
+  );
+}
+
 /**
  * Creates an elevated Supabase client with SUPABASE_SERVICE_ROLE_KEY.
  * Pure server-side client without any dependency on next/headers cookies.

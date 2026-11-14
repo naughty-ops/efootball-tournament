@@ -121,7 +121,7 @@ export default function PaymentDetailsManager({ paymentMethods }: PaymentDetails
     const cleanUpi = upiId.trim().toLowerCase();
     const cleanConfirm = confirmUpiId.trim().toLowerCase();
 
-    if (!cleanUpi || !/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(cleanUpi)) {
+    if (!cleanUpi || !/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9.\-_]{2,64}$/.test(cleanUpi)) {
       setUpiError('Invalid UPI ID format. Expected format: username@bank (e.g. player@okaxis).');
       return;
     }

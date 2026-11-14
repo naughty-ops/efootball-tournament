@@ -112,5 +112,5 @@ export function isValidIfscCode(ifsc: string): boolean {
 export function isValidUpiId(upiId: string): boolean {
   if (!upiId) return false;
   const normalized = upiId.trim();
-  return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(normalized);
+  return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9.\-_]{2,64}$/.test(normalized);
 }
