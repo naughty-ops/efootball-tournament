@@ -38,6 +38,7 @@ import MatchCountdownTimer from '@/components/match/MatchCountdownTimer';
 import ReportMatchIssueModal from '@/components/match/ReportMatchIssueModal';
 import SubmitMatchScoreModal from '@/components/match/SubmitMatchScoreModal';
 import UploadMatchEvidenceModal from '@/components/match/UploadMatchEvidenceModal';
+import { usePlayerDashboardTabStore } from '@/lib/stores/useTabStateStore';
 import {
   recordPlayerCheckinAction,
   requestWalkoverAction,
@@ -63,7 +64,7 @@ export default function PlayerMatchesClient({
   initialError,
 }: PlayerMatchesClientProps) {
   const router = useRouter();
-  const [selectedTab, setSelectedTab] = useState<string>('all');
+  const { matchesFilter: selectedTab, setMatchesFilter: setSelectedTab } = usePlayerDashboardTabStore();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -74,7 +75,7 @@ export default function PlayerMatchesClient({
   const PAGE_SIZE = 10;
 
   const handleTabChange = (tab: string) => {
-    setSelectedTab(tab);
+    setSelectedTab(tab as 'all' | 'upcoming' | 'completed' | 'live');
     setCurrentPage(1);
   };
 

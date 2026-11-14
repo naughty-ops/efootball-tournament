@@ -36,6 +36,14 @@ export interface OptimizedUrlOptions {
   radius?: string | number;
 }
 
+// Server-side only in-memory cache for media overview
+const adminMediaCache = new Map<string, { data: any; timestamp: number }>();
+const MEDIA_CACHE_TTL_MS = 30000;
+
+export function invalidateAdminMediaCache() {
+  adminMediaCache.clear();
+}
+
 /**
  * Validates, uploads, and records an image asset in Cloudinary and Supabase media_assets.
  */
@@ -157,6 +165,7 @@ export async function uploadImage(
       .eq('id', options.entityId);
   }
 
+  invalidateAdminMediaCache();
   return asset as MediaAsset;
 }
 
@@ -230,6 +239,7 @@ export async function deleteImage(
       .eq('cloudinary_public_id', cloudinaryPublicId);
   }
 
+  invalidateAdminMediaCache();
   return { success: true, message: 'Image deleted successfully' };
 }
 
@@ -261,6 +271,7 @@ export async function replaceImage(
     }
   }
 
+  invalidateAdminMediaCache();
   return newAsset;
 }
 
@@ -403,6 +414,12 @@ export async function getAdminMediaOverview(options?: {
   limit?: number;
   offset?: number;
 }) {
+  const cacheKey = JSON.stringify(options || {});
+  const cached = adminMediaCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < MEDIA_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const adminClient = createAdminClient();
 
   let query = (adminClient.from('media_assets') as any)
@@ -443,7 +460,7 @@ export async function getAdminMediaOverview(options?: {
     }
   });
 
-  return {
+  const result = {
     assets: (assets || []) as MediaAsset[],
     totalCount: count || 0,
     totalBytes,
@@ -451,4 +468,7 @@ export async function getAdminMediaOverview(options?: {
     countByCategory,
     bytesByCategory,
   };
+
+  adminMediaCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }

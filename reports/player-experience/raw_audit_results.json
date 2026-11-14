@@ -1,0 +1,1236 @@
+[
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "THE PITCH IS OURS",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 42,
+    "notes": [
+      "Homepage tournaments section visible: true"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/tournaments",
+    "viewport": "Desktop (1440x900)",
+    "title": "Tournaments | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 66,
+    "notes": [
+      "Discovered tournament cards count: 14"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/live",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Live Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/about",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "About eFootball Platform",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/contact",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Contact Community Support",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 26,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/privacy",
+    "viewport": "Desktop (1440x900)",
+    "title": "Privacy Policy | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Privacy Policy",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/terms",
+    "viewport": "Desktop (1440x900)",
+    "title": "Terms & Conditions | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Terms & Conditions",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "THE PITCH IS OURS",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"Register Now\" (133x28px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 42,
+    "notes": [
+      "Homepage tournaments section visible: true"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/tournaments",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Tournaments | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 57,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "button \"All\" (82x35px)",
+      "button \"Live / Active\" (147x34px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 66,
+    "notes": [
+      "Discovered tournament cards count: 14"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/live",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Live Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "button \"Refresh\" (109x32px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/about",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "About eFootball Platform",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 11,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"Active Tournaments\" (108x16px)",
+      "a \"Open Registrations\" (105x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/contact",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Contact Community Support",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"My Matches\" (80x18px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 26,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/privacy",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Privacy Policy | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Privacy Policy",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Settings & Policies\" (156x32px)",
+      "a \"Terms & Conditions\" (146x16px)",
+      "a \"Submit Inquiry\" (110x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/terms",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Terms & Conditions | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Terms & Conditions",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Settings & Policies\" (156x32px)",
+      "a \"Privacy Policy\" (109x16px)",
+      "a \"Contact Admin\" (111x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/",
+    "viewport": "Mobile Small (360x800)",
+    "title": "eFootball Tournament Platform",
+    "heading": "THE PITCH IS OURS",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"Register Now\" (133x28px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 42,
+    "notes": [
+      "Homepage tournaments section visible: true"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/tournaments",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Tournaments | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 57,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "button \"All\" (82x35px)",
+      "button \"Live / Active\" (147x34px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 66,
+    "notes": [
+      "Discovered tournament cards count: 14"
+    ]
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/live",
+    "viewport": "Mobile Small (360x800)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Live Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "button \"Refresh\" (109x32px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/about",
+    "viewport": "Mobile Small (360x800)",
+    "title": "eFootball Tournament Platform",
+    "heading": "About eFootball Platform",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 11,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"Active Tournaments\" (108x16px)",
+      "a \"Open Registrations\" (105x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/contact",
+    "viewport": "Mobile Small (360x800)",
+    "title": "eFootball Tournament Platform",
+    "heading": "Contact Community Support",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 12,
+    "smallTouchTargets": [
+      "a \"LIVE\" (54x27px)",
+      "a \"LoginSign In\" (78x26px)",
+      "a \"JOIN\" (70x24px)",
+      "a \"My Matches\" (80x18px)",
+      "a \"Active Tournaments\" (108x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "WebSocket connection to 'wss://cqgbeafenavkeirwsxbg.supabase.co/realtime/v1/websocket?apikey=sb_publishable_0_jFqZBwx8QZzCZ1acC3jw_r7I-gaq9&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+    ],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 26,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/privacy",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Privacy Policy | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Privacy Policy",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Settings & Policies\" (156x32px)",
+      "a \"Terms & Conditions\" (138x32px)",
+      "a \"Submit Inquiry\" (103x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 1",
+    "category": "Public",
+    "url": "http://localhost:3001/terms",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Terms & Conditions | eFootball Tournament Platform | eFootball Tournament Platform",
+    "heading": "Terms & Conditions",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Settings & Policies\" (156x32px)",
+      "a \"Privacy Policy\" (109x16px)",
+      "a \"Contact Admin\" (111x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 3,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/auth/login",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 7,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/signup",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 9,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/forgot-password",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 4,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/login",
+    "viewport": "Desktop (1440x900)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 5,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/auth/login",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Forgot password?\" (97x17px)",
+      "button \"Show Password\" (16x16px)",
+      "a \"Sign Up\" (45x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 7,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/signup",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 2,
+    "smallTouchTargets": [
+      "button \"Show Password\" (16x16px)",
+      "a \"Sign in\" (40x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 9,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/forgot-password",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "a \"Sign in\" (40x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 4,
+    "notes": []
+  },
+  {
+    "phase": "Phase 2",
+    "category": "Auth",
+    "url": "http://localhost:3001/login",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "eFootball Tournament Platform",
+    "heading": "No H1/H2",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "button \"Show Password\" (16x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 5,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard",
+    "viewport": "Desktop (1440x900)",
+    "title": "Player Dashboard | eFootball Tournament | eFootball Tournament Platform",
+    "heading": "Welcome back, QA Athlete 01!",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 25,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tournaments",
+    "viewport": "Desktop (1440x900)",
+    "title": "My Tournaments | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 23,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/matches",
+    "viewport": "Desktop (1440x900)",
+    "title": "My Matches | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 24,
+    "notes": [
+      "Visible match items: 0"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/wallet",
+    "viewport": "Desktop (1440x900)",
+    "title": "Wallet & Payouts | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Earnings & Payouts",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": [
+      "Wallet balance UI rendered: true"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/career",
+    "viewport": "Desktop (1440x900)",
+    "title": "Career & Achievements | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Career & Achievements",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 14,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/notifications",
+    "viewport": "Desktop (1440x900)",
+    "title": "Alerts & Notifications | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Alerts & Notifications",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 19,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/settings",
+    "viewport": "Desktop (1440x900)",
+    "title": "Account Settings & Security | Player Hub | eFootball Tournament Platform",
+    "heading": "Account Settings",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 34,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tickets",
+    "viewport": "Desktop (1440x900)",
+    "title": "My Tickets & Support | eFootball Player Hub | eFootball Tournament Platform",
+    "heading": "My Tickets & Disputes",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 1440,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 15,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Player Dashboard | eFootball Tournament | eFootball Tournament Platform",
+    "heading": "Welcome back, QA Athlete 01!",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"View Hub\" (91x32px)",
+      "a \"View Hub\" (91x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 25,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tournaments",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "My Tournaments | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 23,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/matches",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "My Matches | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 4,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Report Issue\" (128x32px)",
+      "button \"Start Match\" (144x32px)",
+      "a \"View Bracket\" (149x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 24,
+    "notes": [
+      "Visible match items: 0"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/wallet",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Wallet & Payouts | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Earnings & Payouts",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 4,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Day\" (54x28px)",
+      "button \"Week\" (67x28px)",
+      "button \"Month\" (77x28px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": [
+      "Wallet balance UI rendered: true"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/career",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Career & Achievements | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Career & Achievements",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 2,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"Back to Profile\" (137x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 14,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/notifications",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Alerts & Notifications | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Alerts & Notifications",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 19,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/settings",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "Account Settings & Security | Player Hub | eFootball Tournament Platform",
+    "heading": "Account Settings",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Save Bank Account\" (176x32px)",
+      "button \"Save UPI Details\" (150x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 34,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tickets",
+    "viewport": "Mobile Standard (390x844)",
+    "title": "My Tickets & Support | eFootball Player Hub | eFootball Tournament Platform",
+    "heading": "My Tickets & Disputes",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 390,
+    "smallTouchTargetsCount": 2,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"Settings Center\" (137x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 15,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Player Dashboard | eFootball Tournament | eFootball Tournament Platform",
+    "heading": "Welcome back, QA Athlete 01!",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"View Hub\" (91x32px)",
+      "a \"View Hub\" (91x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 25,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tournaments",
+    "viewport": "Mobile Small (360x800)",
+    "title": "My Tournaments | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 23,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/matches",
+    "viewport": "Mobile Small (360x800)",
+    "title": "My Matches | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 4,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Report Issue\" (128x32px)",
+      "button \"Start Match\" (144x32px)",
+      "a \"View Bracket\" (149x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 24,
+    "notes": [
+      "Visible match items: 0"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/wallet",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Wallet & Payouts | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Earnings & Payouts",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 4,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Day\" (54x28px)",
+      "button \"Week\" (67x28px)",
+      "button \"Month\" (77x28px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": [
+      "Wallet balance UI rendered: true"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/career",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Career & Achievements | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Career & Achievements",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 2,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"Back to Profile\" (137x16px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 14,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/notifications",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Alerts & Notifications | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Alerts & Notifications",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 1,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 19,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/settings",
+    "viewport": "Mobile Small (360x800)",
+    "title": "Account Settings & Security | Player Hub | eFootball Tournament Platform",
+    "heading": "Account Settings",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 3,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "button \"Save Bank Account\" (176x32px)",
+      "button \"Save UPI Details\" (150x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 34,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tickets",
+    "viewport": "Mobile Small (360x800)",
+    "title": "My Tickets & Support | eFootball Player Hub | eFootball Tournament Platform",
+    "heading": "My Tickets & Disputes",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 360,
+    "smallTouchTargetsCount": 2,
+    "smallTouchTargets": [
+      "a \"Explore\" (32x36px)",
+      "a \"Settings Center\" (137x32px)"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 15,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard",
+    "viewport": "Tablet (768x1024)",
+    "title": "Player Dashboard | eFootball Tournament | eFootball Tournament Platform",
+    "heading": "Welcome back, QA Athlete 01!",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 25,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tournaments",
+    "viewport": "Tablet (768x1024)",
+    "title": "My Tournaments | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Tournaments",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 23,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/matches",
+    "viewport": "Tablet (768x1024)",
+    "title": "My Matches | Player Dashboard | eFootball Tournament Platform",
+    "heading": "My Matches",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 24,
+    "notes": [
+      "Visible match items: 0"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/wallet",
+    "viewport": "Tablet (768x1024)",
+    "title": "Wallet & Payouts | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Earnings & Payouts",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 20,
+    "notes": [
+      "Wallet balance UI rendered: true"
+    ]
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/career",
+    "viewport": "Tablet (768x1024)",
+    "title": "Career & Achievements | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Player Career & Achievements",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 14,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/notifications",
+    "viewport": "Tablet (768x1024)",
+    "title": "Alerts & Notifications | Player Dashboard | eFootball Tournament Platform",
+    "heading": "Alerts & Notifications",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 19,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/settings",
+    "viewport": "Tablet (768x1024)",
+    "title": "Account Settings & Security | Player Hub | eFootball Tournament Platform",
+    "heading": "Account Settings",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 34,
+    "notes": []
+  },
+  {
+    "phase": "Phase 5",
+    "category": "Dashboard",
+    "url": "http://localhost:3001/dashboard/tickets",
+    "viewport": "Tablet (768x1024)",
+    "title": "My Tickets & Support | eFootball Player Hub | eFootball Tournament Platform",
+    "heading": "My Tickets & Disputes",
+    "hasHorizontalOverflow": false,
+    "overflowWidth": 768,
+    "smallTouchTargetsCount": 0,
+    "smallTouchTargets": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "missingAltImagesCount": 0,
+    "interactiveElementsCount": 15,
+    "notes": []
+  }
+]

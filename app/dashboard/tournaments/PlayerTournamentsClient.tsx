@@ -37,6 +37,7 @@ import { cancelRegistrationAction } from '@/app/actions/playerActions';
 import { cancelRegistrationRequestAction } from '@/app/actions/paymentRegistrationActions';
 import { generateWhatsAppPaymentLink } from '@/lib/whatsappPayment';
 import { DEFAULT_MANUAL_PAYMENT_SETTINGS } from '@/services/paymentSettingsService';
+import { usePlayerDashboardTabStore } from '@/lib/stores/useTabStateStore';
 
 interface PlayerTournamentsClientProps {
   initialTournaments: PlayerTournamentItem[];
@@ -67,7 +68,7 @@ export default function PlayerTournamentsClient({
   const [tournaments, setTournaments] = useState<PlayerTournamentItem[]>(initialTournaments);
   const [paymentRegistrations, setPaymentRegistrations] = useState<PlayerPaymentRegistrationItem[]>(initialPaymentRegistrations);
   const [selectedTab, setSelectedTab] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const { tournamentSearch: searchQuery, setTournamentSearch: setSearchQuery } = usePlayerDashboardTabStore();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 

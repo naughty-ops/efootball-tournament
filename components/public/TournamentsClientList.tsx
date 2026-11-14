@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   Trophy,
   Search,
@@ -8,10 +8,12 @@ import {
   CheckCircle2,
   Clock,
   Filter,
+  RefreshCw,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { getPublicTournaments } from '@/services/publicTournamentService';
 import type { TournamentWithStats } from '@/services/tournamentService';
+import { useTournamentsQuery } from '@/hooks/queries/useTournamentsQuery';
+import { useTournamentFilterStore } from '@/lib/stores/useTabStateStore';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import { cn } from '@/lib/utils';
 import { TournamentCard } from '@/components/tournament/TournamentCard';
@@ -30,16 +32,34 @@ interface TournamentsClientListProps {
 export default function TournamentsClientList({
   initialTournaments,
 }: TournamentsClientListProps) {
-  const [allTournaments, setAllTournaments] = useState<TournamentWithStats[]>(initialTournaments);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [error, setError] = useState<string | null>(null);
+  // Global persistent filter store: remembers query and filter when navigating back from detail tabs
+  const { search, statusFilter, scrollY, setSearch, setStatusFilter, setScrollY } =
+    useTournamentFilterStore();
 
-  // Synchronize when initialTournaments prop changes
+  // Centralized TanStack Query hook with SWR cache and initialData hydration
+  const {
+    data: allTournaments = initialTournaments,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useTournamentsQuery({
+    initialData: initialTournaments,
+  });
+
+  // Restore scroll position when returning from tournament detail
   useEffect(() => {
-    setAllTournaments(initialTournaments);
-  }, [initialTournaments]);
+    if (scrollY > 0) {
+      window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior });
+    }
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrollY, setScrollY]);
 
   // Instantaneous in-memory filtering: 0ms response time, 0 network requests
   const tournaments = useMemo(() => {
@@ -62,23 +82,14 @@ export default function TournamentsClientList({
     });
   }, [allTournaments, statusFilter, search]);
 
-  const refreshTournaments = useCallback(async () => {
-    try {
-      const data = await getPublicTournaments({});
-      setAllTournaments(data);
-    } catch {
-      setError('Unable to refresh tournaments. Please try again.');
-    }
-  }, []);
-
-  // Realtime subscription for tournament list updates (only re-queries when tournaments change in DB)
+  // Realtime subscription: silently refreshes query cache in background without UI destruction
   const handleRealtimeUpdate = useCallback(
     (payload?: RealtimePayload) => {
       if (!payload || payload.table === 'tournaments') {
-        refreshTournaments();
+        refetch();
       }
     },
-    [refreshTournaments]
+    [refetch]
   );
 
   useRealtimeMatches(handleRealtimeUpdate);
@@ -91,9 +102,17 @@ export default function TournamentsClientList({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFFF00] text-[#08088F] text-[11px] font-black uppercase tracking-widest mb-2">
             🏆 Official Competitions
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black font-display text-white tracking-wider uppercase">
-            Tournaments
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-black font-display text-white tracking-wider uppercase">
+              Tournaments
+            </h1>
+            {isFetching && !isLoading && (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#FFFF00]/80 bg-white/10 px-2.5 py-0.5 rounded-full animate-pulse">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                Syncing...
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-[#D9DCFF]/80 mt-1 font-medium">
             Browse ongoing, upcoming, and completed eFootball competitive leagues.
           </p>
@@ -118,7 +137,7 @@ export default function TournamentsClientList({
             id={`filter-${key}`}
             onClick={() => setStatusFilter(key)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border transition-all',
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border transition-all active:scale-95 cursor-pointer',
               statusFilter === key
                 ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-[0_0_15px_rgba(255,255,0,0.35)] scale-[1.02]'
                 : 'bg-[#1010C5] text-white/90 border-white/20 hover:border-[#FFFF00] hover:text-white'
@@ -131,18 +150,23 @@ export default function TournamentsClientList({
       </div>
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-48 rounded-3xl bg-[#1414C8]/50 animate-pulse border border-white/10" />
+            <div
+              key={i}
+              className="h-56 rounded-3xl bg-[#1414C8]/50 animate-pulse border border-white/10"
+            />
           ))}
         </div>
       ) : error ? (
         <div className="text-center py-16 bg-[#1010C5] rounded-3xl border border-white/15 p-8 max-w-md mx-auto">
-          <p className="text-sm text-[#FF168B] font-bold mb-4">{error}</p>
+          <p className="text-sm text-[#FF168B] font-bold mb-4">
+            Failed to load tournaments. Please check your connection.
+          </p>
           <button
-            onClick={refreshTournaments}
-            className="px-5 py-2 rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase"
+            onClick={() => refetch()}
+            className="px-5 py-2 rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase cursor-pointer"
           >
             Retry
           </button>

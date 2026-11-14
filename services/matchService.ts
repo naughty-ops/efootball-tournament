@@ -239,10 +239,23 @@ export interface MatchDashboardStats {
   completedCount: number;
 }
 
+const adminMatchesCache = new Map<string, { data: MatchWithDetails[]; timestamp: number }>();
+const MATCHES_CACHE_TTL_MS = 20 * 1000;
+
+export function invalidateAdminMatchesCache() {
+  adminMatchesCache.clear();
+}
+
 /**
  * Fetch all matches across tournaments for Centralized Match Center
  */
 export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promise<MatchWithDetails[]> {
+  const cacheKey = JSON.stringify(params || {});
+  const cached = adminMatchesCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < MATCHES_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const supabase = createClient();
 
   // 1. Fetch Tournaments
@@ -403,14 +416,19 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
     });
   }
 
-  return result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  const sortedResult = result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  adminMatchesCache.set(cacheKey, { data: sortedResult, timestamp: Date.now() });
+  return sortedResult;
 }
 
 /**
  * Fetch dynamic summary stats for Match Center
  */
-export async function getMatchDashboardStats(tournamentId?: string): Promise<MatchDashboardStats> {
-  const matches = await getAllAdminMatches({ tournamentId });
+export async function getMatchDashboardStats(
+  tournamentId?: string,
+  preloadedMatches?: MatchWithDetails[]
+): Promise<MatchDashboardStats> {
+  const matches = preloadedMatches ?? (await getAllAdminMatches({ tournamentId }));
   return {
     totalMatches: matches.length,
     liveCount: matches.filter((m) => m.status === 'live').length,
@@ -433,6 +451,7 @@ export async function startMatch(matchId: string, tournamentId: string): Promise
     })
     .eq('id', matchId);
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 
@@ -460,6 +479,7 @@ export async function toggleMatchLiveStream(
     throw new Error(`Failed to update match live stream: ${formatSupabaseError(error)}`);
   }
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 
@@ -485,6 +505,7 @@ export async function updateMatchLiveRoom(
   if (error) {
     throw new Error(`Failed to save room ID: ${formatSupabaseError(error)}`);
   }
+  invalidateAdminMatchesCache();
 }
 
 /**
@@ -527,6 +548,7 @@ export async function updateLiveScore(
     throw new Error(`Failed to update live score: ${formatSupabaseError(error)}`);
   }
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 
@@ -786,6 +808,7 @@ export async function submitMatchResult(
       .eq('id', tournamentId);
   }
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 
@@ -856,6 +879,7 @@ export async function updateMatchStatus(
     throw new Error(`Failed to update match status: ${formatSupabaseError(error)}`);
   }
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 
@@ -883,6 +907,7 @@ export async function updateMatchSchedule(
     throw new Error(`Failed to update match schedule: ${formatSupabaseError(error)}`);
   }
 
+  invalidateAdminMatchesCache();
   return getMatchDetails(matchId, tournamentId);
 }
 

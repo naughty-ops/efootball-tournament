@@ -94,17 +94,38 @@ export default function AdminMatchCenterPage() {
 
   const fetchMatchCenterData = useCallback(async () => {
     try {
-      const [mList, sData, tList] = await Promise.all([
-        getAllAdminMatches({
-          tournamentId: selectedTournament,
-          stage: selectedStage,
-          status: selectedStatus,
-          date: dateFilter,
-          search,
-        }),
-        getMatchDashboardStats(selectedTournament !== 'all' ? selectedTournament : undefined),
-        getTournaments(),
-      ]);
+      const isDefaultFilters =
+        selectedStage === 'all' &&
+        selectedStatus === 'all' &&
+        dateFilter === 'all' &&
+        !search;
+
+      const mPromise = getAllAdminMatches({
+        tournamentId: selectedTournament,
+        stage: selectedStage,
+        status: selectedStatus,
+        date: dateFilter,
+        search,
+      });
+      const tPromise = getTournaments();
+
+      let mList: MatchWithDetails[];
+      let sData: MatchDashboardStats;
+      let tList: Tournament[];
+
+      if (isDefaultFilters) {
+        [mList, tList] = await Promise.all([mPromise, tPromise]);
+        sData = await getMatchDashboardStats(
+          selectedTournament !== 'all' ? selectedTournament : undefined,
+          mList
+        );
+      } else {
+        [mList, sData, tList] = await Promise.all([
+          mPromise,
+          getMatchDashboardStats(selectedTournament !== 'all' ? selectedTournament : undefined),
+          tPromise,
+        ]);
+      }
 
       setMatches(mList);
       setStats(sData);
@@ -119,43 +140,8 @@ export default function AdminMatchCenterPage() {
   }, [selectedTournament, selectedStage, selectedStatus, dateFilter, search]);
 
   useEffect(() => {
-    let isMounted = true;
-    async function load() {
-      try {
-        const [mList, sData, tList] = await Promise.all([
-          getAllAdminMatches({
-            tournamentId: selectedTournament,
-            stage: selectedStage,
-            status: selectedStatus,
-            date: dateFilter,
-            search,
-          }),
-          getMatchDashboardStats(selectedTournament !== 'all' ? selectedTournament : undefined),
-          getTournaments(),
-        ]);
-
-        if (isMounted) {
-          setMatches(mList);
-          setStats(sData);
-          setTournaments(tList);
-          setError(null);
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          const msg = err instanceof Error ? err.message : 'Failed to load match center data';
-          setError(msg);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-    load();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedTournament, selectedStage, selectedStatus, dateFilter, search]);
+    fetchMatchCenterData();
+  }, [fetchMatchCenterData]);
 
   // Supabase Realtime Subscription
   useRealtimeMatches(fetchMatchCenterData);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import { PlayerDashboardSwipeWrapper } from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerWalletClientView from '@/components/wallet/PlayerWalletClientView';
@@ -22,15 +22,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PlayerWalletPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/auth/login?error=unauthorized');
   }
+
+  const supabase = await createClient();
 
   const defaultOverview = {
     totalEarningsPaise: 0,
@@ -68,15 +66,7 @@ export default async function PlayerWalletPage() {
   const safePayouts = payouts || [];
 
   return (
-    <div className="min-h-screen bg-[#08088F] text-white pb-16">
-      <PlayerDashboardHeader
-        userEmail={email}
-        displayName={fullName}
-        efootballId={efootballId}
-        isVerified={isVerified}
-        avatarUrl={profile?.avatar_url || '/avatars/default-avatar.svg'}
-      />
-
+    <div className="pb-16">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         <PlayerDashboardSwipeWrapper currentSection="wallet">
           <PlayerWalletClientView

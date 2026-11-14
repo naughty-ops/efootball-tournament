@@ -1,0 +1,506 @@
+{
+  "metrics": [
+    {
+      "iteration": 1,
+      "from": "/",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 413,
+      "clickToContentRenderMs": 655,
+      "networkRequests": 13,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 1,
+      "from": "/tournaments",
+      "to": "/live",
+      "clickToUrlChangeMs": 202,
+      "clickToContentRenderMs": 255,
+      "networkRequests": 3,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 1,
+      "from": "/live",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 299,
+      "clickToContentRenderMs": 462,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 1,
+      "from": "/tournaments",
+      "to": "/",
+      "clickToUrlChangeMs": 421,
+      "clickToContentRenderMs": 479,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 1,
+      "from": "/",
+      "to": "/live",
+      "clickToUrlChangeMs": 165,
+      "clickToContentRenderMs": 203,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 1,
+      "from": "/live",
+      "to": "/",
+      "clickToUrlChangeMs": 782,
+      "clickToContentRenderMs": 824,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 275,
+      "clickToContentRenderMs": 454,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/tournaments",
+      "to": "/live",
+      "clickToUrlChangeMs": 164,
+      "clickToContentRenderMs": 194,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/live",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 276,
+      "clickToContentRenderMs": 424,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/tournaments",
+      "to": "/",
+      "clickToUrlChangeMs": 816,
+      "clickToContentRenderMs": 871,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/",
+      "to": "/live",
+      "clickToUrlChangeMs": 147,
+      "clickToContentRenderMs": 175,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 2,
+      "from": "/live",
+      "to": "/",
+      "clickToUrlChangeMs": 397,
+      "clickToContentRenderMs": 463,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 303,
+      "clickToContentRenderMs": 463,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/tournaments",
+      "to": "/live",
+      "clickToUrlChangeMs": 145,
+      "clickToContentRenderMs": 172,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/live",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 221,
+      "clickToContentRenderMs": 380,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/tournaments",
+      "to": "/",
+      "clickToUrlChangeMs": 733,
+      "clickToContentRenderMs": 774,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/",
+      "to": "/live",
+      "clickToUrlChangeMs": 137,
+      "clickToContentRenderMs": 165,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 3,
+      "from": "/live",
+      "to": "/",
+      "clickToUrlChangeMs": 395,
+      "clickToContentRenderMs": 459,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 302,
+      "clickToContentRenderMs": 478,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/tournaments",
+      "to": "/live",
+      "clickToUrlChangeMs": 148,
+      "clickToContentRenderMs": 177,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/live",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 147,
+      "clickToContentRenderMs": 987,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/tournaments",
+      "to": "/",
+      "clickToUrlChangeMs": 1187,
+      "clickToContentRenderMs": 1248,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/",
+      "to": "/live",
+      "clickToUrlChangeMs": 145,
+      "clickToContentRenderMs": 176,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 4,
+      "from": "/live",
+      "to": "/",
+      "clickToUrlChangeMs": 386,
+      "clickToContentRenderMs": 432,
+      "networkRequests": 2,
+      "supabaseRequests": 1,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 286,
+      "clickToContentRenderMs": 503,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/tournaments",
+      "to": "/live",
+      "clickToUrlChangeMs": 155,
+      "clickToContentRenderMs": 188,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/live",
+      "to": "/tournaments",
+      "clickToUrlChangeMs": 265,
+      "clickToContentRenderMs": 406,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/tournaments",
+      "to": "/",
+      "clickToUrlChangeMs": 395,
+      "clickToContentRenderMs": 443,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/",
+      "to": "/live",
+      "clickToUrlChangeMs": 126,
+      "clickToContentRenderMs": 153,
+      "networkRequests": 0,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    },
+    {
+      "iteration": 5,
+      "from": "/live",
+      "to": "/",
+      "clickToUrlChangeMs": 379,
+      "clickToContentRenderMs": 422,
+      "networkRequests": 1,
+      "supabaseRequests": 0,
+      "consoleErrors": [],
+      "loadingScreenAppeared": true,
+      "contentRetained": true
+    }
+  ],
+  "transitionSummary": {
+    "/ → /tournaments": {
+      "renders": [
+        655,
+        454,
+        463,
+        478,
+        503
+      ],
+      "reqs": [
+        13,
+        1,
+        0,
+        1,
+        0
+      ],
+      "urlChanges": [
+        413,
+        275,
+        303,
+        302,
+        286
+      ]
+    },
+    "/tournaments → /live": {
+      "renders": [
+        255,
+        194,
+        172,
+        177,
+        188
+      ],
+      "reqs": [
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "urlChanges": [
+        202,
+        164,
+        145,
+        148,
+        155
+      ]
+    },
+    "/live → /tournaments": {
+      "renders": [
+        462,
+        424,
+        380,
+        987,
+        406
+      ],
+      "reqs": [
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      "urlChanges": [
+        299,
+        276,
+        221,
+        147,
+        265
+      ]
+    },
+    "/tournaments → /": {
+      "renders": [
+        479,
+        871,
+        774,
+        1248,
+        443
+      ],
+      "reqs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "urlChanges": [
+        421,
+        816,
+        733,
+        1187,
+        395
+      ]
+    },
+    "/ → /live": {
+      "renders": [
+        203,
+        175,
+        165,
+        176,
+        153
+      ],
+      "reqs": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "urlChanges": [
+        165,
+        147,
+        137,
+        145,
+        126
+      ]
+    },
+    "/live → /": {
+      "renders": [
+        824,
+        463,
+        459,
+        432,
+        422
+      ],
+      "reqs": [
+        1,
+        1,
+        1,
+        2,
+        1
+      ],
+      "urlChanges": [
+        782,
+        397,
+        395,
+        386,
+        379
+      ]
+    }
+  },
+  "hydrationErrors": [],
+  "criticalErrors": []
+}

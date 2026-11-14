@@ -243,6 +243,21 @@ export async function requestWhatsAppVerificationAction(
   }
 }
 
+let lastSyncMissingProfilesMs = 0;
+const SYNC_PROFILES_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
+async function throttleSyncMissingProfiles(supabase: any) {
+  if (Date.now() - lastSyncMissingProfilesMs < SYNC_PROFILES_INTERVAL_MS) {
+    return;
+  }
+  try {
+    await supabase.rpc('sync_missing_profiles');
+    lastSyncMissingProfilesMs = Date.now();
+  } catch {
+    // Non-fatal fallback
+  }
+}
+
 /**
  * Live Dashboard Statistics Query: Fetches authoritative counts directly from public.profiles
  */
@@ -251,12 +266,8 @@ export async function getVerificationDashboardStatsAction(): Promise<ActionRespo
     await requireAdmin();
     const supabase = await createClient();
 
-    // Trigger self-healing profile sync for any orphaned auth.users
-    try {
-      await supabase.rpc('sync_missing_profiles');
-    } catch {
-      // Non-fatal fallback
-    }
+    // Trigger throttled self-healing profile sync for any orphaned auth.users
+    await throttleSyncMissingProfiles(supabase);
 
     const [allRes, verifiedRes, pendingRes, rejectedRes, suspendedRes] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
@@ -328,12 +339,8 @@ export async function getAdminVerificationQueueAction(options: {
     await requireAdmin();
     const supabase = await createClient();
 
-    // Trigger self-healing profile sync for any orphaned auth.users
-    try {
-      await supabase.rpc('sync_missing_profiles');
-    } catch {
-      // Non-fatal fallback
-    }
+    // Trigger throttled self-healing profile sync for any orphaned auth.users
+    await throttleSyncMissingProfiles(supabase);
 
     const filter = options.tab || options.filter || 'all';
     const search = options.search?.trim() || '';

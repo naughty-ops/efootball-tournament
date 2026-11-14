@@ -1,4 +1,4 @@
-const CACHE_NAME = 'efootball-pwa-v2';
+const CACHE_NAME = 'efootball-pwa-v3';
 
 // Static App Shell assets to precache
 const STATIC_ASSETS = [

@@ -23,8 +23,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { useUnreadNotificationsCount } from '@/hooks/queries/useNotificationsQuery';
 
 export interface PlayerDashboardHeaderProps {
+  userId?: string;
   userEmail: string;
   displayName?: string;
   avatarUrl?: string | null;
@@ -77,6 +79,7 @@ const DASHBOARD_NAV_ITEMS = [
 ];
 
 export default function PlayerDashboardHeader({
+  userId,
   userEmail,
   displayName,
   avatarUrl,
@@ -90,37 +93,10 @@ export default function PlayerDashboardHeader({
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch unread notifications count for header badge
-  useEffect(() => {
-    let isMounted = true;
-    async function loadUnreadCount() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || !isMounted) return;
-
-        const { count, error } = await supabase
-          .from('player_notifications')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_read', false);
-
-        if (!error && typeof count === 'number' && isMounted) {
-          setUnreadNotifications(count);
-        }
-      } catch {
-        // non-blocking
-      }
-    }
-
-    loadUnreadCount();
-    return () => {
-      isMounted = false;
-    };
-  }, [pathname]);
+  // Cached unread notifications count with automatic SWR revalidation
+  const { data: unreadNotifications = 0 } = useUnreadNotificationsCount(userId);
 
   // Clear optimistic pendingHref once route transition completes
   useEffect(() => {
@@ -184,9 +160,9 @@ export default function PlayerDashboardHeader({
       <div className="mx-auto max-w-7xl rounded-3xl lg:rounded-full bg-gradient-to-r from-[#1616C0]/95 via-[#1A1AE8]/95 to-[#1616C0]/95 backdrop-blur-2xl border border-white/20 hover:border-white/30 shadow-[0_12px_40px_rgba(8,8,143,0.55)] p-2 sm:px-4 lg:px-6 sm:py-2 flex flex-col lg:flex-row items-center justify-between gap-2 lg:gap-3 transition-all">
         
         {/* Top/Left: Brand Logo & Mobile/Tablet Quick Bar (< lg) */}
-        <div className="w-full lg:w-auto flex items-center justify-between gap-2 shrink-0">
-          <Link href="/" className="flex items-center gap-2 group py-1">
-            <div className="flex items-center gap-2">
+        <div className="w-full lg:w-auto flex items-center justify-between gap-1.5 sm:gap-2 min-w-0">
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group py-1 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden shrink-0 border border-white/20">
                 <Image
                   src="/logos/logo-mark-transparent.webp"
@@ -201,7 +177,7 @@ export default function PlayerDashboardHeader({
                 <span className="font-display font-black text-white text-base sm:text-2xl tracking-tight uppercase group-hover:text-[#FFFF00] transition-colors">
                   FOOTBALL
                 </span>
-                <span className="hidden min-[360px]:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFFF00]/15 text-[#FFFF00] border border-[#FFFF00]/30 shadow-sm">
+                <span className="hidden min-[430px]:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFFF00]/15 text-[#FFFF00] border border-[#FFFF00]/30 shadow-sm">
                   PLAYER
                 </span>
               </div>
@@ -212,18 +188,21 @@ export default function PlayerDashboardHeader({
           <div className="flex lg:hidden items-center gap-1.5 sm:gap-2 shrink-0" ref={dropdownRef}>
             <Link
               href="/tournaments"
-              className="inline-flex items-center gap-1 px-2 min-[360px]:px-2.5 py-1 rounded-full text-[11px] font-black uppercase text-[#FFFF00] bg-[#0A0A7A] border border-white/20 active:scale-95 transition-all shadow-sm"
+              className="inline-flex items-center justify-center gap-1 h-9 min-h-[36px] px-2 sm:px-2.5 rounded-full text-[11px] font-black uppercase text-[#FFFF00] bg-[#0A0A7A] border border-white/20 active:scale-95 transition-all shadow-sm shrink-0"
               title="Explore Tournaments"
             >
-              <Compass className="h-3 w-3" />
-              <span className="hidden min-[360px]:inline">Explore</span>
+              <Compass className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">Explore</span>
             </Link>
 
             {/* Notification Center Quick Trigger */}
             <Link
               href="/dashboard/notifications"
+              prefetch={true}
+              onMouseEnter={() => router.prefetch('/dashboard/notifications')}
+              onTouchStart={() => router.prefetch('/dashboard/notifications')}
               className={cn(
-                'relative h-7 w-7 rounded-full border flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-sm',
+                'relative h-9 w-9 min-h-[36px] min-w-[36px] rounded-full border flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-sm',
                 pathname === '/dashboard/notifications'
                   ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00]'
                   : 'bg-[#0A0A7A] border-white/20 text-white/90 hover:text-[#FFFF00]'
@@ -243,19 +222,19 @@ export default function PlayerDashboardHeader({
               type="button"
               onClick={() => setIsDropdownOpen((prev) => !prev)}
               className={cn(
-                'flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-[#0A0A7A] border text-xs font-bold text-white transition-all active:scale-95',
+                'flex items-center gap-1 pl-1 pr-1.5 py-1 min-h-[36px] rounded-full bg-[#0A0A7A] border text-xs font-bold text-white transition-all active:scale-95 shrink-0',
                 isDropdownOpen ? 'border-[#FFFF00] shadow-[0_0_10px_rgba(255,255,0,0.3)]' : 'border-white/20'
               )}
               aria-label="User Profile Menu"
               aria-expanded={isDropdownOpen}
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#FFFF00] to-yellow-300 text-[#08088F] flex items-center justify-center font-black text-xs shadow-sm overflow-hidden">
                   <Image src={effectiveAvatarUrl} alt={playerPrimaryName} width={24} height={24} className="object-cover w-full h-full" />
                 </div>
                 <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0A0A7A]" />
               </div>
-              <ChevronDown className={cn('h-3.5 w-3.5 text-white/70 transition-transform duration-200', isDropdownOpen && 'rotate-180 text-[#FFFF00]')} />
+              <ChevronDown className={cn('h-3.5 w-3.5 text-white/70 transition-transform duration-200 shrink-0', isDropdownOpen && 'rotate-180 text-[#FFFF00]')} />
             </button>
 
             {/* Dropdown Popover */}
@@ -289,6 +268,9 @@ export default function PlayerDashboardHeader({
                 <div className="py-2 space-y-1">
                   <Link
                     href="/dashboard/tournaments"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/tournaments')}
+                    onTouchStart={() => router.prefetch('/dashboard/tournaments')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -297,6 +279,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/dashboard/wallet"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/wallet')}
+                    onTouchStart={() => router.prefetch('/dashboard/wallet')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -305,6 +290,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/dashboard/career"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/career')}
+                    onTouchStart={() => router.prefetch('/dashboard/career')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -313,6 +301,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/dashboard/notifications"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/notifications')}
+                    onTouchStart={() => router.prefetch('/dashboard/notifications')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -328,6 +319,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/dashboard/tickets"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/tickets')}
+                    onTouchStart={() => router.prefetch('/dashboard/tickets')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -336,6 +330,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/dashboard/settings"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/dashboard/settings')}
+                    onTouchStart={() => router.prefetch('/dashboard/settings')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -344,6 +341,9 @@ export default function PlayerDashboardHeader({
                   </Link>
                   <Link
                     href="/tournaments"
+                    prefetch={true}
+                    onMouseEnter={() => router.prefetch('/tournaments')}
+                    onTouchStart={() => router.prefetch('/tournaments')}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
                   >
@@ -381,11 +381,11 @@ export default function PlayerDashboardHeader({
         </div>
 
         {/* Center: Direct 1-Tap Access Tab Bar in Complete, Flawless Pill Shape */}
-        <div className="w-full lg:w-auto flex-1 flex justify-center items-center py-0.5">
+        <div className="w-full lg:w-auto flex-1 flex justify-center items-center py-0.5 min-w-0">
           <nav
             role="navigation"
             aria-label="Dashboard Navigation"
-            className="w-full max-w-lg lg:max-w-none lg:w-auto grid grid-cols-5 lg:flex items-center justify-center gap-1 sm:gap-1.5 rounded-full bg-[#0D0D96]/90 lg:bg-white/10 backdrop-blur-md p-1 sm:p-1.5 border border-white/20 shadow-inner"
+            className="w-full max-w-lg lg:max-w-none lg:w-auto grid grid-cols-5 lg:flex items-center justify-center gap-0.5 min-[360px]:gap-1 sm:gap-1.5 rounded-full bg-[#0D0D96]/90 lg:bg-white/10 backdrop-blur-md p-1 sm:p-1.5 border border-white/20 shadow-inner overflow-hidden"
           >
             {DASHBOARD_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -395,13 +395,16 @@ export default function PlayerDashboardHeader({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onTouchStart={() => router.prefetch(item.href)}
                   onClick={() => {
                     if (pathname !== item.href) {
                       setPendingHref(item.href);
                     }
                   }}
                   className={cn(
-                    'relative w-full lg:w-auto flex items-center justify-center gap-1.5 lg:gap-2 h-9 lg:h-10 px-1 sm:px-2.5 lg:px-3.5 xl:px-4.5 rounded-full font-black tracking-wide transition-all duration-200 active:scale-95 touch-target select-none',
+                    'relative w-full lg:w-auto flex items-center justify-center gap-1 lg:gap-2 h-9 lg:h-10 px-0.5 min-[360px]:px-1 sm:px-2.5 lg:px-3.5 xl:px-4.5 rounded-full font-black tracking-wide transition-all duration-200 active:scale-95 touch-target select-none',
                     active
                       ? 'bg-[#FFFF00] text-[#08088F] shadow-[0_2px_14px_rgba(255,255,0,0.45)]'
                       : 'text-white/80 hover:text-[#FFFF00] hover:bg-white/10'
@@ -431,6 +434,9 @@ export default function PlayerDashboardHeader({
           {/* Explore Tournaments Button */}
           <Link
             href="/tournaments"
+            prefetch={true}
+            onMouseEnter={() => router.prefetch('/tournaments')}
+            onTouchStart={() => router.prefetch('/tournaments')}
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-white/20 text-[#FFFF00] hover:bg-white/10 hover:border-[#FFFF00]/40 text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
           >
             <Compass className="h-3.5 w-3.5 shrink-0" />
@@ -441,6 +447,9 @@ export default function PlayerDashboardHeader({
           {/* Alerts Icon Only Button (placed right near Explore Tournaments) */}
           <Link
             href="/dashboard/notifications"
+            prefetch={true}
+            onMouseEnter={() => router.prefetch('/dashboard/notifications')}
+            onTouchStart={() => router.prefetch('/dashboard/notifications')}
             className={cn(
               'relative h-9 w-9 rounded-full border flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer',
               pathname === '/dashboard/notifications'

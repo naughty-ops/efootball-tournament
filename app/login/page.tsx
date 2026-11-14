@@ -34,7 +34,12 @@ export default function LoginPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          if (user.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+          const { data: adminRecord } = await (supabase.from('admin_users') as any)
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (adminRecord && adminRecord.role) {
             router.replace('/admin/dashboard');
           } else {
             router.replace('/dashboard');
@@ -71,7 +76,12 @@ export default function LoginPage() {
         return;
       }
 
-      if (authData.user?.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+      const { data: adminRecord } = await (supabase.from('admin_users') as any)
+        .select('role')
+        .eq('id', authData.user.id)
+        .maybeSingle();
+
+      if (adminRecord && adminRecord.role) {
         router.replace('/admin/dashboard');
       } else {
         router.replace('/dashboard');

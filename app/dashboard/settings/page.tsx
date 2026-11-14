@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerSettingsClientView from '@/components/settings/PlayerSettingsClientView';
@@ -17,12 +17,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PlayerSettingsPage() {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/auth/login?error=unauthorized');
   }
+
+  const supabase = await createClient();
 
   const [profile, paymentMethods, tickets] = await Promise.all([
     getPlayerProfile(supabase, user.id, user).catch(() => null),
@@ -41,15 +42,7 @@ export default async function PlayerSettingsPage() {
   const safeTickets = tickets || [];
 
   return (
-    <div className="min-h-screen bg-[#08088F] text-white pb-16">
-      <PlayerDashboardHeader
-        userEmail={email}
-        displayName={fullName}
-        efootballId={efootballId}
-        isVerified={isVerified}
-        avatarUrl={profile?.avatar_url || '/avatars/default-avatar.svg'}
-      />
-
+    <div className="pb-16">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         <PlayerDashboardSwipeWrapper currentSection="settings">
           {/* Header */}

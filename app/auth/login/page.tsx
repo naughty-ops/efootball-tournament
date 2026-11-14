@@ -66,7 +66,12 @@ function PlayerLoginForm() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          if (user.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+          const { data: adminRecord } = await (supabase.from('admin_users') as any)
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (adminRecord && adminRecord.role) {
             router.replace('/admin/dashboard');
             return;
           }
@@ -112,7 +117,12 @@ function PlayerLoginForm() {
         return;
       }
 
-      if (user.email?.toLowerCase().trim() === 'ye.agrajj@gmail.com') {
+      const { data: adminRecord } = await (supabase.from('admin_users') as any)
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (adminRecord && adminRecord.role) {
         router.replace('/admin/dashboard');
         router.refresh();
         return;

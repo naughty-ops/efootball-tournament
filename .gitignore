@@ -49,3 +49,8 @@ next-env.d.ts
 # scratch & temporary verification
 /scratch/
 /supabase/.temp/
+
+# test credentials & session states
+scripts/*_storage_state.json
+scripts/*.png
+qa/screenshots/

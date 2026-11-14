@@ -19,7 +19,7 @@ export default function PublicLayout({
       <PublicHeader />
 
       {/* Main Content Container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-20">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-20 app-view-transition">
         {children}
       </main>
 

@@ -5,6 +5,7 @@ import QueryProvider from '@/components/shared/QueryProvider';
 import PWAInstaller from '@/components/shared/PWAInstaller';
 import PWAInstallPrompt from '@/components/shared/PWAInstallPrompt';
 import GlobalSoundEffects from '@/components/shared/GlobalSoundEffects';
+import PerformanceMonitor from '@/components/dev/PerformanceMonitor';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -59,6 +60,7 @@ export default function RootLayout({
           <PWAInstaller />
           {children}
           <PWAInstallPrompt />
+          <PerformanceMonitor />
         </QueryProvider>
       </body>
     </html>

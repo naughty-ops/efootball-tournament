@@ -27,10 +27,21 @@ export async function getActiveAvatars(): Promise<Avatar[]> {
   return (data || []) as Avatar[];
 }
 
+let adminAvatarsCache: { data: (Avatar & { usageCount: number })[]; timestamp: number } | null = null;
+const AVATAR_CACHE_TTL_MS = 60 * 1000;
+
+export function invalidateAvatarCache() {
+  adminAvatarsCache = null;
+}
+
 /**
  * Admin: Retrieves all avatars (both active and inactive) with player usage counts.
  */
 export async function getAllAvatarsAdmin(): Promise<(Avatar & { usageCount: number })[]> {
+  if (adminAvatarsCache && Date.now() - adminAvatarsCache.timestamp < AVATAR_CACHE_TTL_MS) {
+    return adminAvatarsCache.data;
+  }
+
   const adminClient = createAdminClient();
 
   const { data: avatars, error: avatarErr } = await (adminClient.from('avatars') as any)
@@ -54,10 +65,13 @@ export async function getAllAvatarsAdmin(): Promise<(Avatar & { usageCount: numb
     }
   });
 
-  return (avatars as Avatar[]).map((av) => ({
+  const result = (avatars as Avatar[]).map((av) => ({
     ...av,
     usageCount: countMap[av.id] || 0,
   }));
+
+  adminAvatarsCache = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 /**
@@ -148,6 +162,7 @@ export async function createAdminAvatar(data: {
     return { success: false, error: error.message };
   }
 
+  invalidateAvatarCache();
   return { success: true, avatar: newAvatar as Avatar };
 }
 
@@ -189,6 +204,7 @@ export async function updateAdminAvatar(
     return { success: false, error: error.message };
   }
 
+  invalidateAvatarCache();
   return { success: true, avatar: updatedAvatar as Avatar };
 }
 
@@ -255,5 +271,6 @@ export async function deleteAdminAvatar(
     }
   }
 
+  invalidateAvatarCache();
   return { success: true, reassignedCount };
 }

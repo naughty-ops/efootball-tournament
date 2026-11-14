@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { isAllowlistedAdminEmail, getAuthenticatedUser } from '@/lib/auth/server';
+import { getAuthenticatedUser } from '@/lib/auth/server';
 import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
 import { getTicketOverviewStats } from '@/services/ticketService';
 import type { Metadata } from 'next';
@@ -15,16 +15,17 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Leverages request-cached getAuthenticatedUser (1 single auth + admin check across the entire request)
-  const { user, isAdmin } = await getAuthenticatedUser();
+  // Leverages request-cached getAuthenticatedUser (1 single auth + database admin check across the request)
+  const { user, isAdmin, adminRole } = await getAuthenticatedUser();
 
   // 1. Enforce active authentication
   if (!user) {
     redirect('/login');
   }
 
-  // 2. Enforce strict email allowlist and database admin check (ye.agrajj@gmail.com only)
-  if (!isAdmin || !isAllowlistedAdminEmail(user.email)) {
+  // 2. Enforce database-authoritative administrator authorization
+  // Any valid active administrator role (streamer, moderator, admin, super_admin) is permitted into the portal
+  if (!isAdmin || !adminRole) {
     redirect('/dashboard?error=admin_unauthorized');
   }
 

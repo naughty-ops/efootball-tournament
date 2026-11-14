@@ -35,6 +35,39 @@ export function inrToPaise(inr: number): bigint {
   return BigInt(Math.round(inr * 100));
 }
 
+interface WalletCacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const walletOverviewCache = new Map<string, WalletCacheEntry<WalletOverview>>();
+const walletTransactionsCache = new Map<string, WalletCacheEntry<{ transactions: WalletTransactionItem[]; totalCount: number }>>();
+const paymentMethodsCache = new Map<string, WalletCacheEntry<PlayerPaymentMethod[]>>();
+const payoutsCache = new Map<string, WalletCacheEntry<PayoutTransactionRecord[]>>();
+const adminFinancialOverviewCache = new Map<string, WalletCacheEntry<AdminFinancialOverviewStats>>();
+const adminPayoutsCache = new Map<string, WalletCacheEntry<{ payouts: PayoutTransactionRecord[]; totalCount: number }>>();
+const adminCompletedTournamentsCache = new Map<string, WalletCacheEntry<any[]>>();
+
+const WALLET_CACHE_TTL_MS = 30 * 1000; // 30s in-memory TTL for instant tab switching
+
+export function invalidateWalletCache(userId?: string) {
+  if (userId) {
+    walletOverviewCache.delete(userId);
+    paymentMethodsCache.delete(userId);
+    payoutsCache.delete(userId);
+    for (const key of walletTransactionsCache.keys()) {
+      if (key.startsWith(userId)) walletTransactionsCache.delete(key);
+    }
+  } else {
+    walletOverviewCache.clear();
+    walletTransactionsCache.clear();
+    paymentMethodsCache.clear();
+    payoutsCache.clear();
+  }
+  adminFinancialOverviewCache.clear();
+  adminPayoutsCache.clear();
+  adminCompletedTournamentsCache.clear();
+}
+
 /**
  * Ensures a player wallet record exists for the given user ID.
  */
@@ -74,6 +107,11 @@ export async function getOrCreatePlayerWallet(userId: string): Promise<{ id: str
  * Never trusts frontend or client-supplied amounts.
  */
 export async function getPlayerWalletOverview(userId: string): Promise<WalletOverview> {
+  const cached = walletOverviewCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const defaultOverview: WalletOverview = {
     totalEarningsPaise: 0,
     totalEarningsInr: 0,
@@ -185,7 +223,7 @@ export async function getPlayerWalletOverview(userId: string): Promise<WalletOve
     // Unpaid rewards = Awarded prize money - Total Paid
     const unpaidRewardsPaise = Math.max(0, totalEarningsPaise - totalPaidPaise);
 
-    return {
+    const overviewResult: WalletOverview = {
       totalEarningsPaise,
       totalEarningsInr: paiseToInr(totalEarningsPaise),
       pendingEarningsPaise,
@@ -200,6 +238,8 @@ export async function getPlayerWalletOverview(userId: string): Promise<WalletOve
       unpaidRewardsInr: paiseToInr(unpaidRewardsPaise),
       nextExpectedPayout,
     };
+    walletOverviewCache.set(userId, { data: overviewResult, timestamp: Date.now() });
+    return overviewResult;
   } catch (err) {
     console.warn('getPlayerWalletOverview: Fallback to default overview due to error:', err);
     return defaultOverview;
@@ -578,6 +618,11 @@ export async function getPlayerPerformanceAnalytics(
  * Plaintext and encrypted account numbers are never returned here.
  */
 export async function getPlayerPaymentMethods(userId: string): Promise<PlayerPaymentMethod[]> {
+  const cached = paymentMethodsCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     const adminClient = createAdminClient();
 
@@ -590,7 +635,7 @@ export async function getPlayerPaymentMethods(userId: string): Promise<PlayerPay
       return [];
     }
 
-    return data.map((m: any) => ({
+    const result: PlayerPaymentMethod[] = data.map((m: any) => ({
       id: m.id,
       userId: m.user_id,
       paymentMethodType: m.payment_method_type,
@@ -603,6 +648,8 @@ export async function getPlayerPaymentMethods(userId: string): Promise<PlayerPay
       createdAt: m.created_at,
       updatedAt: m.updated_at,
     }));
+    paymentMethodsCache.set(userId, { data: result, timestamp: Date.now() });
+    return result;
   } catch (err) {
     console.warn('getPlayerPaymentMethods error:', err);
     return [];
@@ -799,6 +846,11 @@ export async function setPreferredPaymentMethod(
  * Retrieves player's payout history with 24-hour SLA tracking and payment details.
  */
 export async function getPlayerPayouts(userId: string): Promise<PayoutTransactionRecord[]> {
+  const cached = payoutsCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     const adminClient = createAdminClient();
 
@@ -864,7 +916,7 @@ export async function getPlayerPayouts(userId: string): Promise<PayoutTransactio
       }
     }
 
-    return data.map((row: any) => {
+    const result: PayoutTransactionRecord[] = data.map((row: any) => {
       const distInfo = row.prize_distribution_id ? tournamentMap.get(row.prize_distribution_id) : null;
       const pm = row.payment_method_id ? pmMap.get(row.payment_method_id) : null;
 
@@ -907,6 +959,8 @@ export async function getPlayerPayouts(userId: string): Promise<PayoutTransactio
         paymentDetails,
       };
     });
+    payoutsCache.set(userId, { data: result, timestamp: Date.now() });
+    return result;
   } catch (err) {
     console.warn('getPlayerPayouts error:', err);
     return [];
@@ -932,6 +986,11 @@ export async function requestPlayerPayout(userId: string): Promise<{ success: bo
  */
 
 export async function getAdminFinancialOverview(): Promise<AdminFinancialOverviewStats> {
+  const cached = adminFinancialOverviewCache.get('overview');
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const adminClient = createAdminClient();
   const now = new Date();
 
@@ -1011,7 +1070,7 @@ export async function getAdminFinancialOverview(): Promise<AdminFinancialOvervie
 
   const totalOutstandingPaise = Math.max(0, totalPrizeAwardedPaise - totalPaidPaise);
 
-  return {
+  const result: AdminFinancialOverviewStats = {
     totalPrizeAwardedPaise,
     totalPrizeAwardedInr: paiseToInr(totalPrizeAwardedPaise),
     pendingApprovalPaise,
@@ -1033,12 +1092,20 @@ export async function getAdminFinancialOverview(): Promise<AdminFinancialOvervie
     dueSoonPayoutsCount,
     urgentPayoutsCount,
   };
+
+  adminFinancialOverviewCache.set('overview', { data: result, timestamp: Date.now() });
+  return result;
 }
 
 /**
  * Retrieves tournaments ready for prize distribution (completed tournaments with winners).
  */
 export async function getTournamentsForPrizeDistribution(): Promise<any[]> {
+  const cached = adminCompletedTournamentsCache.get('completed');
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const adminClient = createAdminClient();
 
   const { data, error } = await (adminClient.from('tournaments') as any)
@@ -1136,7 +1203,7 @@ export async function getTournamentsForPrizeDistribution(): Promise<any[]> {
     }
   }
 
-  return data.map((t: any) => {
+  const result = data.map((t: any) => {
     const champion = t.champion_id ? participantMap.get(t.champion_id) || null : null;
     const runner_up = t.runner_up_id ? participantMap.get(t.runner_up_id) || null : null;
     const third_place = t.third_place_id ? participantMap.get(t.third_place_id) || null : null;
@@ -1176,6 +1243,9 @@ export async function getTournamentsForPrizeDistribution(): Promise<any[]> {
       isPartiallyDistributed,
     };
   });
+
+  adminCompletedTournamentsCache.set('completed', { data: result, timestamp: Date.now() });
+  return result;
 }
 
 /**
@@ -1461,6 +1531,12 @@ export async function getAdminPayoutsList(options?: {
   page?: number;
   pageSize?: number;
 }): Promise<{ payouts: PayoutTransactionRecord[]; totalCount: number }> {
+  const cacheKey = JSON.stringify(options || {});
+  const cached = adminPayoutsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const adminClient = createAdminClient();
   const page = Math.max(1, options?.page || 1);
   const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
@@ -1615,7 +1691,9 @@ export async function getAdminPayoutsList(options?: {
     };
   });
 
-  return { payouts, totalCount: count || 0 };
+  const result = { payouts, totalCount: count || 0 };
+  adminPayoutsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 /**

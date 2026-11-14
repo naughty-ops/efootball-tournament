@@ -14,14 +14,10 @@ export interface WhatsAppPaymentMessageParams {
 }
 
 /**
- * Generates a prefilled WhatsApp link directing the user directly to the admin's WhatsApp
- * with tournament name & ID, registration ID, player name, eFootball ID, and entry fee.
+ * Generates the plain text message content for tournament registration payment verification.
  */
-export function generateWhatsAppPaymentLink(params: WhatsAppPaymentMessageParams): string {
-  const cleanPhone = (params.adminWhatsAppNumber || '+919207516227').replace(/\D/g, '');
-
-  const text =
-`🎮 *eFootball Tournament Registration*
+export function generateWhatsAppPaymentMessageText(params: WhatsAppPaymentMessageParams): string {
+  return `🎮 *eFootball Tournament Registration*
 
 🏆 *Tournament:* ${params.tournamentName}
 🆔 *Tournament ID:* ${params.tournamentId}
@@ -31,7 +27,15 @@ export function generateWhatsAppPaymentLink(params: WhatsAppPaymentMessageParams
 💰 *Entry Fee:* ₹${params.entryFeeINR}
 
 Hello Admin! I would like to pay the entry fee and confirm my registration for this tournament.`;
+}
 
+/**
+ * Generates a prefilled WhatsApp link directing the user directly to the admin's WhatsApp
+ * with tournament name & ID, registration ID, player name, eFootball ID, and entry fee.
+ */
+export function generateWhatsAppPaymentLink(params: WhatsAppPaymentMessageParams): string {
+  const cleanPhone = (params.adminWhatsAppNumber || '+919207516227').replace(/\D/g, '');
+  const text = generateWhatsAppPaymentMessageText(params);
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 }
 

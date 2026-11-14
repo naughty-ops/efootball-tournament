@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/auth/server';
 import type { ActionResponse } from '@/app/actions/playerActions';
 import type { ManualPaymentSettings, RegistrationStatus } from '@/types/database';
 import { getManualPaymentSettings, updateManualPaymentSettings } from '@/services/paymentSettingsService';
@@ -145,6 +146,7 @@ export async function adminApproveRegistrationAction(
   note?: string
 ): Promise<ActionResponse> {
   try {
+    await requireAdmin('moderator');
     const supabase = await createClient();
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
 
@@ -189,6 +191,7 @@ export async function adminRejectRegistrationAction(
   rejectionReason: string
 ): Promise<ActionResponse> {
   try {
+    await requireAdmin('moderator');
     const supabase = await createClient();
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
 
@@ -470,6 +473,7 @@ export async function getManualPaymentSettingsAction(): Promise<{
 export async function updateManualPaymentSettingsAction(
   settings: ManualPaymentSettings
 ): Promise<ActionResponse> {
+  await requireAdmin('admin');
   const supabase = await createClient();
   const result = await updateManualPaymentSettings(supabase, settings);
   if (result.success) {

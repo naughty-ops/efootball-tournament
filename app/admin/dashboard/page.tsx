@@ -20,7 +20,7 @@ import { requireAdmin } from '@/lib/auth/server';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin('streamer');
   const supabase = await createClient();
 
   // Fetch platform-wide statistics in parallel

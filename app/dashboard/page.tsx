@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import {
   Trophy,
   Swords,
@@ -50,12 +50,13 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const showAdminDeniedAlert = resolvedSearchParams.error === 'admin_unauthorized';
 
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/auth/login?error=unauthorized');
   }
+
+  const supabase = await createClient();
 
   // Fetch player profile, tournaments, matches, and wallet overview in parallel
   const [profile, tournamentsRes, matchesRes, walletOverview] = await Promise.all([
@@ -102,16 +103,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#08088F] text-white pb-16 lg:pb-24">
-      {/* Navigation Header */}
-      <PlayerDashboardHeader
-        userEmail={email}
-        displayName={fullName}
-        efootballId={efootballId !== 'Not Set' ? efootballId : undefined}
-        isVerified={isVerified}
-        avatarUrl={profile?.avatar_url || '/avatars/default-avatar.svg'}
-      />
-
+    <div className="pb-16 lg:pb-24">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8 lg:space-y-10">
         <PlayerDashboardSwipeWrapper currentSection="overview" className="space-y-6 sm:space-y-8 lg:space-y-10">
         {/* Admin Unauthorized Alert */}

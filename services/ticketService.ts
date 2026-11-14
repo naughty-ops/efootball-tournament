@@ -98,10 +98,25 @@ export function calculateTicketDeadline(
   return { deadlineIso, status: 'healthy', isOverdue: false };
 }
 
+let ticketOverviewStatsCache: { data: TicketOverviewStats; timestamp: number } | null = null;
+let operationalAlertsCache: { data: OperationalAlerts; timestamp: number } | null = null;
+let ticketPerformanceMetricsCache: { data: TicketPerformanceMetrics; timestamp: number } | null = null;
+const TICKET_STATS_TTL_MS = 30 * 1000;
+
+export function invalidateTicketOverviewStatsCache() {
+  ticketOverviewStatsCache = null;
+  operationalAlertsCache = null;
+  ticketPerformanceMetricsCache = null;
+}
+
 /**
  * Computes high-level ticket KPI statistics across both support tickets and match disputes
  */
 export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
+  if (ticketOverviewStatsCache && Date.now() - ticketOverviewStatsCache.timestamp < TICKET_STATS_TTL_MS) {
+    return ticketOverviewStatsCache.data;
+  }
+
   const adminClient = createAdminClient();
 
   const [
@@ -143,7 +158,7 @@ export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
   const now = Date.now();
   const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
-  let totalTickets = allItems.length;
+  const totalTickets = allItems.length;
   let totalOpen = 0;
   let pendingReview = 0;
   let underInvestigation = 0;
@@ -207,10 +222,22 @@ export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
 }
 
 /**
- * Computes live operational alerts across active tickets
+ * Computes live operational alerts across active tickets.
+ * Accepts an optional pre-loaded tickets array to avoid a duplicate getAllUnifiedTickets fetch
+ * when the caller has already fetched tickets (e.g. app/admin/tickets/page.tsx).
+ * When called without pre-loaded tickets (e.g. standalone), uses the operationalAlertsCache.
  */
-export async function getOperationalAlerts(): Promise<OperationalAlerts> {
-  const result = await getAllUnifiedTickets({ pageSize: 200, page: 1 });
+export async function getOperationalAlerts(
+  preloadedTickets?: UnifiedTicket[]
+): Promise<OperationalAlerts> {
+  // Only use the cache when tickets are NOT pre-loaded (standalone call path)
+  if (!preloadedTickets && operationalAlertsCache && Date.now() - operationalAlertsCache.timestamp < TICKET_STATS_TTL_MS) {
+    return operationalAlertsCache.data;
+  }
+
+  const result = preloadedTickets
+    ? { tickets: preloadedTickets }
+    : await getAllUnifiedTickets({ pageSize: 200, page: 1 });
   const tickets = result.tickets;
 
   let criticalUnresolved = 0;
@@ -244,7 +271,7 @@ export async function getOperationalAlerts(): Promise<OperationalAlerts> {
     }
   }
 
-  return {
+  const alerts: OperationalAlerts = {
     criticalUnresolved,
     approachingDeadline,
     overdueCount,
@@ -252,12 +279,22 @@ export async function getOperationalAlerts(): Promise<OperationalAlerts> {
     newPlayerResponses,
     disputesNeedingAction,
   };
+
+  // Only populate the cache when tickets came from an internal fetch (not pre-loaded by caller)
+  if (!preloadedTickets) {
+    operationalAlertsCache = { data: alerts, timestamp: Date.now() };
+  }
+  return alerts;
 }
 
 /**
  * Computes accountability & SLA performance metrics using actual timestamps
  */
 export async function getTicketPerformanceMetrics(): Promise<TicketPerformanceMetrics> {
+  if (ticketPerformanceMetricsCache && Date.now() - ticketPerformanceMetricsCache.timestamp < TICKET_STATS_TTL_MS) {
+    return ticketPerformanceMetricsCache.data;
+  }
+
   const adminClient = createAdminClient();
 
   const [supportRes, disputesRes, auditLogsRes, messagesRes] = await Promise.all([
@@ -361,7 +398,7 @@ export async function getTicketPerformanceMetrics(): Promise<TicketPerformanceMe
     count,
   }));
 
-  return {
+  const result: TicketPerformanceMetrics = {
     avgFirstResponseMinutes,
     avgResolutionHours,
     avgDisputeResolutionHours,
@@ -369,6 +406,9 @@ export async function getTicketPerformanceMetrics(): Promise<TicketPerformanceMe
     overduePercentage,
     resolvedByAdmin,
   };
+
+  ticketPerformanceMetricsCache = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 /**
@@ -388,7 +428,7 @@ export async function getAllUnifiedTickets(params: TicketFilterParams = {}): Pro
   const pageSize = Math.max(1, Math.min(100, params.pageSize || 10));
 
   // Query support tickets
-  let stQuery = (adminClient.from('support_tickets') as any)
+  const stQuery = (adminClient.from('support_tickets') as any)
     .select(`
       id, ticket_number, user_id, player_name, player_email, category,
       subject, description, priority, status, assigned_admin_id,
@@ -398,7 +438,7 @@ export async function getAllUnifiedTickets(params: TicketFilterParams = {}): Pro
     `);
 
   // Query match disputes
-  let mdQuery = (adminClient.from('match_disputes') as any)
+  const mdQuery = (adminClient.from('match_disputes') as any)
     .select(`
       id, ticket_number, tournament_id, match_id, reporter_participant_id,
       opponent_participant_id, reason, details, evidence_url, status,
@@ -948,10 +988,30 @@ export async function getTicketAuditLogs(
   return data as TicketAuditLog[];
 }
 
+interface TicketCacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const playerTicketsCache = new Map<string, TicketCacheEntry<UnifiedTicket[]>>();
+const TICKETS_CACHE_TTL_MS = 30 * 1000;
+
+export function invalidatePlayerTicketsCache(userId?: string) {
+  if (userId) {
+    playerTicketsCache.delete(userId);
+  } else {
+    playerTicketsCache.clear();
+  }
+}
+
 /**
  * Fetches a player's own tickets for the player dashboard
  */
 export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]> {
+  const cached = playerTicketsCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < TICKETS_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     const adminClient = createAdminClient();
 
@@ -1034,6 +1094,7 @@ export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]>
 
     const all = [...supportTickets, ...disputeTickets];
     all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    playerTicketsCache.set(userId, { data: all, timestamp: Date.now() });
     return all;
   } catch (err) {
     console.warn('getPlayerTickets: Failed to load tickets, returning empty list:', err);

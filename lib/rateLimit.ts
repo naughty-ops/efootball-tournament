@@ -7,13 +7,35 @@ export interface RateLimitRule {
 
 // Default rate limits per endpoint category
 export const RATE_LIMIT_RULES: Record<string, RateLimitRule> = {
-  auth: { limit: 10, windowSeconds: 60 },         // 10 requests / min for login/auth
+  auth: { limit: 15, windowSeconds: 60 },         // 15 requests / min for auth mutations/attempts
+  authPageNav: { limit: 120, windowSeconds: 60 }, // 120 requests / min for browsing auth pages on shared IPs
+  authAccount: { limit: 5, windowSeconds: 60 },   // 5 attempts / min targeting same account
   tokens: { limit: 30, windowSeconds: 60 },       // 30 requests / min for LiveKit token generation
   predictions: { limit: 20, windowSeconds: 60 },  // 20 requests / min for prediction submissions
-  admin: { limit: 60, windowSeconds: 60 },        // 60 requests / min for admin APIs
+  admin: { limit: 300, windowSeconds: 60 },       // 300 requests / min for admin operations and testing
   api: { limit: 120, windowSeconds: 60 },         // 120 requests / min for general APIs
   health: { limit: 300, windowSeconds: 60 },      // 300 requests / min for health checks
 };
+
+/**
+ * Detects whether an incoming request is an automated Next.js prefetch or speculative load.
+ * Prefetches must never consume authentication or security quotas.
+ */
+export function isPrefetchRequest(request: NextRequest | Request): boolean {
+  const headers = request.headers;
+  const purpose = headers.get('purpose');
+  const secPurpose = headers.get('sec-purpose');
+  const nextRouterPrefetch = headers.get('next-router-prefetch');
+  const xNextjsData = headers.get('x-nextjs-data');
+  const xMiddlewarePrefetch = headers.get('x-middleware-prefetch');
+  return (
+    purpose === 'prefetch' ||
+    secPurpose === 'prefetch' ||
+    nextRouterPrefetch === '1' ||
+    xNextjsData !== null ||
+    xMiddlewarePrefetch === '1'
+  );
+}
 
 export interface RateLimitResult {
   success: boolean;

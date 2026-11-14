@@ -18,30 +18,53 @@ export interface ReorderSectionItem {
   display_order: number;
 }
 
+let cachedSections: { data: HomepageSection[]; timestamp: number } | null = null;
+let cachedAdminSections: { data: HomepageSection[]; timestamp: number } | null = null;
+const SECTIONS_CACHE_TTL_MS = 60000; // 60s memory cache
+const ADMIN_SECTIONS_CACHE_TTL_MS = 30000; // 30s memory cache for admin
+
+export function clearHomepageSectionsCache() {
+  cachedSections = null;
+  cachedAdminSections = null;
+}
+export const clearPublicHomepageSectionsCache = clearHomepageSectionsCache;
+
 /**
  * Public function to fetch all published and enabled homepage sections.
- * Ordered by display_order ascending.
+ * Ordered by display_order ascending with in-memory TTL caching.
  */
-export async function getPublicHomepageSections(): Promise<HomepageSection[]> {
+export async function getPublicHomepageSections(bypassCache = false): Promise<HomepageSection[]> {
+  const now = Date.now();
+  if (!bypassCache && cachedSections && now - cachedSections.timestamp < SECTIONS_CACHE_TTL_MS) {
+    return cachedSections.data;
+  }
+
   const supabase = createClient();
   const { data, error } = await (supabase.from('homepage_sections') as any)
-    .select('*')
+    .select('id, section_key, section_name, description, is_enabled, is_visible_desktop, is_visible_mobile, display_order, status, published_content')
     .eq('is_enabled', true)
     .eq('status', 'published')
     .order('display_order', { ascending: true });
 
   if (error) {
     console.error('Error fetching public homepage sections:', error.message);
-    return [];
+    return cachedSections?.data || [];
   }
 
-  return (data as HomepageSection[]) || [];
+  const result = (data as HomepageSection[]) || [];
+  cachedSections = { data: result, timestamp: now };
+  return result;
 }
 
 /**
  * Admin function to fetch all sections (draft, published, disabled).
  */
 export async function getAdminHomepageSections(): Promise<HomepageSection[]> {
+  const now = Date.now();
+  if (cachedAdminSections && now - cachedAdminSections.timestamp < ADMIN_SECTIONS_CACHE_TTL_MS) {
+    return cachedAdminSections.data;
+  }
+
   const supabase = createClient();
   const { data, error } = await (supabase.from('homepage_sections') as any)
     .select('*')
@@ -52,7 +75,9 @@ export async function getAdminHomepageSections(): Promise<HomepageSection[]> {
     throw new Error(error.message);
   }
 
-  return (data as HomepageSection[]) || [];
+  const result = (data as HomepageSection[]) || [];
+  cachedAdminSections = { data: result, timestamp: now };
+  return result;
 }
 
 /**
@@ -189,6 +214,7 @@ export async function updateSectionVisibility(
     (currentSection as unknown as Record<string, any>) || {}
   );
 
+  clearHomepageSectionsCache();
   return data as HomepageSection;
 }
 
@@ -238,6 +264,7 @@ export async function saveSectionDraft(
     (currentSection as unknown as Record<string, any>) || {}
   );
 
+  clearHomepageSectionsCache();
   return data as HomepageSection;
 }
 
@@ -287,6 +314,7 @@ export async function publishSection(sectionId: string): Promise<HomepageSection
     (currentSection as unknown as Record<string, any>) || {}
   );
 
+  clearHomepageSectionsCache();
   return data as HomepageSection;
 }
 
@@ -333,6 +361,7 @@ export async function revertSectionDraft(sectionId: string): Promise<HomepageSec
     (currentSection as unknown as Record<string, any>) || {}
   );
 
+  clearHomepageSectionsCache();
   return data as HomepageSection;
 }
 
@@ -392,4 +421,6 @@ export async function updateSectionsOrder(
       {}
     );
   }
+
+  clearHomepageSectionsCache();
 }

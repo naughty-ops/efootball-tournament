@@ -1,0 +1,74 @@
+[
+  {
+    "category": "Task 1: Horizontal Overflow",
+    "name": "Viewport 360x800 (Mobile Small) across 8 Dashboard tabs",
+    "status": "PASS",
+    "details": "Zero overflow across all 8 tabs (360px width maintained)"
+  },
+  {
+    "category": "Task 1: Horizontal Overflow",
+    "name": "Viewport 375x812 (iPhone Mini) across 8 Dashboard tabs",
+    "status": "PASS",
+    "details": "Zero overflow across all 8 tabs (375px width maintained)"
+  },
+  {
+    "category": "Task 1: Horizontal Overflow",
+    "name": "Viewport 390x844 (iPhone 12/13/14) across 8 Dashboard tabs",
+    "status": "PASS",
+    "details": "Zero overflow across all 8 tabs (390px width maintained)"
+  },
+  {
+    "category": "Task 1: Horizontal Overflow",
+    "name": "Viewport 430x932 (iPhone Pro Max) across 8 Dashboard tabs",
+    "status": "PASS",
+    "details": "Zero overflow across all 8 tabs (430px width maintained)"
+  },
+  {
+    "category": "Task 2: Auth Redirects",
+    "name": "Anonymous access to /dashboard redirects to /auth/login with next param",
+    "status": "PASS",
+    "details": "Final URL: http://localhost:3001/auth/login?next=%2Fdashboard"
+  },
+  {
+    "category": "Task 2: Auth Redirects",
+    "name": "Anonymous access to /admin redirects to /login (Admin Portal)",
+    "status": "PASS",
+    "details": "Final URL: http://localhost:3001/login?next=%2Fadmin"
+  },
+  {
+    "category": "Task 2: Auth Redirects",
+    "name": "Normal player access to /admin blocked with admin_unauthorized",
+    "status": "PASS",
+    "details": "Final URL: http://localhost:3001/dashboard?error=admin_unauthorized"
+  },
+  {
+    "category": "Task 2: Auth Redirects",
+    "name": "Admin access to /admin/dashboard permitted",
+    "status": "PASS",
+    "details": "Final URL: http://localhost:3001/admin/dashboard"
+  },
+  {
+    "category": "Task 3: Rate Limiting",
+    "name": "Prefetch traffic excluded from rate limit counters",
+    "status": "PASS",
+    "details": "15 consecutive prefetch requests completed with status codes: 200"
+  },
+  {
+    "category": "Task 3: Rate Limiting",
+    "name": "Shared IP page navigation supports at least 20 req/min without 429",
+    "status": "PASS",
+    "details": "20 navigation requests completed with status codes: 200"
+  },
+  {
+    "category": "Task 4: WhatsApp Registration",
+    "name": "Prefilled WhatsApp payment link and message text formatting",
+    "status": "PASS",
+    "details": "URL prefix: https://wa.me/919207516227?text=%F0%9F%8E%AE%..."
+  },
+  {
+    "category": "Task 5: Tickets Swipe Metadata",
+    "name": "Support tickets page loads with currentSection=\"tickets\"",
+    "status": "PASS",
+    "details": "Correctly renders My Tickets & Disputes under Swipe wrapper"
+  }
+]

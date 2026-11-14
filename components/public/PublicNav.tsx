@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { PUBLIC_NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Trophy, Radio, Home, Info, Phone } from 'lucide-react';
-import { getPublicLiveMatches } from '@/services/publicTournamentService';
+import { useLiveMatchesQuery } from '@/hooks/queries/useLiveMatchesQuery';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 
 const NAV_ICONS: Record<string, React.ElementType> = {
@@ -26,41 +26,26 @@ interface PublicNavProps {
 export default function PublicNav({ onItemClick, className }: PublicNavProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname || '';
-  const [liveCount, setLiveCount] = useState<number>(0);
+  const router = useRouter();
   const activeTabRef = useRef<HTMLAnchorElement>(null);
 
-  const fetchLiveCount = useCallback(async () => {
-    try {
-      const liveMatches = await getPublicLiveMatches();
-      setLiveCount(liveMatches.length);
-    } catch {
-      // Silent fail
-    }
-  }, []);
+  // Reusable TanStack Query live matches cache: eliminates duplicate network requests across tabs
+  const { data: liveMatches = [], refetch } = useLiveMatchesQuery();
+  const liveCount = liveMatches.length;
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (!cancelled) await fetchLiveCount();
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchLiveCount]);
-
-  // Only re-fetch live match count if a match actually changed status (e.g. went live or ended)
+  // Realtime hook synchronizes live match count automatically
   const handleRealtimeMatchUpdate = useCallback(
     (payload?: RealtimePayload) => {
       if (payload?.table === 'matches' && payload?.eventType === 'UPDATE') {
         const oldStatus = payload.old?.status;
         const newStatus = payload.new?.status;
         if (oldStatus && newStatus && oldStatus === newStatus) {
-          return; // Status unchanged (e.g. goal scored); live count remains identical
+          return;
         }
       }
-      fetchLiveCount();
+      refetch();
     },
-    [fetchLiveCount]
+    [refetch]
   );
 
   useRealtimeMatches(handleRealtimeMatchUpdate);
@@ -89,6 +74,9 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
               key={item.href}
               ref={isActive ? activeTabRef : undefined}
               href={item.href}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(item.href)}
+              onTouchStart={() => router.prefetch(item.href)}
               onClick={onItemClick}
               className={cn(
                 'transition-all duration-200 ease-out whitespace-nowrap flex items-center justify-center gap-1.5 rounded-full font-black tracking-wide active:scale-95 touch-target min-h-[40px] px-2.5 sm:px-4 py-1.5 sm:py-2 shrink-0',
@@ -99,19 +87,24 @@ export default function PublicNav({ onItemClick, className }: PublicNavProps) {
             >
               <IconComponent
                 className={cn(
-                  'h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform',
-                  isActive ? 'text-[#08088F]' : 'text-[#D9DCFF]'
+                  'h-4 w-4 shrink-0 transition-transform duration-200',
+                  isActive ? 'text-[#08088F]' : 'text-[#FFFF00]'
                 )}
               />
-              <span className="text-[11px] sm:text-xs md:text-sm">{item.label}</span>
+              <span className="text-xs sm:text-sm uppercase tracking-wider font-display font-black">
+                {item.label}
+              </span>
+
+              {/* Realtime Live Counter Badge */}
               {isLiveItem && liveCount > 0 && (
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-black animate-pulse shadow-xs',
-                    isActive ? 'bg-[#FF168B] text-white' : 'bg-[#FF168B] text-white'
+                    'relative ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black leading-tight flex items-center justify-center transition-colors shadow-sm',
+                    isActive
+                      ? 'bg-[#FF168B] text-white'
+                      : 'bg-[#FF168B] text-white animate-pulse'
                   )}
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
                   {liveCount}
                 </span>
               )}

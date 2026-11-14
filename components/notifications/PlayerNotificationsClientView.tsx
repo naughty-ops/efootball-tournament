@@ -170,7 +170,7 @@ export default function PlayerNotificationsClientView({
                 key={cat.key}
                 onClick={() => setActiveCategory(cat.key)}
                 className={cn(
-                  'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer',
+                  'flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer',
                   isActive
                     ? 'bg-[#FFFF00] text-[#08088F] shadow-md shadow-[#FFFF00]/20'
                     : 'bg-[#05053B] border border-white/10 text-white/70 hover:text-white hover:bg-white/5'
@@ -190,7 +190,7 @@ export default function PlayerNotificationsClientView({
             size="sm"
             onClick={handleMarkAllAsRead}
             disabled={processingId === 'all' || isPending}
-            className="rounded-full border-white/20 text-white hover:bg-white/10 text-xs font-black uppercase tracking-wider h-9 px-4 shrink-0 gap-1.5 cursor-pointer"
+            className="rounded-full border-white/20 text-white hover:bg-white/10 text-xs font-black uppercase tracking-wider min-h-[44px] h-10 px-4 shrink-0 gap-1.5 cursor-pointer"
           >
             {processingId === 'all' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -274,7 +274,7 @@ export default function PlayerNotificationsClientView({
                     <Button
                       asChild
                       size="sm"
-                      className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full h-8 px-4 cursor-pointer"
+                      className="bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full min-h-[44px] h-10 px-4 cursor-pointer"
                     >
                       <Link href={notif.actionUrl}>
                         <span>View</span>
@@ -289,7 +289,7 @@ export default function PlayerNotificationsClientView({
                       size="sm"
                       onClick={() => handleMarkAsRead(notif.id)}
                       disabled={isBusy}
-                      className="text-white/70 hover:text-white hover:bg-white/10 text-xs font-bold rounded-full h-8 px-3 cursor-pointer"
+                      className="text-white/70 hover:text-white hover:bg-white/10 text-xs font-bold rounded-full min-h-[44px] h-10 px-3 cursor-pointer"
                     >
                       {isBusy ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

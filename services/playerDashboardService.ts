@@ -89,29 +89,68 @@ export interface PlayerMatchItem {
 
 type AnySupabaseClient = any;
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+// In-memory server-side TTL caches to achieve instant dashboard tab switching
+const profileCache = new Map<string, CacheEntry<Profile | null>>();
+const tournamentsCache = new Map<string, CacheEntry<ServiceResult<PlayerTournamentItem[]>>>();
+const matchesCache = new Map<string, CacheEntry<ServiceResult<PlayerMatchItem[]>>>();
+
+const PROFILE_CACHE_TTL_MS = 60 * 1000; // 60s
+const TOURNAMENTS_CACHE_TTL_MS = 30 * 1000; // 30s
+const MATCHES_CACHE_TTL_MS = 20 * 1000; // 20s
+
+export function invalidatePlayerDashboardCache(userId?: string) {
+  if (userId) {
+    profileCache.delete(userId);
+    tournamentsCache.delete(userId);
+    // clear matches keys starting with userId
+    for (const key of matchesCache.keys()) {
+      if (key.startsWith(userId)) matchesCache.delete(key);
+    }
+  } else {
+    profileCache.clear();
+    tournamentsCache.clear();
+    matchesCache.clear();
+  }
+}
+
 /**
- * Fetch a player's profile data
+ * Fetch a player's profile data with resilient in-memory TTL caching
  */
 export async function getPlayerProfile(
   supabase: AnySupabaseClient,
   userId: string,
   fallbackUser?: any
 ): Promise<Profile | null> {
+  // Check in-memory cache first
+  const cached = profileCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < PROFILE_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(
+        'id, display_name, email, avatar_url, efootball_id, efootball_id_verified, efootball_verification_status, efootball_rejection_reason, whatsapp_number, whatsapp_verified, whatsapp_verification_status, whatsapp_verification_requested_at, whatsapp_verified_at, whatsapp_verified_by, whatsapp_rejection_reason, account_status, suspension_reason, suspended_at, suspended_by, created_at, updated_at'
+      )
       .eq('id', userId)
       .maybeSingle();
 
     if (!error && data) {
       const profileData = data as Profile;
       const isEfFormatValid = isValidEfootballId(profileData.efootball_id);
-      return {
+      const resolved = {
         ...profileData,
         efootball_id_verified: isEfFormatValid || profileData.efootball_id_verified,
         efootball_verification_status: isEfFormatValid ? 'verified' : profileData.efootball_verification_status,
       };
+      profileCache.set(userId, { data: resolved, timestamp: Date.now() });
+      return resolved;
     }
 
     if (error) {
@@ -199,6 +238,11 @@ export async function getPlayerTournaments(
   supabase: AnySupabaseClient,
   userId: string
 ): Promise<ServiceResult<PlayerTournamentItem[]>> {
+  const cached = tournamentsCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < TOURNAMENTS_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     // 1. Fetch user's verified participant records
     const { data: participants, error: pErr } = await supabase
@@ -272,7 +316,9 @@ export async function getPlayerTournaments(
       };
     });
 
-    return { data: items, error: null };
+    const result: ServiceResult<PlayerTournamentItem[]> = { data: items, error: null };
+    tournamentsCache.set(userId, { data: result, timestamp: Date.now() });
+    return result;
   } catch (err: any) {
     console.error('Unexpected error in getPlayerTournaments:', err);
     return { data: [], error: err.message || 'An unexpected error occurred loading your tournaments.' };
@@ -294,6 +340,12 @@ export async function getPlayerMatches(
   userId: string,
   options?: PlayerMatchesOptions
 ): Promise<ServiceResult<PlayerMatchItem[]>> {
+  const cacheKey = `${userId}:${options?.activeLimit || 'all'}:${options?.completedLimit || 'all'}`;
+  const cached = matchesCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < MATCHES_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
     // 1. Get all participant records for this user
     const { data: userParticipants, error: pErr } = await supabase
@@ -769,10 +821,12 @@ export async function getPlayerMatches(
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-    return {
+    const result: ServiceResult<PlayerMatchItem[]> = {
       data: [...liveMatches, ...upcomingMatches, ...completedMatches],
       error: null,
     };
+    matchesCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    return result;
   } catch (err: any) {
     console.error('Unexpected error in getPlayerMatches:', err);
     return { data: [], error: err.message || 'An unexpected error occurred loading your matches.' };

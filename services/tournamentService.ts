@@ -64,7 +64,7 @@ function formatSupabaseError(error: unknown): string {
 }
 
 const SAFE_TOURNAMENT_PUBLIC_SELECT =
-  'id, name, description, rules_text, format, status, max_participants, is_paid, entry_fee_paise, prize_pool_paise, first_place_prize_paise, first_place_notes, second_place_prize_paise, second_place_notes, third_place_prize_paise, third_place_notes, third_place_id, prize_distribution, currency, is_private, champion_id, runner_up_id, banner_image, created_at, updated_at, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(*), runner_up:participants!tournaments_runner_up_id_fkey(*)';
+  'id, name, description, rules_text, format, status, max_participants, is_paid, entry_fee_paise, prize_pool_paise, first_place_prize_paise, first_place_notes, second_place_prize_paise, second_place_notes, third_place_prize_paise, third_place_notes, third_place_id, prize_distribution, currency, is_private, champion_id, runner_up_id, banner_image, created_at, updated_at, participants:participants!participants_tournament_id_fkey(count), champion:participants!tournaments_champion_id_fkey(id, username, real_name, seed_number), runner_up:participants!tournaments_runner_up_id_fkey(id, username, real_name, seed_number)';
 
 export function sanitizeTournamentObject<T extends Record<string, any>>(tournament: T): T {
   if (!tournament) return tournament;

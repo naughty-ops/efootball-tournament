@@ -30,7 +30,10 @@ export function PlayerDashboardSwipeWrapper({
 
   // Find index of current route
   const normalizedPath =
-    pathname.startsWith('/dashboard/profile') || pathname.startsWith('/dashboard/career')
+    pathname.startsWith('/dashboard/profile') ||
+    pathname.startsWith('/dashboard/career') ||
+    pathname.startsWith('/dashboard/tickets') ||
+    pathname.startsWith('/dashboard/notifications')
       ? '/dashboard/settings'
       : pathname;
   const currentIndex = DASHBOARD_ROUTES.findIndex((r) => {

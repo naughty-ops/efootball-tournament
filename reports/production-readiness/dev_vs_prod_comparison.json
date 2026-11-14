@@ -1,0 +1,38 @@
+[
+  {
+    "transition": "/ → /tournaments",
+    "devMs": 857,
+    "prodMs": 255,
+    "speedup": "70% faster"
+  },
+  {
+    "transition": "/tournaments → /live",
+    "devMs": 274,
+    "prodMs": 123,
+    "speedup": "55% faster"
+  },
+  {
+    "transition": "/live → /tournaments",
+    "devMs": 574,
+    "prodMs": 143,
+    "speedup": "75% faster"
+  },
+  {
+    "transition": "/tournaments → /",
+    "devMs": 588,
+    "prodMs": 117,
+    "speedup": "80% faster"
+  },
+  {
+    "transition": "/ → /live",
+    "devMs": 225,
+    "prodMs": 113,
+    "speedup": "50% faster"
+  },
+  {
+    "transition": "/live → /",
+    "devMs": 343,
+    "prodMs": 109,
+    "speedup": "68% faster"
+  }
+]

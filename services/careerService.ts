@@ -67,10 +67,27 @@ export const DEFAULT_CAREER_DATA: PlayerCareerData = {
   unlockedCount: 0,
 };
 
+interface CareerCacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const careerCache = new Map<string, CareerCacheEntry<PlayerCareerData>>();
+const CAREER_CACHE_TTL_MS = 60 * 1000;
+
+export function invalidateCareerCache(userId?: string) {
+  if (userId) careerCache.delete(userId);
+  else careerCache.clear();
+}
+
 export async function getPlayerCareerData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<PlayerCareerData> {
+  const cached = careerCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < CAREER_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   try {
   // 1. Fetch user's participant records across tournaments
   const { data: userParticipants } = await supabase
@@ -331,7 +348,7 @@ export async function getPlayerCareerData(
     };
   });
 
-    return {
+    const careerResult: PlayerCareerData = {
       stats: {
         matchesPlayed,
         wins,
@@ -352,6 +369,8 @@ export async function getPlayerCareerData(
       totalAchievementPoints,
       unlockedCount,
     };
+    careerCache.set(userId, { data: careerResult, timestamp: Date.now() });
+    return careerResult;
   } catch (err) {
     console.warn('getPlayerCareerData error:', err);
     return DEFAULT_CAREER_DATA;

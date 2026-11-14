@@ -7,7 +7,6 @@ import { getCanonicalMatchRoomName, getBroadcasterIdentity } from '@/lib/livekit
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PRIMARY_ADMIN_EMAIL = 'ye.agrajj@gmail.com';
 const SAFE_ROOM_REGEX = /^[a-zA-Z0-9_\-\.]{3,64}$/;
 
 function getCorsHeaders(rateLimitHeaders?: Record<string, string>) {
@@ -71,7 +70,6 @@ async function evaluateCallerRole(): Promise<EvaluatedUser> {
     }
 
     const email = (user.email || '').trim().toLowerCase();
-    const isPrimaryEmail = email === PRIMARY_ADMIN_EMAIL.toLowerCase();
 
     // Query profiles table for account_status (suspended/disabled protection)
     let accountStatus: 'active' | 'suspended' | 'disabled' = 'active';
@@ -103,10 +101,6 @@ async function evaluateCallerRole(): Promise<EvaluatedUser> {
       }
     } catch (dbErr) {
       console.warn('[LiveKit Token] Failed querying admin_users:', dbErr);
-    }
-
-    if (isPrimaryEmail) {
-      assignedRole = 'super_admin';
     }
 
     // Suspended or disabled users lose ALL elevated permissions immediately

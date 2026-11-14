@@ -1,47 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import Link from 'next/link';
-import { Loader2, RefreshCw, Tv, Users, Play, ArrowRight, Swords, Trophy, Radio } from 'lucide-react';
+import { Loader2, RefreshCw, Tv, Users, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getPublicLiveMatches } from '@/services/publicTournamentService';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query/queryKeys';
+import { useLiveMatchesQuery } from '@/hooks/queries/useLiveMatchesQuery';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
-
-type LiveMatchEntry = Awaited<ReturnType<typeof getPublicLiveMatches>>[number];
+import type { LiveMatchEntry } from '@/services/publicTournamentService';
 
 export default function LivePage() {
-  const [liveMatches, setLiveMatches] = useState<LiveMatchEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchLive = useCallback(async () => {
-    try {
-      const data = await getPublicLiveMatches();
-      setLiveMatches(data);
-      setError(null);
-    } catch {
-      setError('Unable to load live matches. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Centralized TanStack Query cache for live matches: instant 0ms tab display
+  const {
+    data: liveMatches = [],
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useLiveMatchesQuery();
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => { if (!cancelled) await fetchLive(); })();
-    return () => { cancelled = true; };
-  }, [fetchLive]);
+  const error = queryError ? 'Unable to load live matches. Please check connection.' : null;
 
-  // Realtime Handler
+  // Realtime Handler with Granular Cache Surgery (does not wipe screen or flicker)
   const handleRealtimeUpdate = useCallback(
     (payload?: RealtimePayload) => {
       if (payload?.new && payload.new.id) {
         const updatedMatch = payload.new;
-        setLiveMatches((prev) => {
+        queryClient.setQueryData<LiveMatchEntry[]>(queryKeys.matches.live(), (old = []) => {
           if (updatedMatch.status === 'live') {
-            const exists = prev.some((item) => item.match.id === updatedMatch.id);
+            const exists = old.some((item) => item.match.id === updatedMatch.id);
             if (exists) {
-              return prev.map((item) => {
+              return old.map((item) => {
                 if (item.match.id === updatedMatch.id) {
                   return {
                     ...item,
@@ -58,19 +50,18 @@ export default function LivePage() {
               });
             }
           } else {
-            return prev.filter((item) => item.match.id !== updatedMatch.id);
+            return old.filter((item) => item.match.id !== updatedMatch.id);
           }
-          return prev;
+          return old;
         });
 
-        // If existing live match was patched, skip full fetch!
         if (updatedMatch.status === 'live') {
           return;
         }
       }
-      fetchLive();
+      refetch();
     },
-    [fetchLive]
+    [queryClient, refetch]
   );
 
   const { connectionStatus } = useRealtimeMatches(handleRealtimeUpdate);
@@ -87,13 +78,19 @@ export default function LivePage() {
           <h1 className="text-2xl sm:text-3xl font-black font-display uppercase tracking-wider text-white">
             Live Matches
           </h1>
+          {isFetching && !loading && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold text-[#FFFF00]/80 bg-white/10 px-2.5 py-0.5 rounded-full animate-pulse">
+              <RefreshCw className="h-3 w-3 animate-spin" />
+              Live Sync
+            </span>
+          )}
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchLive}
-          className="gap-1.5 text-xs h-8 border-white/20 bg-[#1010C5] hover:bg-white/10 text-white px-3.5 rounded-full font-black uppercase tracking-wider"
+          onClick={() => refetch()}
+          className="gap-1.5 text-xs h-8 border-white/20 bg-[#1010C5] hover:bg-white/10 text-white px-3.5 rounded-full font-black uppercase tracking-wider cursor-pointer"
         >
           <RefreshCw className="h-3.5 w-3.5 text-[#FFFF00]" />
           <span>Refresh</span>
@@ -117,7 +114,7 @@ export default function LivePage() {
       ) : error ? (
         <div className="p-8 text-center bg-[#1818D4] rounded-[28px] border border-white/20 text-white space-y-3">
           <p className="text-sm font-bold text-[#FF168B]">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchLive} className="rounded-full border-white/30 text-white hover:bg-[#FFFF00] hover:text-[#08088F]">
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-full border-white/30 text-white hover:bg-[#FFFF00] hover:text-[#08088F] cursor-pointer">
             Try Again
           </Button>
         </div>
@@ -171,7 +168,7 @@ export default function LivePage() {
                 </span>
               </div>
 
-              {/* Center Matchup Area: Competitor A vs Competitor B with Avatars and Big Scoreboard */}
+              {/* Center Matchup Area */}
               <div className="grid grid-cols-7 items-center gap-2 py-4 px-3 sm:px-4 rounded-2xl bg-[#0A0A7A]/70 border border-white/15">
                 {/* Player A */}
                 <div className="col-span-3 flex items-center gap-2.5 min-w-0">
@@ -216,7 +213,7 @@ export default function LivePage() {
                 </div>
               </div>
 
-              {/* Card Action Footer: Broadcast Status & "Watch Live Stream" Button */}
+              {/* Card Action Footer */}
               <div className="flex items-center justify-between pt-1 border-t border-white/10 gap-3">
                 <div className="flex items-center gap-1.5 text-xs text-[#D9DCFF]/80">
                   <Users className="h-3.5 w-3.5 text-[#FFFF00]" />

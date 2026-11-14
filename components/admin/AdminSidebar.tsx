@@ -115,7 +115,14 @@ export default function AdminSidebar({
         <div className="p-5 flex flex-col gap-6">
           {/* Admin Brand Header */}
           <div className="flex items-center justify-between px-1">
-            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center gap-2.5">
+            <Link
+              href="/admin/dashboard"
+              prefetch={true}
+              onMouseEnter={() => router.prefetch('/admin/dashboard')}
+              onTouchStart={() => router.prefetch('/admin/dashboard')}
+              onClick={onClose}
+              className="flex items-center gap-2.5"
+            >
               <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-[#0A0A7A] p-0.5 flex items-center justify-center shrink-0 shadow-md border border-white/20">
                 <Image
                   src="/logos/logo-mark-transparent.webp"
@@ -161,6 +168,9 @@ export default function AdminSidebar({
                       <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={true}
+                        onMouseEnter={() => router.prefetch(item.href)}
+                        onTouchStart={() => router.prefetch(item.href)}
                         onClick={onClose}
                         className={cn(
                           'flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-150 touch-target relative',

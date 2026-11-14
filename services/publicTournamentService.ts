@@ -26,7 +26,7 @@ export type LiveMatchEntry = {
 };
 
 // Lightweight In-Memory TTL Cache for Instant Navigation (< 50ms responses)
-const CACHE_TTL_MS = 10000; // 10 seconds
+const CACHE_TTL_MS = 30000; // 30 seconds fresh cache
 let cachedTournaments: { data: TournamentWithStats[]; timestamp: number; key: string } | null = null;
 let cachedLiveMatches: { data: LiveMatchEntry[]; timestamp: number; key: string } | null = null;
 

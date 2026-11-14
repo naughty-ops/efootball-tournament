@@ -70,7 +70,7 @@ export async function checkTournamentNameAvailabilityAction(
 
 /**
  * Server action: Create a new tournament
- * Strictly requires verified administrator authentication (ye.agrajj@gmail.com).
+ * Strictly requires verified administrator authentication (requires role 'admin' in public.admin_users).
  */
 export async function createTournamentAction(input: TournamentInput): Promise<ActionResponse> {
   try {
@@ -213,7 +213,7 @@ export async function createTournamentAction(input: TournamentInput): Promise<Ac
 
 /**
  * Server action: Update an existing tournament
- * Strictly requires verified administrator authentication (ye.agrajj@gmail.com).
+ * Strictly requires verified administrator authentication (requires role 'admin' in public.admin_users).
  */
 export async function updateTournamentAction(
   id: string,
@@ -467,7 +467,7 @@ export async function updateTournamentAction(
 
 /**
  * Server action: Publish a draft tournament and open registrations
- * Strictly requires verified administrator authentication (ye.agrajj@gmail.com).
+ * Strictly requires verified administrator authentication (requires role 'admin' in public.admin_users).
  */
 export async function publishTournamentAction(id: string): Promise<ActionResponse> {
   try {
@@ -632,7 +632,7 @@ export async function updateTournamentStatusAction(
 
 /**
  * Server action: Delete a tournament
- * Strictly requires verified administrator authentication (ye.agrajj@gmail.com).
+ * Strictly requires verified administrator authentication (requires role 'admin' in public.admin_users).
  */
 export async function deleteTournamentAction(id: string): Promise<ActionResponse> {
   try {

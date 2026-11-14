@@ -16,6 +16,8 @@ import {
   Clock,
   ShieldAlert,
   MessageSquare,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +26,7 @@ import { createClient } from '@/lib/supabase/client';
 import { registerForTournamentAction } from '@/app/actions/playerActions';
 import { cancelRegistrationRequestAction } from '@/app/actions/paymentRegistrationActions';
 import { getManualPaymentSettings, DEFAULT_MANUAL_PAYMENT_SETTINGS } from '@/services/paymentSettingsService';
-import { generateWhatsAppPaymentLink } from '@/lib/whatsappPayment';
+import { generateWhatsAppPaymentLink, generateWhatsAppPaymentMessageText } from '@/lib/whatsappPayment';
 import { playConnecting } from '@/src/lib/sounds/sound-manager';
 import { calculatePrizeSplit } from '@/lib/utils';
 import type { TournamentWithStats } from '@/services/tournamentService';
@@ -52,6 +54,8 @@ export function TournamentRegistrationCard({
   const [isCancelling, setIsCancelling] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [paidSuccessModalOpen, setPaidSuccessModalOpen] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
 
   const isRegistrationOpen = tournament.status === 'registration';
   const participantCount = tournament.participant_count ?? 0;
@@ -118,10 +122,32 @@ export function TournamentRegistrationCard({
   const efootballId = userProfile?.efootball_id || currentUser?.user_metadata?.efootball_id;
   const isProfileComplete = Boolean(efootballId && efootballId.trim().length > 0);
 
+  const handleCopyMessage = async () => {
+    const regId = registrationRecord?.id || '';
+    if (!regId) return;
+    const msg = generateWhatsAppPaymentMessageText({
+      adminWhatsAppNumber: paymentSettings.admin_whatsapp_number || '+919207516227',
+      tournamentName: tournament.name,
+      tournamentId: tournament.id,
+      registrationId: regId,
+      userName: userProfile?.display_name || currentUser?.user_metadata?.full_name || 'Player',
+      efootballId: efootballId || 'Not set',
+      userPhone: userProfile?.whatsapp_number || '',
+      entryFeeINR,
+    });
+    try {
+      await navigator.clipboard.writeText(msg);
+      setCopiedMessage(true);
+      setTimeout(() => setCopiedMessage(false), 2500);
+    } catch {
+      // Fallback if clipboard API is restricted
+    }
+  };
+
   /**
    * Registration handler:
    * - Free: Instantly confirms participant
-   * - Paid: Creates pending_payment registration and immediately redirects/opens WhatsApp (no payment modal)
+   * - Paid: Creates pending_payment registration and safely opens WhatsApp verification modal (no popup blocking)
    */
   const handleRegistration = async () => {
     setIsRegistering(true);
@@ -134,33 +160,16 @@ export function TournamentRegistrationCard({
         playConnecting();
 
         if (res.data?.isPaid && res.data?.registrationId) {
-          // Paid tournament: Build prefilled WhatsApp link and immediately open
-          const waUrl = generateWhatsAppPaymentLink({
-            adminWhatsAppNumber: paymentSettings.admin_whatsapp_number || '+919207516227',
-            tournamentName: tournament.name,
-            tournamentId: tournament.id,
-            registrationId: res.data.registrationId,
-            userName: userProfile?.display_name || currentUser?.user_metadata?.full_name || 'Player',
-            efootballId: efootballId || 'Not set',
-            userPhone: userProfile?.whatsapp_number || '',
-            entryFeeINR,
-          });
-
-          // Open WhatsApp immediately in new tab / window
-          if (typeof window !== 'undefined') {
-            const opened = window.open(waUrl, '_blank');
-            if (!opened) {
-              window.location.assign(waUrl);
-            }
-          }
-
+          // Paid tournament: Record pending_payment state and open safe WhatsApp modal
           setRegistrationRecord({
             id: res.data.registrationId,
             status: 'pending_payment',
           });
 
+          setPaidSuccessModalOpen(true);
+
           setFeedback({
-            message: 'Registration request created! Please send the pre-filled WhatsApp message to the admin to complete payment.',
+            message: 'Registration request created! Please connect with the admin on WhatsApp to complete payment verification.',
             type: 'info',
           });
         } else {
@@ -378,12 +387,12 @@ export function TournamentRegistrationCard({
             <p className="text-xs text-[#D9DCFF] leading-relaxed">
               Your registration request has been created. Chat directly with the admin on WhatsApp to complete payment (₹{entryFeeINR} INR) and confirm your competitor slot.
             </p>
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-2 sm:gap-3">
               {activeWhatsAppUrl && (
                 <Button
                   asChild
                   size="sm"
-                  className="bg-[#00C853] hover:bg-[#00B048] text-[#072418] text-xs font-black rounded-full h-10 px-5 shadow-lg gap-2 cursor-pointer"
+                  className="bg-[#00C853] hover:bg-[#00B048] text-[#072418] text-xs font-black rounded-full min-h-[44px] h-11 px-5 shadow-lg gap-2 cursor-pointer"
                 >
                   <a href={activeWhatsAppUrl} target="_blank" rel="noopener noreferrer">
                     <MessageSquare className="h-4 w-4" />
@@ -392,11 +401,21 @@ export function TournamentRegistrationCard({
                 </Button>
               )}
               <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleCopyMessage}
+                className="text-xs font-bold rounded-full min-h-[44px] h-11 px-4 border-white/40 text-white hover:bg-white/10 gap-1.5 cursor-pointer"
+              >
+                {copiedMessage ? <Check className="h-4 w-4 text-[#00C853]" /> : <Copy className="h-4 w-4" />}
+                <span>{copiedMessage ? 'Copied Message!' : 'Copy Message'}</span>
+              </Button>
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={handleCancelRequest}
                 disabled={isCancelling}
-                className="text-xs font-bold rounded-full h-10 px-4 border-white/40 text-rose-300 hover:bg-rose-500/20 hover:text-white"
+                className="text-xs font-bold rounded-full min-h-[44px] h-11 px-4 border-white/40 text-rose-300 hover:bg-rose-500/20 hover:text-white cursor-pointer"
               >
                 {isCancelling ? 'Cancelling...' : 'Cancel Request'}
               </Button>
@@ -638,6 +657,78 @@ export function TournamentRegistrationCard({
                   ) : (
                     isPaidTournament ? 'Confirm & Open WhatsApp' : 'Confirm & Join'
                   )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Paid Tournament WhatsApp Verification Modal */}
+        {paidSuccessModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-[#0B0B7C] border border-white/20 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
+              <div className="space-y-2">
+                <div className="h-12 w-12 rounded-2xl bg-[#00C853]/20 text-[#00E676] flex items-center justify-center border border-[#00C853]/40">
+                  <MessageSquare className="h-6 w-6 text-[#00E676]" />
+                </div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight font-display">
+                  Registration Request Created!
+                </h3>
+                <p className="text-xs text-[#D9DCFF] font-medium leading-relaxed">
+                  Connect with the tournament administrator on WhatsApp to complete payment verification and confirm your slot in <strong className="text-white font-bold">{tournament.name}</strong>.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#05054A] border border-white/15 text-xs space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 font-bold">Registration ID:</span>
+                  <span className="font-mono font-black text-[#FFFF00] text-xs tracking-wide bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/15">
+                    {registrationRecord?.id?.slice(0, 12)}...
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 font-bold">Entry Fee:</span>
+                  <span className="font-extrabold text-[#00E676] text-sm">
+                    ₹{entryFeeINR} INR
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 font-bold">Admin WhatsApp:</span>
+                  <span className="font-mono text-white/90 font-bold">
+                    {paymentSettings.admin_whatsapp_number || '+919207516227'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                {activeWhatsAppUrl && (
+                  <Button
+                    asChild
+                    className="w-full bg-[#00C853] hover:bg-[#00B048] text-[#072418] font-black text-xs rounded-xl min-h-[44px] h-12 shadow-lg gap-2 cursor-pointer uppercase tracking-wider"
+                  >
+                    <a href={activeWhatsAppUrl} target="_blank" rel="noopener noreferrer">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Open WhatsApp Verification</span>
+                    </a>
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCopyMessage}
+                  className="w-full min-h-[44px] h-11 rounded-xl text-xs font-bold border-white/20 text-white hover:bg-white/10 gap-2 cursor-pointer"
+                >
+                  {copiedMessage ? <Check className="h-4 w-4 text-[#00E676]" /> : <Copy className="h-4 w-4" />}
+                  <span>{copiedMessage ? 'Message Copied to Clipboard!' : 'Copy Pre-filled Message'}</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setPaidSuccessModalOpen(false)}
+                  className="w-full min-h-[44px] h-10 rounded-xl text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 cursor-pointer"
+                >
+                  Close & View Status
                 </Button>
               </div>
             </div>

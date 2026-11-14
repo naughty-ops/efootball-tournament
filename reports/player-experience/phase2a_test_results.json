@@ -1,0 +1,149 @@
+[
+  {
+    "id": "TEST-1.1",
+    "name": "Anonymous Visitor Blocked from requireAdmin()",
+    "category": "Identity: Anonymous",
+    "status": "PASS",
+    "details": "requireAdmin throws authentication error for anonymous visitor"
+  },
+  {
+    "id": "TEST-2.1",
+    "name": "Normal Player Blocked from Admin Actions",
+    "category": "Identity: Normal Player",
+    "status": "PASS",
+    "details": "Normal player cannot execute moderator/admin actions"
+  },
+  {
+    "id": "TEST-2.2",
+    "name": "Normal Player Blocked from Role Promotion",
+    "category": "Identity: Normal Player",
+    "status": "PASS",
+    "details": "Normal player cannot promote roles or access super_admin actions"
+  },
+  {
+    "id": "TEST-3.1",
+    "name": "Streamer Enters Admin Portal with Streamer Rank",
+    "category": "Identity: Streamer",
+    "status": "PASS",
+    "details": "Streamer receives verified streamer role"
+  },
+  {
+    "id": "TEST-3.2",
+    "name": "Streamer Blocked from Tournament Management",
+    "category": "Identity: Streamer",
+    "status": "PASS",
+    "details": "Streamer cannot perform operations requiring admin privilege"
+  },
+  {
+    "id": "TEST-3.3",
+    "name": "Streamer Blocked from Role Management",
+    "category": "Identity: Streamer",
+    "status": "PASS",
+    "details": "Streamer cannot perform super_admin operations"
+  },
+  {
+    "id": "TEST-4.1",
+    "name": "Moderator Permitted for Moderation Actions",
+    "category": "Identity: Moderator",
+    "status": "PASS",
+    "details": "Moderator successfully executes moderator-scoped actions"
+  },
+  {
+    "id": "TEST-4.2",
+    "name": "Moderator Blocked from Full Admin Actions",
+    "category": "Identity: Moderator",
+    "status": "PASS",
+    "details": "Moderator cannot perform admin-scoped tournament management"
+  },
+  {
+    "id": "TEST-4.3",
+    "name": "Moderator Blocked from Super Admin Actions",
+    "category": "Identity: Moderator",
+    "status": "PASS",
+    "details": "Moderator cannot manage roles or critical settings"
+  },
+  {
+    "id": "TEST-5.1",
+    "name": "Admin Permitted for Tournament Management",
+    "category": "Identity: Admin",
+    "status": "PASS",
+    "details": "Admin satisfies admin and moderator role requirements"
+  },
+  {
+    "id": "TEST-5.2",
+    "name": "Admin Permitted for Financial Operations",
+    "category": "Identity: Admin",
+    "status": "PASS",
+    "details": "Admin satisfies requireFinancialAdmin() requirement"
+  },
+  {
+    "id": "TEST-5.3",
+    "name": "Admin Blocked from Super Admin Role Management",
+    "category": "Identity: Admin",
+    "status": "PASS",
+    "details": "Admin cannot modify or promote administrator roles"
+  },
+  {
+    "id": "TEST-6.1",
+    "name": "Super Admin Has Elevated Owner Access",
+    "category": "Identity: Super Admin",
+    "status": "PASS",
+    "details": "Super Admin satisfies requireSuperAdmin() requirement"
+  },
+  {
+    "id": "TEST-6.2",
+    "name": "Super Admin Hierarchy Invariant Satisfies All Tiers",
+    "category": "Identity: Super Admin",
+    "status": "PASS",
+    "details": "Super Admin rank (40) dominates admin (30), moderator (20), streamer (10)"
+  },
+  {
+    "id": "TEST-7.1",
+    "name": "Revoked Administrator Immediately Loses Privileges",
+    "category": "Identity: Revoked Admin",
+    "status": "PASS",
+    "details": "Account stripped of database role fails requireAdmin immediately"
+  },
+  {
+    "id": "TEST-8.1",
+    "name": "Demoted User Exercises Only New Role",
+    "category": "Identity: Demoted Admin",
+    "status": "PASS",
+    "details": "Demoted user passes moderator checks"
+  },
+  {
+    "id": "TEST-8.2",
+    "name": "Demoted User Retains No Prior Super Admin Privileges",
+    "category": "Identity: Demoted Admin",
+    "status": "PASS",
+    "details": "Demoted user is immediately rejected from super_admin actions"
+  },
+  {
+    "id": "TEST-9.1",
+    "name": "Hardcoded Email Cannot Bypass Database Revocation",
+    "category": "F-07 Hardcoded Bypass Prevention",
+    "status": "PASS",
+    "details": "Account with ye.agrajj@gmail.com but revoked database record is blocked from requireAdmin"
+  },
+  {
+    "id": "TEST-9.2",
+    "name": "Hardcoded Email Does Not Auto-Restore to Super Admin",
+    "category": "F-07 Hardcoded Bypass Prevention",
+    "status": "PASS",
+    "details": "Login or request does not silently restore super_admin privileges without database record"
+  },
+  {
+    "id": "TEST-10.1",
+    "name": "Role Hierarchy Strict Monotonicity",
+    "category": "Role RBAC Invariant",
+    "status": "PASS",
+    "details": "super_admin(40) > admin(30) > moderator(20) > streamer(10)"
+  },
+  {
+    "id": "TEST-10.2",
+    "name": "Invalid or Player Roles Fail Closed",
+    "category": "Role RBAC Invariant",
+    "status": "PASS",
+    "details": "null, undefined, player, or unknown roles return false on all role checks"
+  }
+]
