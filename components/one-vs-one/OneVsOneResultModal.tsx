@@ -6,6 +6,7 @@ import { Trophy, X, Loader2, AlertCircle, Clock, CheckCircle2, Upload, Image as 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { submitMatchResultAction } from '@/app/actions/oneVsOneActions';
+import { compressImage } from '@/lib/utils/compressImage';
 import type { OneVsOneMatchDetail } from '@/types/oneVsOne';
 
 interface OneVsOneResultModalProps {
@@ -122,7 +123,10 @@ export default function OneVsOneResultModal({
     if (claimedWinnerId) {
       formData.append('claimedWinnerId', claimedWinnerId);
     }
-    formData.append('screenshot', screenshotFile);
+
+    // Auto-compress match screenshot client-side to prevent HTTP 413
+    const readyFile = await compressImage(screenshotFile, { maxWidth: 1600, quality: 0.82 });
+    formData.append('screenshot', readyFile);
 
     const res = await submitMatchResultAction(formData);
     setIsSubmitting(false);

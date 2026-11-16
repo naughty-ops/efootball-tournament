@@ -23,6 +23,7 @@ const DYNAMIC_EXCLUSIONS = [
   '/api/live/token',
   '/api/livekit/token',
   '/admin/',
+  '/dashboard/',
   '/api/',
 ];
 
@@ -52,10 +53,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Helper for safe Cache.put that never throws net::ERR_CACHE_OPERATION_NOT_SUPPORTED
+function safeCachePut(cacheName, req, resClone) {
+  try {
+    caches.open(cacheName).then((cache) => {
+      cache.put(req, resClone).catch(() => {});
+    }).catch(() => {});
+  } catch {
+    // Graceful no-op on unsupported storage environments
+  }
+}
+
 // Fetch Event — Network-first for dynamic/API/streaming/auth, Cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // 0. Only process standard HTTP/HTTPS schemes (filters out chrome-extension, devtools, etc.)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
 
   // 1. NON-GET requests -> ALWAYS Network Only
   if (request.method !== 'GET') {
@@ -67,7 +84,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Excluded paths (Supabase, Auth, LiveKit, Admin, API) -> ALWAYS Network Only
+  // 3. Excluded paths (Supabase, Auth, LiveKit, Admin, Dashboard, API) -> ALWAYS Network Only
   const isExcluded = DYNAMIC_EXCLUSIONS.some((pattern) => url.href.includes(pattern) || url.pathname.includes(pattern));
   if (isExcluded) {
     return;
@@ -79,8 +96,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+            safeCachePut(CACHE_NAME, request, networkResponse.clone());
           }
           return networkResponse;
         })
@@ -110,8 +126,7 @@ self.addEventListener('fetch', (event) => {
           fetch(request)
             .then((networkResponse) => {
               if (networkResponse && networkResponse.status === 200) {
-                const responseClone = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+                safeCachePut(CACHE_NAME, request, networkResponse.clone());
               }
             })
             .catch(() => {});
@@ -122,8 +137,7 @@ self.addEventListener('fetch', (event) => {
         return fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+              safeCachePut(CACHE_NAME, request, networkResponse.clone());
             }
             return networkResponse;
           })

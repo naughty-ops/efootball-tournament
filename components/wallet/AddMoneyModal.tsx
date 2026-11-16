@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { submitWalletDepositAction } from '@/app/actions/walletActions';
+import { compressImage } from '@/lib/utils/compressImage';
 import { WalletPaymentSettings } from '@/types/wallet';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -237,11 +238,14 @@ export default function AddMoneyModal({
 
     setIsSubmitting(true);
     try {
+      // Auto-compress screenshot proof client-side to ensure lightweight payload (< 300 KB) and prevent HTTP 413
+      const readyFile = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
+
       const formData = new FormData();
       formData.append('amountInr', selectedAmount.toString());
       formData.append('utrReference', cleanUtr);
       formData.append('playerNotes', playerNotes);
-      formData.append('screenshot', file);
+      formData.append('screenshot', readyFile);
 
       const res = await submitWalletDepositAction(formData);
 
