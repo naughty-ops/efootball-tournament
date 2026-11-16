@@ -830,97 +830,28 @@ export async function joinWaitingMatchByCodeAction(matchCode: string): Promise<
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const adminClient = createAdminClient();
 
-    // 1. Check if user already has an active match
-    const { data: activePlayer } = await adminClient
-      .from('one_vs_one_match_players')
-      .select('match_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle();
+    // Call atomic PostgreSQL stored procedure: locks match & player wallet, strictly checks balance, deducts fee, and pairs
+    const { data: result, error: rpcErr } = await (adminClient.rpc as any)('join_waiting_match_by_code', {
+      p_match_code: cleanCode,
+      p_user_id: user.id,
+    });
 
-    if (activePlayer) {
-      return {
-        success: false,
-        error: 'You already have an active 1v1 match in progress or waiting in queue.',
-      };
+    if (rpcErr) {
+      console.error('[joinWaitingMatchByCodeAction] RPC error:', rpcErr);
+      return { success: false, error: rpcErr.message || 'Failed to join match.' };
     }
 
-    // 2. Fetch the target waiting match
-    const { data: targetMatch, error: matchErr } = await (adminClient
-      .from('one_vs_one_matches') as any)
-      .select('*, card:one_vs_one_cards(*)')
-      .ilike('match_code', cleanCode)
-      .eq('status', 'waiting')
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
-
-    if (matchErr || !targetMatch) {
-      return {
-        success: false,
-        error: 'Match not found, expired, or already matched with another opponent.',
-      };
+    if (!result || !result.success) {
+      return { success: false, error: result?.error || 'Failed to join match.' };
     }
-
-    if (targetMatch.created_by === user.id) {
-      return {
-        success: false,
-        error: 'You are the creator of this match. Waiting for an opponent to join.',
-      };
-    }
-
-    // 3. Atomically update match to 'matched'
-    const { error: updateErr } = await (adminClient
-      .from('one_vs_one_matches') as any)
-      .update({
-        status: 'matched',
-        matched_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', targetMatch.id)
-      .eq('status', 'waiting');
-
-    if (updateErr) {
-      return {
-        success: false,
-        error: 'Could not join match. Another player may have just joined.',
-      };
-    }
-
-    // 4. Insert Player 2 record
-    const { error: playerErr } = await (adminClient
-      .from('one_vs_one_match_players') as any)
-      .insert({
-        match_id: targetMatch.id,
-        user_id: user.id,
-        player_position: 2,
-        ready_status: 'pending',
-        is_active: true,
-      });
-
-    if (playerErr) {
-      console.error('[joinWaitingMatchByCodeAction] Player insert error:', playerErr);
-    }
-
-    // 5. Log Event
-    await (adminClient
-      .from('one_vs_one_events') as any)
-      .insert({
-        match_id: targetMatch.id,
-        actor_id: user.id,
-        event_type: 'opponent_matched',
-        event_payload: {
-          player2_id: user.id,
-          matched_at: new Date().toISOString(),
-          joined_via_code: cleanCode,
-        },
-      });
 
     revalidatePath('/dashboard/matches');
+    revalidatePath('/dashboard/wallet');
     return {
       success: true,
       data: {
-        matchId: targetMatch.id,
-        matchCode: targetMatch.match_code,
+        matchId: result.match_id,
+        matchCode: result.match_code,
         playerPosition: 2,
         status: 'matched',
       },
