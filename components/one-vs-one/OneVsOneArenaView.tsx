@@ -41,9 +41,7 @@ import OneVsOneMatchRoom from './OneVsOneMatchRoom';
 import ArenaLeaderboard from './ArenaLeaderboard';
 import JoinMatchModal from './JoinMatchModal';
 import ShareMatchModal from './ShareMatchModal';
-import AliveMembersDirectory from '@/components/competition/AliveMembersDirectory';
 import { useMemberPresence } from '@/hooks/useMemberPresence';
-import { useAliveMembersDirectory } from '@/hooks/useAliveMembersDirectory';
 import { useRealtimeOneVsOneMatch } from '@/hooks/useRealtimeOneVsOneMatch';
 import { joinWaitingMatchByCodeAction } from '@/app/actions/oneVsOneActions';
 
@@ -88,8 +86,7 @@ export default function OneVsOneArenaView({
   const [joiningMatchId, setJoiningMatchId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Real-time alive members presence tracking
-  const { counts: aliveCounts } = useAliveMembersDirectory();
+  // Real-time member presence tracking
   useMemberPresence({
     userId: currentUserId,
     activity: activeMatch
@@ -242,17 +239,16 @@ export default function OneVsOneArenaView({
               <span className="text-base sm:text-lg font-black font-display tracking-wide uppercase text-white">
                 {userDisplayName}
               </span>
-              <a
-                href="#alive-members-directory"
-                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-[#00E676] hover:bg-emerald-500/25 transition-colors cursor-pointer"
-                title="Click to view Alive Members directory"
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-[#00E676]"
+                title="Connected to Live Arena"
               >
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E676] opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00E676]" />
                 </span>
-                <span>{Math.max(1, aliveCounts.total_alive)} Online</span>
-              </a>
+                <span>Online</span>
+              </div>
             </div>
             <p className="text-xs text-white/60">eFootball Head-to-Head Arena</p>
           </div>
@@ -494,10 +490,11 @@ export default function OneVsOneArenaView({
                   <button
                     type="button"
                     onClick={scrollToCreateMatch}
-                    className="w-full text-left rounded-3xl border-2 border-dashed border-[#FFFF00]/40 hover:border-[#FFFF00] bg-gradient-to-b from-[#1010C5]/40 to-[#08084A]/60 hover:from-[#1010C5]/70 hover:to-[#080860] p-5 sm:p-7 space-y-4 transition-all duration-200 group cursor-pointer shadow-xl hover:shadow-[#FFFF00]/10 hover:scale-[1.005] active:scale-[0.995] select-none block"
+                    aria-label="Available Matches (0) - Create Match"
+                    className="w-full text-left rounded-3xl border-2 border-dashed border-[#FFFF00]/40 hover:border-[#FFFF00] bg-gradient-to-b from-[#1010C5]/40 to-[#08084A]/60 hover:from-[#1010C5]/70 hover:to-[#080860] p-5 sm:p-7 space-y-4 transition-all duration-300 group cursor-pointer shadow-xl hover:shadow-[#FFFF00]/15 hover:scale-[1.008] active:scale-[0.99] select-none block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFF00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05053B]"
                   >
                     {/* Top inside button: Available Matches (0) Header & Description */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4 pointer-events-none">
                       <div>
                         <div className="flex items-center gap-2">
                           <Swords className="h-5 w-5 text-[#FF168B]" />
@@ -517,7 +514,7 @@ export default function OneVsOneArenaView({
                     </div>
 
                     {/* Center body inside button: Prompt and primary action */}
-                    <div className="py-2 text-center space-y-3.5">
+                    <div className="py-2 text-center space-y-3.5 pointer-events-none">
                       <div className="h-12 w-12 rounded-2xl bg-[#FFFF00]/15 border border-[#FFFF00]/30 flex items-center justify-center mx-auto text-[#FFFF00] group-hover:scale-110 group-hover:bg-[#FFFF00] group-hover:text-[#08088F] transition-all shadow-md">
                         <Swords className="h-6 w-6" />
                       </div>

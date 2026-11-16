@@ -6,7 +6,6 @@ import { Swords, Flame, Trophy, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PlayerMatchesClient from '@/app/dashboard/matches/PlayerMatchesClient';
 import OneVsOneArenaView from '@/components/one-vs-one/OneVsOneArenaView';
-import AliveMembersDirectory from '@/components/competition/AliveMembersDirectory';
 import { useMemberPresence } from '@/hooks/useMemberPresence';
 import type { PlayerMatchItem } from '@/services/playerDashboardService';
 import type {
@@ -154,11 +153,6 @@ export default function CompetitionMatchesHub({
           initialLeaderboard={initialLeaderboard}
         />
       )}
-
-      {/* Dedicated Real-Time Alive Members Directory in Competition Center */}
-      <div className="pt-8 border-t border-white/10">
-        <AliveMembersDirectory currentUserId={currentUserId} />
-      </div>
     </div>
   );
 }
