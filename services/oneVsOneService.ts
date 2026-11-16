@@ -254,6 +254,19 @@ export async function getUserActiveOneVsOneMatch(
       .eq('match_id', matchId)
       .maybeSingle();
 
+    if (disputeData && disputeData.evidence_url) {
+      try {
+        const { data: sData } = await queryClient.storage
+          .from('payment-proofs')
+          .createSignedUrl(disputeData.evidence_url, 7200);
+        if (sData?.signedUrl) {
+          disputeData.evidence_signed_url = sData.signedUrl;
+        }
+      } catch (e) {
+        console.warn('[getUserActiveOneVsOneMatch] Error signing dispute evidence_url:', e);
+      }
+    }
+
     // 7. Fetch settlement if exists
     const { data: settlementData } = await queryClient
       .from('one_vs_one_settlements')

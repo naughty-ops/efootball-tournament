@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Swords,
   Copy,
@@ -21,6 +22,7 @@ import {
   Trash2,
   X,
   Share2,
+  RefreshCw,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,7 @@ export default function OneVsOneMatchRoom({
   onBrowseLobby,
   userDisplayName = 'Player',
 }: OneVsOneMatchRoomProps) {
+  const router = useRouter();
   // Matchmaking elapsed timer (when status is 'waiting')
   const [elapsed, setElapsed] = useState(0);
   const [isCancellingQueue, setIsCancellingQueue] = useState(false);
@@ -1390,18 +1393,157 @@ export default function OneVsOneMatchRoom({
         </Card>
       )}
 
-      {/* 7. Disputed Banner */}
+      {/* 7. Disputed Banner & Administrative Review Panel */}
       {match.status === 'disputed' && (
-        <Card className="rounded-[28px] bg-gradient-to-b from-[#0A0A70] to-[#070748] border border-red-500/40 p-6 sm:p-8 text-white shadow-xl space-y-3">
-          <div className="flex items-center gap-3 text-red-400">
-            <AlertTriangle className="h-6 w-6 shrink-0" />
-            <h3 className="text-lg font-black font-display uppercase tracking-wider">
-              Dispute Registered Under Administrative Review
-            </h3>
+        <Card className="rounded-[28px] bg-gradient-to-b from-[#0A0A70] to-[#070748] border border-red-500/40 p-6 sm:p-8 text-white shadow-2xl space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div className="flex items-center gap-3.5">
+              <div className="h-12 w-12 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-lg shadow-red-500/20">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40">
+                    Dispute Active
+                  </span>
+                  <span className="text-xs font-mono text-white/50">
+                    Case: #{match.dispute?.id ? match.dispute.id.slice(0, 8).toUpperCase() : match.match_code}
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black font-display uppercase tracking-wider text-white mt-1">
+                  Dispute Registered Under Administrative Review
+                </h3>
+              </div>
+            </div>
+
+            {/* Pulsing Status Pill */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-bold w-fit">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400" />
+              </span>
+              <span>Under Review</span>
+            </div>
           </div>
-          <p className="text-xs text-white/70 leading-relaxed">
-            A dispute has been opened for this fixture. Platform administrators are reviewing match logs and submitted evidence. The final outcome will be updated here.
+
+          {/* Explanation Notice */}
+          <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
+            A formal dispute has been registered for this fixture. Platform administrators are actively reviewing match game logs, room credentials, and submitted screenshot proof. Match prize funds remain secure in escrow until an authoritative decision is issued.
           </p>
+
+          {/* Dispute Case Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-[#05053B] border border-white/10 space-y-2.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-white/50 block">Dispute Information</span>
+              <div className="text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Reason:</span>
+                  <span className="font-bold text-white text-right">{match.dispute?.reason || 'Wrong Score Marked by Opponent'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Submitted By:</span>
+                  <span className="font-bold text-[#FFFF00]">
+                    {match.dispute?.submitted_by === currentUserId ? 'You (Disputant)' : (match.opponent?.profile?.display_name || 'Opponent')}
+                  </span>
+                </div>
+                {match.dispute?.created_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60">Filed At:</span>
+                    <span className="font-mono text-white/70">
+                      {new Date(match.dispute.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {match.dispute?.description && (
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-[10px] font-semibold text-white/50 block">Statement:</span>
+                  <p className="text-xs text-white/90 italic mt-0.5">&ldquo;{match.dispute.description}&rdquo;</p>
+                </div>
+              )}
+            </div>
+
+            {/* Evidence Preview & Notice */}
+            <div className="p-4 rounded-2xl bg-[#05053B] border border-white/10 flex flex-col justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-white/50 block mb-2">Evidence & Proof</span>
+                {(match.dispute?.evidence_signed_url || match.dispute?.evidence_url) ? (
+                  <div className="flex items-center gap-3">
+                    <div
+                      onClick={() => setActiveLightboxImg({
+                        url: match.dispute?.evidence_signed_url || match.dispute?.evidence_url || '',
+                        title: 'Dispute Screenshot Proof'
+                      })}
+                      className="relative h-20 w-28 rounded-xl overflow-hidden border border-white/20 bg-black/40 cursor-pointer group shrink-0"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={match.dispute?.evidence_signed_url || match.dispute?.evidence_url || ''}
+                        alt="Dispute Evidence"
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-white block">Screenshot Attached</span>
+                      <p className="text-[11px] text-white/60">Tap thumbnail to inspect full resolution screenshot.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60">
+                    <ImageIcon className="h-4 w-4 text-white/40 shrink-0" />
+                    <span>No screenshot attached with dispute submission.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Note */}
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+                <span>Typical review time: 15–30 mins. Verified winner receives prize payout directly.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-white/10">
+            <Button
+              onClick={() => {
+                if (onBrowseLobby) {
+                  onBrowseLobby();
+                } else {
+                  router.push('/dashboard/matches?mode=1v1');
+                }
+              }}
+              className="rounded-full bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] text-xs font-black uppercase tracking-wider h-10 px-6 cursor-pointer shadow-lg shadow-yellow-500/20 transition-all"
+            >
+              Return to Challenge Hub
+            </Button>
+
+            <Button
+              onClick={() => {
+                onRefreshRequested();
+                router.refresh();
+              }}
+              variant="outline"
+              className="rounded-full text-xs font-bold border-white/20 text-white hover:bg-white/10 h-10 px-5 gap-2 cursor-pointer transition-all"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Refresh Status</span>
+            </Button>
+
+            <Button
+              onClick={() => setShowCreditIssueModal(true)}
+              variant="outline"
+              className="rounded-full text-xs font-bold border-amber-500/40 text-amber-300 hover:bg-amber-500/15 h-10 px-5 cursor-pointer transition-all"
+            >
+              Contact Support
+            </Button>
+          </div>
         </Card>
       )}
 

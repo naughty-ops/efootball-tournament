@@ -74,6 +74,7 @@ export interface OneVsOneDispute {
   reason: string;
   description: string;
   evidence_url: string | null;
+  evidence_signed_url?: string | null;
   status: 'open' | 'under_review' | 'resolved' | 'dismissed';
   admin_notes: string | null;
   resolved_by: string | null;
