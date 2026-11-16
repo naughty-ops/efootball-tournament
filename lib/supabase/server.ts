@@ -5,13 +5,29 @@ import { cache } from 'react';
 import type { Database } from '@/types/database';
 
 export const getAuthenticatedUser = cache(async () => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user;
+  try {
+    const supabase = await createClient();
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
+      timeoutId = setTimeout(() => {
+        resolve({ data: { user: null }, error: new Error('Auth verification timeout') });
+      }, 5000);
+    });
+
+    const {
+      data: { user },
+      error,
+    } = await Promise.race([
+      supabase.auth.getUser(),
+      timeoutPromise,
+    ]);
+    if (timeoutId) clearTimeout(timeoutId);
+    if (error || !user) return null;
+    return user;
+  } catch (err) {
+    console.warn('getAuthenticatedUser error:', err);
+    return null;
+  }
 });
 
 export async function createClient() {

@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ExternalLink,
   Sparkles,
+  Coins,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import { getPlayerTickets } from '@/services/ticketService';
 import { getPlayerProfile } from '@/services/playerDashboardService';
+import { getPlayerWalletOverview, getPlayerPaymentMethods } from '@/services/walletService';
+import RequestRedeemTicketButton from '@/components/dashboard/RequestRedeemTicketButton';
 import { formatDate } from '@/lib/utils';
 import type { Metadata } from 'next';
 
@@ -40,9 +43,11 @@ export default async function PlayerTicketsPage() {
 
   const supabase = await createClient();
 
-  const [profile, tickets] = await Promise.all([
+  const [profile, tickets, overview, paymentMethods] = await Promise.all([
     getPlayerProfile(supabase, user.id, user).catch(() => null),
     getPlayerTickets(user.id).catch(() => []),
+    getPlayerWalletOverview(user.id, supabase).catch(() => null),
+    getPlayerPaymentMethods(user.id, supabase).catch(() => []),
   ]);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
@@ -51,6 +56,8 @@ export default async function PlayerTicketsPage() {
   const isVerified = profile?.efootball_id_verified === true;
 
   const safeTickets = tickets || [];
+  const availableBalanceInr = overview?.availableBalanceInr || 0;
+  const safePaymentMethods = paymentMethods || [];
 
   return (
     <div className="pb-16">
@@ -85,15 +92,22 @@ export default async function PlayerTicketsPage() {
                 </p>
               </div>
 
-              <Button
-                asChild
-                className="rounded-full bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider gap-2 h-11 px-6 shadow-lg self-start sm:self-auto cursor-pointer"
-              >
-                <Link href="/contact">
-                  <Plus className="h-4 w-4" />
-                  <span>Submit New Ticket</span>
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+                <RequestRedeemTicketButton
+                  availableBalanceInr={availableBalanceInr}
+                  paymentMethods={safePaymentMethods}
+                />
+
+                <Button
+                  asChild
+                  className="rounded-full bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider gap-2 h-11 px-6 shadow-lg cursor-pointer"
+                >
+                  <Link href="/contact">
+                    <Plus className="h-4 w-4" />
+                    <span>Submit New Ticket</span>
+                  </Link>
+                </Button>
+              </div>
             </div>
 
         {/* Tickets Feed */}
@@ -105,15 +119,21 @@ export default async function PlayerTicketsPage() {
               <p className="text-xs text-white/60 max-w-sm mx-auto">
                 Need help with match scheduling, scores, or account questions? Submit an official ticket to the tournament operations team.
               </p>
-              <Button
-                asChild
-                size="sm"
-                className="rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase tracking-wider hover:bg-[#FFFF00]/90 mt-2"
-              >
-                <Link href="/contact">
-                  Submit a Query
-                </Link>
-              </Button>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <RequestRedeemTicketButton
+                  availableBalanceInr={availableBalanceInr}
+                  paymentMethods={safePaymentMethods}
+                />
+                <Button
+                  asChild
+                  size="sm"
+                  className="rounded-full bg-[#FFFF00] text-[#08088F] font-black text-xs uppercase tracking-wider hover:bg-[#FFFF00]/90"
+                >
+                  <Link href="/contact">
+                    Submit a Query
+                  </Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-white/10">
@@ -126,6 +146,8 @@ export default async function PlayerTicketsPage() {
                 else if (t.status === 'resolved') statusBadge = 'bg-[#00C853]/20 text-[#00C853] border border-[#00C853]/40';
                 else if (t.status === 'rejected') statusBadge = 'bg-[#FF3B30]/20 text-[#FF3B30] border border-[#FF3B30]/40';
 
+                const isRedemptionTicket = t.category === 'redemption_request' || t.category === 'wallet_redeem' || (t.category === 'wallet_credit' && !!t.expected_payout);
+
                 return (
                   <div key={t.id} className="py-5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1.5 max-w-xl">
@@ -137,6 +159,12 @@ export default async function PlayerTicketsPage() {
                         <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-bold uppercase tracking-wider">
                           🏷️ {t.category.replace(/_/g, ' ')}
                         </span>
+                        {isRedemptionTicket && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#00E676]/20 border border-[#00E676]/40 text-[#00E676] text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Coins className="h-3 w-3" />
+                            <span>Redeem Request{t.expected_payout ? ` • ₹${t.expected_payout}` : ''}</span>
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-base font-bold text-white">{t.subject}</h3>
                       <p className="text-xs text-white/70 line-clamp-1">{t.description}</p>

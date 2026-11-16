@@ -104,10 +104,11 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 /**
  * Reset Password Schema
+ * Requires minimum 8 characters to match UI checklist and standard recovery standards.
  */
 export const resetPasswordSchema = z
   .object({
-    password: signupPasswordSchema,
+    password: z.string().min(8, 'Password must be at least 8 characters long'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine((data) => data.password === data.confirmPassword, {

@@ -489,7 +489,7 @@ async function runRemediationTests() {
       },
     };
 
-    const res = await getPlayerMatches(mockSupabaseCompletedOrdering as any, 'user-123');
+    const res = await getPlayerMatches(mockSupabaseCompletedOrdering as any, 'user-completed-test');
     const matches = res.data;
 
     const orderedCorrectly =

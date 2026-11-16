@@ -16,6 +16,10 @@ import { Badge } from '@/components/ui/badge';
 import { AdminVerificationQueue } from '@/components/admin/AdminVerificationQueue';
 import AdminSignOutButton from '@/components/admin/AdminSignOutButton';
 import { requireAdmin } from '@/lib/auth/server';
+import {
+  getAdminVerificationQueueAction,
+  getVerificationDashboardStatsAction,
+} from '@/app/actions/verificationActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,11 +27,13 @@ export default async function AdminDashboardPage() {
   const admin = await requireAdmin('streamer');
   const supabase = await createClient();
 
-  // Fetch platform-wide statistics in parallel
-  const [tRes, pRes, mRes] = await Promise.all([
+  // Fetch platform-wide statistics, initial verification queue, and dashboard stats concurrently in parallel
+  const [tRes, pRes, mRes, queueRes, vStatsRes] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true }),
     supabase.from('participants').select('*', { count: 'exact', head: true }),
     supabase.from('matches').select('*', { count: 'exact', head: true }),
+    getAdminVerificationQueueAction({ tab: 'pending', sortBy: 'created_at_desc', page: 1, pageSize: 15 }).catch(() => null),
+    getVerificationDashboardStatsAction().catch(() => null),
   ]);
 
   const stats = {
@@ -35,6 +41,11 @@ export default async function AdminDashboardPage() {
     participants: pRes.count ?? 0,
     matches: mRes.count ?? 0,
   };
+
+  const initialQueueItems = queueRes?.success && queueRes.data ? queueRes.data.items : [];
+  const initialQueueTotal = queueRes?.success && queueRes.data ? queueRes.data.total : 0;
+  const initialQueueTotalPages = queueRes?.success && queueRes.data ? queueRes.data.totalPages : 1;
+  const initialVerificationStats = vStatsRes?.success && vStatsRes.data ? vStatsRes.data : undefined;
 
   return (
     <div className="space-y-8 text-white">
@@ -130,8 +141,13 @@ export default async function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Verification Queue Desk */}
-      <AdminVerificationQueue />
+      {/* Verification Queue Desk with Server-Side Hydration */}
+      <AdminVerificationQueue
+        initialItems={initialQueueItems}
+        initialStats={initialVerificationStats}
+        initialTotalPages={initialQueueTotalPages}
+        initialTotalCount={initialQueueTotal}
+      />
 
       {/* Account Verification Card */}
       <Card className="bg-[#1818D4] border border-white/20 rounded-[32px] shadow-xl text-white">

@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ThemeSideAngles, ThemeAmbientGlow } from '@/components/shared/ThemeDecorations';
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -88,7 +89,8 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#08088F] p-4 py-8 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 sm:w-96 h-64 sm:h-96 max-w-full bg-[#3434FF]/25 rounded-full blur-3xl pointer-events-none" />
+      <ThemeAmbientGlow />
+      <ThemeSideAngles />
       <div className="w-full max-w-lg space-y-6 relative z-10">
         {/* Back Link */}
         <Button asChild variant="ghost" size="sm" className="gap-2 text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full font-bold">

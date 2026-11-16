@@ -93,6 +93,11 @@ export interface UnifiedTicket {
   reporter_score_b?: number | null;
   opponent_score_a?: number | null;
   opponent_score_b?: number | null;
+
+  // Financial / Redemption Context
+  expected_payout?: number | null;
+  settlement_reference?: string | null;
+  payout_transaction_id?: string | null;
 }
 
 export interface TicketMessage {

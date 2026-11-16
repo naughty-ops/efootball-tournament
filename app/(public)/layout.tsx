@@ -1,6 +1,7 @@
 import React from 'react';
 import PublicHeader from '@/components/public/PublicHeader';
 import PublicFooter from '@/components/public/PublicFooter';
+import { ThemeSideAngles, ThemeAmbientGlow } from '@/components/shared/ThemeDecorations';
 
 export default function PublicLayout({
   children,
@@ -9,11 +10,11 @@ export default function PublicLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#08088F] text-white w-full relative overflow-x-hidden">
+      {/* Dynamic Ambient Stadium Glow */}
+      <ThemeAmbientGlow />
+
       {/* Decorative Yellow Angles matching reference screenshot sides */}
-      <div className="hidden xl:block yellow-angle-left top-48" aria-hidden="true" />
-      <div className="hidden xl:block yellow-angle-right top-48" aria-hidden="true" />
-      <div className="hidden xl:block yellow-angle-left top-[850px]" aria-hidden="true" />
-      <div className="hidden xl:block yellow-angle-right top-[850px]" aria-hidden="true" />
+      <ThemeSideAngles />
 
       {/* Centered Pill Public Header Navigation */}
       <PublicHeader />

@@ -727,6 +727,44 @@ export interface Database {
           created_at?: string;
         };
       };
+      match_viewers: {
+        Row: {
+          id: string;
+          match_id: string;
+          user_id: string | null;
+          session_id: string;
+          status: 'joining' | 'watching' | 'reconnecting' | 'inactive' | 'left';
+          device_type: string;
+          joined_at: string;
+          last_seen_at: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_id: string;
+          user_id?: string | null;
+          session_id: string;
+          status?: 'joining' | 'watching' | 'reconnecting' | 'inactive' | 'left';
+          device_type?: string;
+          joined_at?: string;
+          last_seen_at?: string;
+          expires_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_id?: string;
+          user_id?: string | null;
+          session_id?: string;
+          status?: 'joining' | 'watching' | 'reconnecting' | 'inactive' | 'left';
+          device_type?: string;
+          joined_at?: string;
+          last_seen_at?: string;
+          expires_at?: string;
+          created_at?: string;
+        };
+      };
       profiles: {
         Row: {
           id: string;

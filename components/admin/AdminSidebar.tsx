@@ -18,6 +18,8 @@ import {
   Sparkles,
   Ticket,
   Landmark,
+  Wallet,
+  Flame,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -44,7 +46,9 @@ const navSections: NavSection[] = [
       { label: 'Participants', href: '/admin/participants', icon: Users },
       { label: 'Brackets', href: '/admin/brackets', icon: GitBranch },
       { label: 'Matches', href: '/admin/matches', icon: Swords },
+      { label: '1 VS 1 Arena', href: '/admin/one-vs-one', icon: Flame },
       { label: 'Prize Payouts', href: '/admin/payouts', icon: Landmark },
+      { label: 'Wallet & Deposits', href: '/admin/wallet', icon: Wallet },
     ],
   },
   {

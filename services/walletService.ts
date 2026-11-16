@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import {
   WalletOverview,
@@ -16,6 +16,9 @@ import {
   PerformanceAnalyticsData,
   PerformancePeriod,
   PerformanceDataPoint,
+  WalletDepositStatus,
+  WalletDepositRecord,
+  WalletPaymentSettings,
 } from '@/types/wallet';
 import {
   encryptSensitiveField,
@@ -81,10 +84,9 @@ async function getPlayerClient(customClient?: any) {
   if (customClient) return customClient;
 
   try {
-    const userClient = await createClient();
-    const { data: { user } } = await userClient.auth.getUser();
+    const user = await getAuthenticatedUser();
     if (user) {
-      return userClient;
+      return await createClient();
     }
   } catch {
     // cookies() unavailable or outside request context
@@ -150,6 +152,13 @@ export async function getPlayerWalletOverview(userId: string, customClient?: any
   }
 
   const defaultOverview: WalletOverview = {
+    availableBalancePaise: 0,
+    availableBalanceInr: 0,
+    lockedBalancePaise: 0,
+    lockedBalanceInr: 0,
+    totalDepositedPaise: 0,
+    totalDepositedInr: 0,
+    walletStatus: 'active',
     totalEarningsPaise: 0,
     totalEarningsInr: 0,
     pendingEarningsPaise: 0,
@@ -167,6 +176,18 @@ export async function getPlayerWalletOverview(userId: string, customClient?: any
 
   try {
     const client = await getPlayerClient(customClient);
+
+    // 0. Fetch stored wallet balance and status
+    const wallet = await getOrCreatePlayerWallet(userId, client);
+    const { data: walletRow } = await (client.from('player_wallets') as any)
+      .select('available_balance_paise, locked_balance_paise, total_deposited_paise, status')
+      .eq('id', wallet.id)
+      .maybeSingle();
+
+    const availableBalancePaise = Number(walletRow?.available_balance_paise || 0);
+    const lockedBalancePaise = Number(walletRow?.locked_balance_paise || 0);
+    const totalDepositedPaise = Number(walletRow?.total_deposited_paise || 0);
+    const walletStatus = (walletRow?.status as 'active' | 'frozen' | 'suspended') || 'active';
 
     // 1. Total awarded tournament prizes
     const { data: awardedPrizes } = await (client.from('prize_distributions') as any)
@@ -261,6 +282,13 @@ export async function getPlayerWalletOverview(userId: string, customClient?: any
     const unpaidRewardsPaise = Math.max(0, totalEarningsPaise - totalPaidPaise);
 
     const overviewResult: WalletOverview = {
+      availableBalancePaise,
+      availableBalanceInr: paiseToInr(availableBalancePaise),
+      lockedBalancePaise,
+      lockedBalanceInr: paiseToInr(lockedBalancePaise),
+      totalDepositedPaise,
+      totalDepositedInr: paiseToInr(totalDepositedPaise),
+      walletStatus,
       totalEarningsPaise,
       totalEarningsInr: paiseToInr(totalEarningsPaise),
       pendingEarningsPaise,
@@ -313,6 +341,7 @@ export async function getPlayerWalletTransactions(
         transaction_type,
         amount_paise,
         amount_inr,
+        balance_after_paise,
         status,
         reference_type,
         reference_id,
@@ -355,6 +384,8 @@ export async function getPlayerWalletTransactions(
       transactionType: row.transaction_type,
       amountPaise: Number(row.amount_paise),
       amountInr: Number(row.amount_inr),
+      balanceAfterPaise: row.balance_after_paise != null ? Number(row.balance_after_paise) : null,
+      balanceAfterInr: row.balance_after_paise != null ? paiseToInr(Number(row.balance_after_paise)) : null,
       status: row.status,
       referenceType: row.reference_type,
       referenceId: row.reference_id,
@@ -403,7 +434,7 @@ export async function getPlayerMonthlyEarnings(userId: string, customClient?: an
       const current = monthMap.get(yearMonth)!;
       const amount = Number(row.amount_inr || 0);
 
-      if (row.transaction_type === 'TOURNAMENT_PRIZE' || row.transaction_type === 'BONUS_REWARD') {
+      if (row.transaction_type === 'TOURNAMENT_PRIZE' || row.transaction_type === 'BONUS_REWARD' || row.transaction_type === 'ONE_VS_ONE_PRIZE') {
         current.prizesInr += amount;
       } else if (row.transaction_type === 'PAYOUT_COMPLETED') {
         current.payoutsInr += amount;
@@ -459,7 +490,7 @@ export async function getPlayerPerformanceAnalytics(
       if (dateStr === todayStr) {
         const hour = d.getHours();
         const bucket = hourlyMap.get(hour) || { prizesInr: 0, payoutsInr: 0 };
-        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
           bucket.prizesInr += amt;
           todayPrizes += amt;
         } else if (tx.transaction_type === 'PAYOUT_COMPLETED') {
@@ -468,7 +499,7 @@ export async function getPlayerPerformanceAnalytics(
         }
         hourlyMap.set(hour, bucket);
       } else if (dateStr === yesterdayStr) {
-        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
           yesterdayPrizes += amt;
         }
       }
@@ -534,7 +565,7 @@ export async function getPlayerPerformanceAnalytics(
 
       if (dayMap.has(dateStr)) {
         const bucket = dayMap.get(dateStr)!;
-        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
           bucket.prizesInr += amt;
           weekPrizes += amt;
         } else if (tx.transaction_type === 'PAYOUT_COMPLETED') {
@@ -542,7 +573,7 @@ export async function getPlayerPerformanceAnalytics(
           weekPayouts += amt;
         }
       } else if (txDate >= prevWeekStart && txDate < prevWeekEnd) {
-        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+        if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
           prevWeekPrizes += amt;
         }
       }
@@ -607,7 +638,7 @@ export async function getPlayerPerformanceAnalytics(
 
     if (monthDayMap.has(dateStr)) {
       const bucket = monthDayMap.get(dateStr)!;
-      if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+      if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
         bucket.prizesInr += amt;
         monthPrizes += amt;
       } else if (tx.transaction_type === 'PAYOUT_COMPLETED') {
@@ -615,7 +646,7 @@ export async function getPlayerPerformanceAnalytics(
         monthPayouts += amt;
       }
     } else if (txDate >= prevMonthStart && txDate < prevMonthEnd) {
-      if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD') {
+      if (tx.transaction_type === 'TOURNAMENT_PRIZE' || tx.transaction_type === 'BONUS_REWARD' || tx.transaction_type === 'ONE_VS_ONE_PRIZE') {
         prevMonthPrizes += amt;
       }
     }
@@ -1136,15 +1167,98 @@ export async function getPlayerPayouts(userId: string, customClient?: any): Prom
 }
 
 /**
- * Player requests a manual prize payout.
- * Under the new Direct Payout architecture, manual requests are disabled:
- * Payouts are automatically scheduled and disbursed by administrators within 24 hours of prize eligibility.
+ * Player requests an amount to redeem from their available wallet balance.
+ * Atomically locks the balance, creates a payout transaction, and opens a
+ * dedicated Redemption Request Support Ticket for administrator processing and tracking.
  */
-export async function requestPlayerPayout(userId: string): Promise<{ success: boolean; error?: string; payoutReference?: string }> {
-  return {
-    success: false,
-    error: 'Manual withdrawal requests are disabled. Payouts are automatically scheduled and disbursed directly by administrators to your verified payment method within 24 hours of prize eligibility.',
-  };
+export async function requestPlayerWalletRedemption(
+  userId: string,
+  params: {
+    amountInr: number;
+    paymentMethodId?: string;
+    upiId?: string;
+    notes?: string;
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  ticketId?: string;
+  ticketNumber?: string;
+  payoutReference?: string;
+  amountInr?: number;
+  destination?: string;
+  newAvailableBalanceInr?: number;
+}> {
+  try {
+    const adminClient = createAdminClient();
+    const { data, error } = await (adminClient.rpc as any)('request_wallet_redemption', {
+      p_user_id: userId,
+      p_amount_inr: params.amountInr,
+      p_payment_method_id: params.paymentMethodId || null,
+      p_upi_id: params.upiId ? params.upiId.trim() : null,
+      p_notes: params.notes ? params.notes.trim() : null,
+    });
+
+    if (error) {
+      console.error('[requestPlayerWalletRedemption] RPC Error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Redemption request failed.' };
+    }
+
+    invalidateWalletCache(userId);
+
+    return {
+      success: true,
+      ticketId: data.ticketId,
+      ticketNumber: data.ticketNumber,
+      payoutReference: data.payoutReference,
+      amountInr: data.amountInr,
+      destination: data.destination,
+      newAvailableBalanceInr: data.newAvailableBalanceInr,
+    };
+  } catch (err: any) {
+    console.error('[requestPlayerWalletRedemption] Unexpected error:', err);
+    return { success: false, error: err.message || 'Failed to submit redemption request.' };
+  }
+}
+
+/**
+ * Player requests a manual prize payout / balance redemption.
+ */
+export async function requestPlayerPayout(
+  userId: string,
+  params?: {
+    amountInr?: number;
+    paymentMethodId?: string;
+    upiId?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; error?: string; payoutReference?: string; ticketNumber?: string; ticketId?: string }> {
+  const amount = params?.amountInr;
+  if (!amount || amount <= 0) {
+    // If no amount specified, check available balance
+    const overview = await getPlayerWalletOverview(userId);
+    const available = overview.availableBalanceInr;
+    if (available < 10) {
+      return { success: false, error: 'Insufficient available balance to redeem (Minimum ₹10).' };
+    }
+    return requestPlayerWalletRedemption(userId, {
+      amountInr: available,
+      paymentMethodId: params?.paymentMethodId,
+      upiId: params?.upiId,
+      notes: params?.notes,
+    });
+  }
+
+  return requestPlayerWalletRedemption(userId, {
+    amountInr: amount,
+    paymentMethodId: params?.paymentMethodId,
+    upiId: params?.upiId,
+    notes: params?.notes,
+  });
 }
 
 /**
@@ -2020,4 +2134,464 @@ export async function updatePayoutStatus(params: {
   });
 
   return { success: true };
+}
+
+/**
+ * ============================================================================
+ * WALLET DEPOSIT & PAYMENT CONFIGURATION SERVICES
+ * ============================================================================
+ */
+
+export const DEFAULT_WALLET_PAYMENT_SETTINGS: WalletPaymentSettings = {
+  upiQrImageUrl: '',
+  upiId: 'efootball@upi',
+  upiPhoneNumber: '9207516227',
+  accountHolderName: 'eFootball Tournament Admin',
+  instructions:
+    '1. Scan the QR code or copy the UPI ID or Phone number.\n2. Pay the exact deposit amount using any UPI app (GPay, PhonePe, Paytm).\n3. Copy the 12-digit UTR / UPI Transaction Reference ID.\n4. Take a screenshot of the payment confirmation.\n5. Upload the screenshot and enter the UTR below, then submit.\nYour wallet will be credited after admin verification (10-30 mins).',
+  minDepositInr: 10,
+  maxDepositInr: 2000,
+};
+
+export async function getWalletPaymentSettings(customClient?: any): Promise<WalletPaymentSettings> {
+  try {
+    const client = await getPlayerClient(customClient);
+    const { data, error } = await (client.from('site_settings') as any)
+      .select('value')
+      .eq('key', 'wallet_payment_settings')
+      .maybeSingle();
+
+    if (error || !data || !data.value) {
+      return DEFAULT_WALLET_PAYMENT_SETTINGS;
+    }
+
+    const val = data.value;
+    return {
+      upiQrImageUrl: val.upi_qr_image_url || '',
+      upiId: val.upi_id || DEFAULT_WALLET_PAYMENT_SETTINGS.upiId,
+      upiPhoneNumber: val.upi_phone_number || DEFAULT_WALLET_PAYMENT_SETTINGS.upiPhoneNumber,
+      accountHolderName: val.account_holder_name || DEFAULT_WALLET_PAYMENT_SETTINGS.accountHolderName,
+      instructions: val.instructions || DEFAULT_WALLET_PAYMENT_SETTINGS.instructions,
+      minDepositInr: Number(val.min_deposit_inr || 10),
+      maxDepositInr: Number(val.max_deposit_inr || 2000),
+    };
+  } catch (err) {
+    console.error('getWalletPaymentSettings error:', err);
+    return DEFAULT_WALLET_PAYMENT_SETTINGS;
+  }
+}
+
+export async function updateWalletPaymentSettings(
+  settings: Partial<WalletPaymentSettings>,
+  adminUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminClient = createAdminClient();
+    const current = await getWalletPaymentSettings(adminClient);
+
+    const updated = {
+      upi_qr_image_url: settings.upiQrImageUrl ?? current.upiQrImageUrl,
+      upi_id: settings.upiId ?? current.upiId,
+      upi_phone_number: settings.upiPhoneNumber ?? current.upiPhoneNumber,
+      account_holder_name: settings.accountHolderName ?? current.accountHolderName,
+      instructions: settings.instructions ?? current.instructions,
+      min_deposit_inr: settings.minDepositInr ?? current.minDepositInr,
+      max_deposit_inr: settings.maxDepositInr ?? current.maxDepositInr,
+    };
+
+    const { error } = await (adminClient.from('site_settings') as any).upsert({
+      key: 'wallet_payment_settings',
+      value: updated,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    await (adminClient.from('financial_audit_logs') as any).insert({
+      actor_id: adminUserId,
+      action: 'UPDATE_WALLET_PAYMENT_SETTINGS',
+      target_type: 'site_settings',
+      target_id: 'wallet_payment_settings',
+      new_state: updated,
+      created_at: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update payment settings' };
+  }
+}
+
+export async function createWalletDepositRequest(params: {
+  userId: string;
+  amountInr: number;
+  utrReference: string;
+  proofImagePath: string;
+  playerNotes?: string;
+}): Promise<{ success: boolean; error?: string; depositId?: string; depositRef?: string }> {
+  try {
+    const adminClient = createAdminClient();
+    const settings = await getWalletPaymentSettings(adminClient);
+
+    const amt = Number(params.amountInr);
+    if (!Number.isFinite(amt) || amt < settings.minDepositInr || amt > settings.maxDepositInr) {
+      return {
+        success: false,
+        error: `Deposit amount must be between ₹${settings.minDepositInr} and ₹${settings.maxDepositInr}.`,
+      };
+    }
+
+    const cleanUtr = params.utrReference.trim().toUpperCase();
+    if (!cleanUtr || cleanUtr.length < 6 || cleanUtr.length > 30) {
+      return { success: false, error: 'Please enter a valid 6 to 30 character UTR / Transaction Reference ID.' };
+    }
+
+    if (!params.proofImagePath || !params.proofImagePath.trim()) {
+      return { success: false, error: 'Payment screenshot proof is required.' };
+    }
+
+    // Check duplicate UTR on active/approved deposits
+    const { data: existingUtr } = await (adminClient.from('wallet_deposits') as any)
+      .select('id, deposit_reference, status')
+      .eq('utr_reference', cleanUtr)
+      .in('status', ['under_review', 'approved'])
+      .maybeSingle();
+
+    if (existingUtr) {
+      return {
+        success: false,
+        error: `This UTR / Transaction Reference ID has already been submitted (Reference: ${existingUtr.deposit_reference}). Duplicate submissions are not allowed.`,
+      };
+    }
+
+    const wallet = await getOrCreatePlayerWallet(params.userId);
+    const amountPaise = inrToPaise(amt);
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const depositRef = `DEP-${dateStr}-${randSuffix}`;
+
+    const { data: created, error } = await (adminClient.from('wallet_deposits') as any)
+      .insert({
+        deposit_reference: depositRef,
+        user_id: params.userId,
+        wallet_id: wallet.id,
+        amount_paise: amountPaise,
+        amount_inr: amt,
+        status: 'under_review',
+        payment_method: 'upi_qr',
+        utr_reference: cleanUtr,
+        proof_image_path: params.proofImagePath.trim(),
+        admin_notes: params.playerNotes?.trim() || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select('id, deposit_reference')
+      .single();
+
+    if (error || !created) {
+      return { success: false, error: error?.message || 'Failed to submit deposit request.' };
+    }
+
+    // Dispatch player notification
+    await (adminClient.from('player_notifications') as any).insert({
+      user_id: params.userId,
+      title: 'Deposit Under Review',
+      message: `Your ₹${amt} deposit request has been submitted and is awaiting verification.`,
+      type: 'financial',
+      action_url: '/dashboard/wallet?tab=deposits',
+      created_at: new Date().toISOString(),
+    });
+
+    invalidateWalletCache(params.userId);
+
+    return {
+      success: true,
+      depositId: created.id,
+      depositRef: created.deposit_reference,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error submitting deposit request' };
+  }
+}
+
+export async function getPlayerWalletDeposits(
+  userId: string,
+  options?: { page?: number; pageSize?: number; status?: string }
+): Promise<{ deposits: WalletDepositRecord[]; totalCount: number }> {
+  try {
+    const adminClient = createAdminClient();
+    const page = Math.max(1, options?.page || 1);
+    const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
+    const offset = (page - 1) * pageSize;
+
+    let query = (adminClient.from('wallet_deposits') as any)
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+
+    query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1);
+
+    const { data, count, error } = await query;
+    if (error || !data) {
+      return { deposits: [], totalCount: 0 };
+    }
+
+    // Generate signed URLs for private screenshot preview (60 mins)
+    const deposits: WalletDepositRecord[] = await Promise.all(
+      data.map(async (row: any) => {
+        let proofSignedUrl: string | null = null;
+        if (row.proof_image_path) {
+          try {
+            const { data: signedData } = await adminClient.storage
+              .from('payment-proofs')
+              .createSignedUrl(row.proof_image_path, 3600);
+            proofSignedUrl = signedData?.signedUrl || null;
+          } catch {
+            // non-blocking
+          }
+        }
+
+        return {
+          id: row.id,
+          depositReference: row.deposit_reference,
+          userId: row.user_id,
+          walletId: row.wallet_id,
+          amountPaise: Number(row.amount_paise),
+          amountInr: Number(row.amount_inr),
+          status: row.status,
+          paymentMethod: row.payment_method,
+          utrReference: row.utr_reference,
+          proofImagePath: row.proof_image_path,
+          proofSignedUrl,
+          adminNotes: row.admin_notes,
+          rejectionReason: row.rejection_reason,
+          reviewedBy: row.reviewed_by,
+          reviewedAt: row.reviewed_at,
+          approvedAt: row.approved_at,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        };
+      })
+    );
+
+    return { deposits, totalCount: count || 0 };
+  } catch (err) {
+    console.error('getPlayerWalletDeposits error:', err);
+    return { deposits: [], totalCount: 0 };
+  }
+}
+
+export async function getAdminWalletDeposits(options?: {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  search?: string;
+}): Promise<{
+  deposits: WalletDepositRecord[];
+  totalCount: number;
+  summary: { pendingCount: number; approvedSumInr: number; rejectedCount: number };
+}> {
+  try {
+    const adminClient = createAdminClient();
+    const page = Math.max(1, options?.page || 1);
+    const pageSize = Math.max(1, Math.min(100, options?.pageSize || 50));
+    const offset = (page - 1) * pageSize;
+
+    // Summary metrics
+    const [underReviewRes, approvedRes, rejectedRes] = await Promise.all([
+      (adminClient.from('wallet_deposits') as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'under_review'),
+      (adminClient.from('wallet_deposits') as any)
+        .select('amount_inr')
+        .eq('status', 'approved'),
+      (adminClient.from('wallet_deposits') as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'rejected'),
+    ]);
+
+    const pendingCount = underReviewRes.count || 0;
+    const rejectedCount = rejectedRes.count || 0;
+    const approvedSumInr = (approvedRes.data || []).reduce(
+      (sum: number, r: any) => sum + Number(r.amount_inr || 0),
+      0
+    );
+
+    let query = (adminClient.from('wallet_deposits') as any)
+      .select('*', { count: 'exact' });
+
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+
+    if (options?.search && options.search.trim()) {
+      const term = `%${options.search.trim()}%`;
+      query = query.or(`utr_reference.ilike.${term},deposit_reference.ilike.${term}`);
+    }
+
+    query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1);
+
+    const { data, count, error } = await query;
+    if (error || !data) {
+      console.error('getAdminWalletDeposits query error:', error);
+      return {
+        deposits: [],
+        totalCount: 0,
+        summary: { pendingCount, approvedSumInr, rejectedCount },
+      };
+    }
+
+    // Fetch player profiles
+    const userIds = [...new Set(data.map((r: any) => r.user_id).filter(Boolean))];
+    const profileMap = new Map<string, any>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await (adminClient.from('profiles') as any)
+        .select('id, display_name, efootball_id')
+        .in('id', userIds);
+      if (profiles) {
+        for (const p of profiles) {
+          profileMap.set(p.id, p);
+        }
+      }
+    }
+
+    // Generate signed URLs for proof screenshots
+    const deposits: WalletDepositRecord[] = await Promise.all(
+      data.map(async (row: any) => {
+        let proofSignedUrl: string | null = null;
+        if (row.proof_image_path) {
+          try {
+            const { data: signedData } = await adminClient.storage
+              .from('payment-proofs')
+              .createSignedUrl(row.proof_image_path, 3600);
+            proofSignedUrl = signedData?.signedUrl || null;
+          } catch {
+            // non-blocking
+          }
+        }
+
+        const profile = profileMap.get(row.user_id);
+
+        return {
+          id: row.id,
+          depositReference: row.deposit_reference,
+          userId: row.user_id,
+          userName: profile?.display_name || profile?.efootball_id || 'Player',
+          userEmail: null,
+          walletId: row.wallet_id,
+          amountPaise: Number(row.amount_paise),
+          amountInr: Number(row.amount_inr),
+          status: row.status,
+          paymentMethod: row.payment_method,
+          utrReference: row.utr_reference,
+          proofImagePath: row.proof_image_path,
+          proofSignedUrl,
+          adminNotes: row.admin_notes,
+          rejectionReason: row.rejection_reason,
+          reviewedBy: row.reviewed_by,
+          reviewedAt: row.reviewed_at,
+          approvedAt: row.approved_at,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        };
+      })
+    );
+
+    return {
+      deposits,
+      totalCount: count || 0,
+      summary: { pendingCount, approvedSumInr, rejectedCount },
+    };
+  } catch (err) {
+    console.error('getAdminWalletDeposits error:', err);
+    return {
+      deposits: [],
+      totalCount: 0,
+      summary: { pendingCount: 0, approvedSumInr: 0, rejectedCount: 0 },
+    };
+  }
+}
+
+export async function adminApproveDeposit(params: {
+  depositId: string;
+  adminUserId?: string;
+  adminId?: string;
+  adminNotes?: string;
+}): Promise<{ success: boolean; error?: string; newBalancePaise?: number; transactionRef?: string }> {
+  try {
+    const adminId = params.adminUserId || params.adminId;
+    if (!adminId) {
+      return { success: false, error: 'Admin user ID is required.' };
+    }
+
+    const adminClient = createAdminClient();
+    const { data, error } = await (adminClient.rpc as any)('admin_approve_wallet_deposit', {
+      p_deposit_id: params.depositId,
+      p_admin_id: adminId,
+      p_admin_notes: params.adminNotes || null,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.success === false) {
+      return { success: false, error: data?.error || 'Failed to approve deposit.' };
+    }
+
+    invalidateWalletCache();
+
+    return {
+      success: true,
+      newBalancePaise: data.new_balance_paise,
+      transactionRef: data.transaction_ref,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error approving deposit' };
+  }
+}
+
+export async function adminRejectDeposit(params: {
+  depositId: string;
+  adminUserId?: string;
+  adminId?: string;
+  rejectionReason: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminId = params.adminUserId || params.adminId;
+    if (!adminId) {
+      return { success: false, error: 'Admin user ID is required.' };
+    }
+
+    const reason = params.rejectionReason?.trim();
+    if (!reason || reason.length < 3) {
+      return { success: false, error: 'A valid rejection reason (minimum 3 characters) is required.' };
+    }
+
+    const adminClient = createAdminClient();
+    const { data, error } = await (adminClient.rpc as any)('admin_reject_wallet_deposit', {
+      p_deposit_id: params.depositId,
+      p_admin_id: adminId,
+      p_rejection_reason: reason,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.success === false) {
+      return { success: false, error: data?.error || 'Failed to reject deposit.' };
+    }
+
+    invalidateWalletCache();
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error rejecting deposit' };
+  }
 }

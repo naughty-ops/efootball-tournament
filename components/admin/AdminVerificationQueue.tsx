@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useTransition, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle2,
@@ -83,20 +83,30 @@ interface UnsuspendModalState {
   notes: string;
 }
 
+export interface AdminVerificationQueueProps {
+  initialItems?: AdminVerificationItem[];
+  initialStats?: VerificationDashboardStats;
+  initialTotalPages?: number;
+  initialTotalCount?: number;
+}
+
 export function AdminVerificationQueue({
   initialItems = [],
-}: {
-  initialItems?: AdminVerificationItem[];
-}) {
-  // Live Data State
+  initialStats,
+  initialTotalPages = 1,
+  initialTotalCount = 0,
+}: AdminVerificationQueueProps) {
+  // Live Data State initialized from SSR hydrated props
   const [items, setItems] = useState<AdminVerificationItem[]>(initialItems);
-  const [stats, setStats] = useState<VerificationDashboardStats>({
-    totalMembers: 0,
-    verifiedMembers: 0,
-    pendingVerification: 0,
-    rejectedVerification: 0,
-    suspendedMembers: 0,
-  });
+  const [stats, setStats] = useState<VerificationDashboardStats>(
+    initialStats || {
+      totalMembers: 0,
+      verifiedMembers: 0,
+      pendingVerification: 0,
+      rejectedVerification: 0,
+      suspendedMembers: 0,
+    }
+  );
 
   // Query & Pagination Controls
   const [tab, setTab] = useState<TabType>('pending');
@@ -105,11 +115,11 @@ export function AdminVerificationQueue({
   const [sortBy, setSortBy] = useState<SortByType>('created_at_desc');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(15);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(initialTotalPages || 1);
+  const [totalCount, setTotalCount] = useState(initialTotalCount || (initialItems ? initialItems.length : 0));
 
-  // Loading & Processing States
-  const [isLoading, setIsLoading] = useState(true);
+  // Loading & Processing States - start false if server already provided items
+  const [isLoading, setIsLoading] = useState(!initialStats && (!initialItems || initialItems.length === 0));
   const [isPending, startTransition] = useTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -199,12 +209,24 @@ export function AdminVerificationQueue({
     }
   }, [tab, debouncedSearch, sortBy, page, pageSize]);
 
+  // Avoid duplicate initial requests when server has already hydrated data
+  const isInitialMountStats = useRef(Boolean(initialStats));
+  const isInitialMountQueue = useRef(Boolean((initialItems && initialItems.length > 0) || initialTotalCount > 0));
+
   // Initial and reactive data loads
   useEffect(() => {
+    if (isInitialMountStats.current) {
+      isInitialMountStats.current = false;
+      return;
+    }
     loadStats();
   }, [loadStats]);
 
   useEffect(() => {
+    if (isInitialMountQueue.current) {
+      isInitialMountQueue.current = false;
+      return;
+    }
     loadQueue();
   }, [loadQueue]);
 

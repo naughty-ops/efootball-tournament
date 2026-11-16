@@ -1,0 +1,156 @@
+[
+  {
+    "name": "1. Homepage (/)",
+    "category": "Public Route",
+    "samples": 10,
+    "runs": [
+      181,
+      170,
+      149,
+      217,
+      168,
+      156,
+      165,
+      152,
+      144,
+      144
+    ],
+    "avgMs": 165,
+    "medianMs": 161,
+    "p95Ms": 201,
+    "minMs": 144,
+    "maxMs": 217
+  },
+  {
+    "name": "2. Login (/auth/login)",
+    "category": "Auth Page",
+    "samples": 10,
+    "runs": [
+      54,
+      54,
+      59,
+      53,
+      57,
+      62,
+      54,
+      55,
+      69,
+      61
+    ],
+    "avgMs": 58,
+    "medianMs": 56,
+    "p95Ms": 66,
+    "minMs": 53,
+    "maxMs": 69
+  },
+  {
+    "name": "3. Dashboard (/dashboard)",
+    "category": "Protected Dashboard",
+    "samples": 10,
+    "runs": [
+      1470,
+      1667,
+      3363,
+      918,
+      1092,
+      2004,
+      4018,
+      2421,
+      4021,
+      4027
+    ],
+    "avgMs": 2500,
+    "medianMs": 2213,
+    "p95Ms": 4024,
+    "minMs": 918,
+    "maxMs": 4027
+  },
+  {
+    "name": "4. Dashboard Matches (/dashboard/matches)",
+    "category": "Protected Matches",
+    "samples": 10,
+    "runs": [
+      4022,
+      4011,
+      4010,
+      3738,
+      1848,
+      4023,
+      4013,
+      6859,
+      11174,
+      4020
+    ],
+    "avgMs": 4772,
+    "medianMs": 4017,
+    "p95Ms": 9232,
+    "minMs": 1848,
+    "maxMs": 11174
+  },
+  {
+    "name": "5. Admin Dashboard (/admin/dashboard)",
+    "category": "Protected Admin",
+    "samples": 10,
+    "runs": [
+      8308,
+      6517,
+      4565,
+      3374,
+      48816,
+      4016,
+      4023,
+      4009,
+      4010,
+      6660
+    ],
+    "avgMs": 9430,
+    "medianMs": 4294,
+    "p95Ms": 30587,
+    "minMs": 3374,
+    "maxMs": 48816
+  },
+  {
+    "name": "6. Supabase auth.getUser()",
+    "category": "Remote Network Auth",
+    "samples": 10,
+    "runs": [
+      352,
+      329,
+      568,
+      29438,
+      9375,
+      16250,
+      2227,
+      869,
+      363,
+      369
+    ],
+    "avgMs": 6014,
+    "medianMs": 719,
+    "p95Ms": 23503,
+    "minMs": 329,
+    "maxMs": 29438
+  },
+  {
+    "name": "7. Database Queries Direct",
+    "category": "Remote Network Database",
+    "samples": 10,
+    "runs": [
+      648,
+      738,
+      3026,
+      1010,
+      7750,
+      8499,
+      4579,
+      4015,
+      3877,
+      1770
+    ],
+    "avgMs": 3591,
+    "medianMs": 3452,
+    "p95Ms": 8162,
+    "minMs": 648,
+    "maxMs": 8499
+  }
+]

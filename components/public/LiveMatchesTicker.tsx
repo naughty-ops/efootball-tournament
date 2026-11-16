@@ -12,6 +12,7 @@ import { useLiveMatchesQuery } from '@/hooks/queries/useLiveMatchesQuery';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import { cn } from '@/lib/utils';
 import type { HomepageSection } from '@/types/database';
+import LiveMatchViewerBadge from '@/components/public/live/LiveMatchViewerBadge';
 
 interface LiveMatchesTickerProps {
   initialLiveMatches: LiveMatchEntry[];
@@ -140,11 +141,9 @@ export default function LiveMatchesTicker({
             </div>
 
             {/* Footer Action */}
-            <div className="flex items-center justify-between border-t border-white/10 pt-2 text-xs font-bold text-[#FFFF00]">
-              <span className="text-[10px] text-[#D9DCFF]/80 uppercase tracking-wider">
-                {round.name || 'Knockout Stage'}
-              </span>
-              <span className="flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+            <div className="flex items-center justify-between border-t border-white/10 pt-2 text-xs font-bold text-[#FFFF00] gap-2">
+              <LiveMatchViewerBadge matchId={match.id} size="sm" showLiveDot={false} />
+              <span className="flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-white group-hover:text-[#FFFF00]">
                 Watch Stream
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>

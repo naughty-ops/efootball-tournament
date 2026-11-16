@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import { requireAdmin, getAuthenticatedUser } from '@/lib/auth/server';
 import { submitMatchResult } from '@/services/matchService';
 
@@ -146,8 +146,33 @@ export async function submitMatchDisputeAction(data: {
 
     const adminClient = createAdminClient();
 
-    // Verify reporter ownership unless admin
-    const { data: part, error: partErr } = await (adminClient.from('participants') as any)
+    // 1. Try atomic SECURITY DEFINER RPC first (guarantees transaction integrity and bypasses client RLS discrepancies)
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('submit_match_dispute', {
+      p_match_id: data.matchId,
+      p_tournament_id: data.tournamentId,
+      p_reporter_participant_id: data.reporterParticipantId,
+      p_opponent_participant_id: data.opponentParticipantId || null,
+      p_reason: data.reason,
+      p_details: data.details?.trim() || null,
+      p_evidence_url: data.evidenceUrl?.trim() || null,
+    });
+
+    if (!rpcErr && rpcData?.success && rpcData?.dispute_id) {
+      revalidatePath('/dashboard');
+      revalidatePath('/dashboard/matches');
+      revalidatePath(`/admin/tournaments/${data.tournamentId}/disputes`);
+      revalidatePath(`/admin/tournaments/${data.tournamentId}/schedule`);
+
+      return {
+        success: true,
+        data: { disputeId: rpcData.dispute_id },
+        message: rpcData.message || 'Match issue reported successfully. Our admin team will review it shortly.',
+      };
+    }
+
+    // 2. Direct fallback: Verify reporter ownership unless admin
+    const clientForRead = isServiceRoleConfigured() ? adminClient : supabase;
+    const { data: part, error: partErr } = await (clientForRead.from('participants') as any)
       .select('id, user_id')
       .eq('id', data.reporterParticipantId)
       .maybeSingle();
@@ -156,8 +181,9 @@ export async function submitMatchDisputeAction(data: {
       return { success: false, error: 'Unauthorized to report on behalf of this participant' };
     }
 
-    // Insert dispute ticket
-    const { data: dispute, error: disputeErr } = await (adminClient.from('match_disputes') as any)
+    // Insert dispute ticket using elevated client if service role is available, otherwise authenticated user client
+    const writeClient = isServiceRoleConfigured() ? adminClient : supabase;
+    const { data: dispute, error: disputeErr } = await (writeClient.from('match_disputes') as any)
       .insert({
         match_id: data.matchId,
         tournament_id: data.tournamentId,
@@ -176,7 +202,7 @@ export async function submitMatchDisputeAction(data: {
     }
 
     // Update match status to disputed
-    await (adminClient.from('matches') as any)
+    await (writeClient.from('matches') as any)
       .update({
         status: 'disputed',
         updated_at: new Date().toISOString(),
@@ -184,7 +210,7 @@ export async function submitMatchDisputeAction(data: {
       .eq('id', data.matchId);
 
     // Audit log
-    await (adminClient.from('match_activity_logs') as any).insert({
+    await (writeClient.from('match_activity_logs') as any).insert({
       match_id: data.matchId,
       tournament_id: data.tournamentId,
       actor_id: user.id,
@@ -996,7 +1022,8 @@ export async function checkMatchTimeoutAction(matchId: string, tournamentId: str
         .eq('id', matchId);
 
       // Create dispute ticket
-      await (adminClient.from('match_disputes') as any).insert({
+      const writeClient = isServiceRoleConfigured() ? adminClient : await createClient();
+      await (writeClient.from('match_disputes') as any).insert({
         match_id: matchId,
         tournament_id: tournamentId,
         reporter_participant_id: match.participant_a,

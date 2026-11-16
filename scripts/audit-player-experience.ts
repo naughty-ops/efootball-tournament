@@ -20,7 +20,7 @@ interface AuditResult {
   notes: string[];
 }
 
-const BASE_URL = process.env.AUDIT_BASE_URL || 'http://localhost:3001';
+const BASE_URL = process.env.AUDIT_BASE_URL || 'http://localhost:3000';
 
 const VIEWPORTS = [
   { name: 'Desktop (1440x900)', width: 1440, height: 900, isMobile: false },

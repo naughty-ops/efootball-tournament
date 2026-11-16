@@ -1,0 +1,93 @@
+[
+  {
+    "name": "1. Public Landing Page (/)",
+    "runs": [
+      2258,
+      162,
+      149,
+      171,
+      146
+    ],
+    "avgMs": 577,
+    "minMs": 146,
+    "maxMs": 2258
+  },
+  {
+    "name": "2. Login Page (/auth/login)",
+    "runs": [
+      55,
+      56,
+      58,
+      47,
+      55
+    ],
+    "avgMs": 54,
+    "minMs": 47,
+    "maxMs": 58
+  },
+  {
+    "name": "3. Authenticated Login Redirect (/auth/login?next=...)",
+    "runs": [
+      954,
+      1719,
+      625,
+      1107,
+      1457
+    ],
+    "avgMs": 1172,
+    "minMs": 625,
+    "maxMs": 1719
+  },
+  {
+    "name": "4. Dashboard (/dashboard)",
+    "runs": [
+      10726,
+      2847,
+      912,
+      2000,
+      1079
+    ],
+    "avgMs": 3513,
+    "minMs": 912,
+    "maxMs": 10726
+  },
+  {
+    "name": "5. Dashboard Matches (/dashboard/matches)",
+    "runs": [
+      910,
+      2123,
+      3461,
+      1577,
+      2414
+    ],
+    "avgMs": 2097,
+    "minMs": 910,
+    "maxMs": 3461
+  },
+  {
+    "name": "6. Supabase auth.getUser() direct",
+    "runs": [
+      2036,
+      753,
+      1713,
+      913,
+      338
+    ],
+    "avgMs": 1151,
+    "minMs": 338,
+    "maxMs": 2036
+  },
+  {
+    "name": "7. Dashboard Database Queries (Direct)",
+    "runs": [
+      775,
+      923,
+      1798,
+      1018,
+      2005
+    ],
+    "avgMs": 1304,
+    "minMs": 775,
+    "maxMs": 2005
+  }
+]

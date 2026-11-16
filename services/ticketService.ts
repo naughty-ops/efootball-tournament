@@ -119,12 +119,24 @@ export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
 
   const adminClient = createAdminClient();
 
+  // Bounded retrieval: fetch only active, unresolved items for detailed SLA/overdue calculation,
+  // plus head counts for total ticket volume, avoiding full-table memory scans
   const [
     supportTicketsRes,
     disputesRes,
+    totalSupportRes,
+    totalDisputesRes,
   ] = await Promise.all([
-    (adminClient.from('support_tickets') as any).select('id, status, priority, assigned_admin_id, created_at, updated_at'),
-    (adminClient.from('match_disputes') as any).select('id, status, priority, assigned_admin_id, created_at, updated_at'),
+    (adminClient.from('support_tickets') as any)
+      .select('id, status, priority, assigned_admin_id, created_at, updated_at')
+      .not('status', 'in', '("resolved","rejected","closed")'),
+    (adminClient.from('match_disputes') as any)
+      .select('id, status, priority, assigned_admin_id, created_at, updated_at')
+      .not('status', 'in', '("resolved","rejected","closed")'),
+    (adminClient.from('support_tickets') as any)
+      .select('*', { count: 'exact', head: true }),
+    (adminClient.from('match_disputes') as any)
+      .select('*', { count: 'exact', head: true }),
   ]);
 
   const supportTickets = (supportTicketsRes.data || []) as any[];
@@ -158,7 +170,7 @@ export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
   const now = Date.now();
   const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
-  const totalTickets = allItems.length;
+  const totalTickets = (totalSupportRes.count ?? 0) + (totalDisputesRes.count ?? 0);
   let totalOpen = 0;
   let pendingReview = 0;
   let underInvestigation = 0;
@@ -534,6 +546,9 @@ export async function getAllUnifiedTickets(params: TicketFilterParams = {}): Pro
       match_status: matchData?.status || null,
       evidence_url: st.evidence_url,
       evidence_public_id: st.evidence_public_id,
+      expected_payout: st.expected_payout != null ? Number(st.expected_payout) : null,
+      settlement_reference: st.settlement_reference || null,
+      payout_transaction_id: st.payout_transaction_id || null,
     };
   });
 
@@ -809,6 +824,9 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
       match_status: matchData?.status || null,
       evidence_url: st.evidence_url,
       evidence_public_id: st.evidence_public_id,
+      expected_payout: st.expected_payout != null ? Number(st.expected_payout) : null,
+      settlement_reference: st.settlement_reference || null,
+      payout_transaction_id: st.payout_transaction_id || null,
     };
   }
 
@@ -1061,6 +1079,9 @@ export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]>
         player_name: st.player_name,
         player_email: st.player_email,
         evidence_url: st.evidence_url,
+        expected_payout: st.expected_payout != null ? Number(st.expected_payout) : null,
+        settlement_reference: st.settlement_reference || null,
+        payout_transaction_id: st.payout_transaction_id || null,
       };
     });
 

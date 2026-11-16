@@ -3,7 +3,14 @@ export type TransactionType =
   | 'BONUS_REWARD'
   | 'ADMIN_ADJUSTMENT'
   | 'PAYOUT_COMPLETED'
-  | 'PAYOUT_REVERSAL';
+  | 'PAYOUT_REVERSAL'
+  | 'DEPOSIT_APPROVED'
+  | 'TOURNAMENT_ENTRY_FEE'
+  | 'MATCH_ESCROW_LOCK'
+  | 'MATCH_WIN_PRIZE'
+  | 'ONE_VS_ONE_ENTRY_FEE'
+  | 'ONE_VS_ONE_PRIZE'
+  | 'ONE_VS_ONE_ENTRY_REFUND';
 
 export type TransactionStatus =
   | 'pending'
@@ -21,9 +28,57 @@ export type PayoutStatus =
   | 'FAILED'
   | 'PENDING';
 
+export type WalletDepositStatus =
+  | 'pending'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled';
+
 export type PaymentMethodType = 'bank_account' | 'upi';
 
+export interface WalletPaymentSettings {
+  upiQrImageUrl: string;
+  upiId: string;
+  upiPhoneNumber: string;
+  accountHolderName: string;
+  instructions: string;
+  minDepositInr: number;
+  maxDepositInr: number;
+}
+
+export interface WalletDepositRecord {
+  id: string;
+  depositReference: string;
+  userId: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  walletId: string;
+  amountPaise: number;
+  amountInr: number;
+  status: WalletDepositStatus;
+  paymentMethod: string;
+  utrReference: string;
+  proofImagePath: string;
+  proofSignedUrl?: string | null;
+  adminNotes?: string | null;
+  rejectionReason?: string | null;
+  reviewedBy?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WalletOverview {
+  availableBalancePaise: number;
+  availableBalanceInr: number;
+  lockedBalancePaise: number;
+  lockedBalanceInr: number;
+  totalDepositedPaise: number;
+  totalDepositedInr: number;
+  walletStatus: 'active' | 'frozen' | 'suspended';
   totalEarningsPaise: number;
   totalEarningsInr: number;
   pendingEarningsPaise: number;
@@ -53,8 +108,10 @@ export interface WalletTransactionItem {
   transactionType: TransactionType;
   amountPaise: number;
   amountInr: number;
+  balanceAfterPaise?: number | null;
+  balanceAfterInr?: number | null;
   status: TransactionStatus;
-  referenceType: 'prize_distribution' | 'payout' | 'admin_adjustment' | 'other';
+  referenceType: 'prize_distribution' | 'payout' | 'admin_adjustment' | 'deposit' | 'tournament_entry' | 'match' | 'other';
   referenceId?: string | null;
   tournamentId?: string | null;
   tournamentName?: string | null;

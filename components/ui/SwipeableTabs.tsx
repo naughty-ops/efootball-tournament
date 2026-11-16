@@ -58,7 +58,7 @@ export function SwipeableTabBar({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        'flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-1 px-1 touch-pan-x',
+        'flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-1 px-1 touch-pan-x min-w-0 max-w-full',
         className
       )}
     >

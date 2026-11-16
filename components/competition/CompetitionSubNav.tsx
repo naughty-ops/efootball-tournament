@@ -34,7 +34,7 @@ export default function CompetitionSubNav({
   ];
 
   return (
-    <div className="flex items-center gap-2 p-1.5 bg-[#05053B] border border-white/10 rounded-2xl w-fit">
+    <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-[#05053B] border border-white/10 rounded-2xl w-fit max-w-full overflow-x-auto no-scrollbar">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
@@ -45,7 +45,7 @@ export default function CompetitionSubNav({
             href={tab.href}
             prefetch
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 cursor-pointer select-none',
+              'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 cursor-pointer select-none shrink-0',
               isActive
                 ? 'bg-[#FFFF00] text-[#08088F] shadow-md shadow-[#FFFF00]/20'
                 : 'text-white/70 hover:text-white hover:bg-white/5'

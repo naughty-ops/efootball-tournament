@@ -28,7 +28,15 @@ export async function GET(request: NextRequest) {
       incomingError === 'access_denied' ||
       (errorDescription && errorDescription.toLowerCase().includes('expired'));
     const targetError = isExpired ? 'expired_link' : 'verification_failed';
-    return NextResponse.redirect(new URL(`/auth/login?error=${targetError}`, request.url), 303);
+
+    if (type === 'recovery' || safeNext?.includes('reset-password')) {
+      const resetUrl = new URL('/reset-password', request.nextUrl.origin);
+      resetUrl.searchParams.set('error', targetError);
+      if (errorDescription) resetUrl.searchParams.set('error_description', errorDescription);
+      return NextResponse.redirect(resetUrl, 303);
+    }
+
+    return NextResponse.redirect(new URL(`/auth/login?error=${targetError}`, request.nextUrl.origin), 303);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -39,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('[AuthCallback] Missing Supabase configuration.');
-    return NextResponse.redirect(new URL('/auth/login?error=config_missing', request.url), 303);
+    return NextResponse.redirect(new URL('/auth/login?error=config_missing', request.nextUrl.origin), 303);
   }
 
   // Collect cookies to ensure none are dropped across redirects
@@ -70,20 +78,26 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error || !data.user) {
       console.error('[AuthCallback] PKCE code exchange failed:', error?.message);
-      return NextResponse.redirect(new URL('/auth/login?error=verification_failed', request.url), 303);
+      if (type === 'recovery' || safeNext?.includes('reset-password')) {
+        const errorUrl = new URL('/reset-password', request.nextUrl.origin);
+        errorUrl.searchParams.set('error', 'expired_link');
+        return NextResponse.redirect(errorUrl, 303);
+      }
+      return NextResponse.redirect(new URL('/auth/login?error=verification_failed', request.nextUrl.origin), 303);
     }
 
     const user = data.user;
 
     // Password recovery flow -> redirect to reset password page with active session cookies
     if (type === 'recovery' || safeNext?.includes('reset-password')) {
-      return createRedirectResponse(new URL('/auth/reset-password', request.url));
+      const destination = safeNext || '/reset-password';
+      return createRedirectResponse(new URL(destination, request.nextUrl.origin));
     }
 
     // Post-verification notification workflow for new signup/email confirmation
     await handlePostVerification(user, supabase);
 
-    const redirectUrl = new URL(safeNext || '/auth/login?verified=true', request.url);
+    const redirectUrl = new URL(safeNext || '/auth/login?verified=true', request.nextUrl.origin);
     return createRedirectResponse(redirectUrl);
   }
 
@@ -96,18 +110,24 @@ export async function GET(request: NextRequest) {
 
     if (error || !data.user) {
       console.error('[AuthCallback] Token hash verification failed:', error?.message);
-      return NextResponse.redirect(new URL('/auth/login?error=verification_failed', request.url), 303);
+      if (type === 'recovery' || safeNext?.includes('reset-password')) {
+        const errorUrl = new URL('/reset-password', request.nextUrl.origin);
+        errorUrl.searchParams.set('error', 'expired_link');
+        return NextResponse.redirect(errorUrl, 303);
+      }
+      return NextResponse.redirect(new URL('/auth/login?error=verification_failed', request.nextUrl.origin), 303);
     }
 
     const user = data.user;
 
-    if (type === 'recovery') {
-      return createRedirectResponse(new URL('/auth/reset-password', request.url));
+    if (type === 'recovery' || safeNext?.includes('reset-password')) {
+      const destination = safeNext || '/reset-password';
+      return createRedirectResponse(new URL(destination, request.nextUrl.origin));
     }
 
     await handlePostVerification(user, supabase);
 
-    const redirectUrl = new URL(safeNext || '/auth/login?verified=true', request.url);
+    const redirectUrl = new URL(safeNext || '/auth/login?verified=true', request.nextUrl.origin);
     return createRedirectResponse(redirectUrl);
   }
 
@@ -185,13 +205,14 @@ export async function GET(request: NextRequest) {
 
         if (hash && (hash.indexOf('access_token') !== -1 || hash.indexOf('type=recovery') !== -1)) {
           // Recovery or token hash present: forward directly to reset password page with full hash
-          var target = (next && next.indexOf('reset-password') !== -1) ? next : '/auth/reset-password';
+          var target = (next && next.indexOf('reset-password') !== -1) ? next : '/reset-password';
           window.location.replace(target + hash);
           return;
         }
 
         if (hash && hash.indexOf('error') !== -1) {
-          window.location.replace('/auth/login?error=expired_link');
+          var errorTarget = (next && next.indexOf('reset-password') !== -1) ? '/reset-password' : '/auth/login';
+          window.location.replace(errorTarget + '?error=expired_link');
           return;
         }
 

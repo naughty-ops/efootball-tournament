@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
+import { ShieldCheck, User } from 'lucide-react';
 import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
-import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerSettingsClientView from '@/components/settings/PlayerSettingsClientView';
 import { getPlayerProfile } from '@/services/playerDashboardService';
@@ -47,11 +47,15 @@ export default async function PlayerSettingsPage() {
         <PlayerDashboardSwipeWrapper currentSection="settings">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 max-w-5xl mx-auto">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFFF00] text-[#08088F] text-[11px] font-black uppercase tracking-widest shadow-sm">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Security & Competitor Preferences</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display uppercase tracking-wider">
                 Account Settings
               </h1>
-              <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#D9DCFF] max-w-2xl leading-relaxed font-medium">
                 Configure your competitor credentials, bank and UPI payout channels, in-session security, and direct admin assistance.
               </p>
             </div>

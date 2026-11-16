@@ -17,6 +17,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Swords,
+  RotateCcw,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +111,24 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
 
   const getTypeIcon = (type: string) => {
     switch (type) {
+      case 'ONE_VS_ONE_ENTRY_FEE':
+        return (
+          <div className="h-8 w-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <Swords className="h-4 w-4" />
+          </div>
+        );
+      case 'ONE_VS_ONE_PRIZE':
+        return (
+          <div className="h-8 w-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Trophy className="h-4 w-4" />
+          </div>
+        );
+      case 'ONE_VS_ONE_ENTRY_REFUND':
+        return (
+          <div className="h-8 w-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+            <RotateCcw className="h-4 w-4" />
+          </div>
+        );
       case 'TOURNAMENT_PRIZE':
         return (
           <div className="h-8 w-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
@@ -193,10 +213,14 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
               className="h-9 px-3 text-xs bg-[#07074E] border border-white/15 text-white rounded-xl focus:border-[#FFFF00] outline-none"
             >
               <option value="all">All Transaction Types</option>
+              <option value="ONE_VS_ONE_ENTRY_FEE">1v1 Match Entry</option>
+              <option value="ONE_VS_ONE_PRIZE">1v1 Match Victory</option>
+              <option value="ONE_VS_ONE_ENTRY_REFUND">1v1 Match Refund</option>
               <option value="TOURNAMENT_PRIZE">Tournament Prize</option>
               <option value="PAYOUT_COMPLETED">Payout Completed</option>
               <option value="BONUS_REWARD">Bonus Reward</option>
               <option value="ADMIN_ADJUSTMENT">Admin Adjustment</option>
+              <option value="DEPOSIT_APPROVED">Deposit Approved</option>
             </select>
 
             {/* Status Filter */}
@@ -263,11 +287,17 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
                         </td>
                         <td
                           className={`py-3.5 px-4 text-right font-black text-sm font-display ${
-                            tx.transactionType === 'PAYOUT_COMPLETED' ? 'text-blue-300' : 'text-emerald-400'
+                            tx.transactionType === 'ONE_VS_ONE_ENTRY_FEE'
+                              ? 'text-amber-400'
+                              : tx.transactionType === 'PAYOUT_COMPLETED'
+                              ? 'text-blue-300'
+                              : 'text-emerald-400'
                           }`}
                         >
-                          {tx.transactionType === 'PAYOUT_COMPLETED' ? '-' : '+'}₹
-                          {tx.amountInr.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {tx.transactionType === 'ONE_VS_ONE_ENTRY_FEE' || tx.transactionType === 'PAYOUT_COMPLETED'
+                            ? '-'
+                            : '+'}
+                          ₹{tx.amountInr.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="py-3.5 px-4 text-white/60 whitespace-nowrap">
                           {formatDate(tx.createdAt)}
@@ -298,11 +328,17 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
                       <div className="text-right shrink-0">
                         <div
                           className={`text-sm font-black font-display ${
-                            tx.transactionType === 'PAYOUT_COMPLETED' ? 'text-blue-300' : 'text-emerald-400'
+                            tx.transactionType === 'ONE_VS_ONE_ENTRY_FEE'
+                              ? 'text-amber-400'
+                              : tx.transactionType === 'PAYOUT_COMPLETED'
+                              ? 'text-blue-300'
+                              : 'text-emerald-400'
                           }`}
                         >
-                          {tx.transactionType === 'PAYOUT_COMPLETED' ? '-' : '+'}₹
-                          {tx.amountInr.toLocaleString('en-IN')}
+                          {tx.transactionType === 'ONE_VS_ONE_ENTRY_FEE' || tx.transactionType === 'PAYOUT_COMPLETED'
+                            ? '-'
+                            : '+'}
+                          ₹{tx.amountInr.toLocaleString('en-IN')}
                         </div>
                         <div className="mt-1">{getStatusBadge(tx.status)}</div>
                       </div>
@@ -378,10 +414,29 @@ export default function WalletTransactionsTable({ initialTransactions }: WalletT
               </div>
               <div className="flex justify-between py-1.5 border-b border-white/5">
                 <span className="text-white/60">Amount</span>
-                <span className="font-black text-sm text-emerald-400 font-display">
+                <span
+                  className={`font-black text-sm font-display ${
+                    selectedTx.transactionType === 'ONE_VS_ONE_ENTRY_FEE'
+                      ? 'text-amber-400'
+                      : selectedTx.transactionType === 'PAYOUT_COMPLETED'
+                      ? 'text-blue-300'
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {selectedTx.transactionType === 'ONE_VS_ONE_ENTRY_FEE' || selectedTx.transactionType === 'PAYOUT_COMPLETED'
+                    ? '-'
+                    : '+'}
                   ₹{selectedTx.amountInr.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
+              {selectedTx.balanceAfterInr != null && (
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-white/60">Balance After Transaction</span>
+                  <span className="font-bold text-white">
+                    ₹{selectedTx.balanceAfterInr.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-1.5 border-b border-white/5">
                 <span className="text-white/60">Type</span>
                 <span className="font-bold text-white">{selectedTx.transactionType}</span>

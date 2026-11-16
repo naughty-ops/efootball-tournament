@@ -2,9 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Award } from 'lucide-react';
 import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
-import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import PlayerDashboardSwipeWrapper from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerCareerClientView from '@/components/career/PlayerCareerClientView';
 import { getPlayerProfile } from '@/services/playerDashboardService';
@@ -42,20 +41,26 @@ export default async function PlayerCareerPage() {
     <div className="pb-16">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         <PlayerDashboardSwipeWrapper currentSection="career">
-          <div className="border-b border-white/10 pb-6">
+          <div className="border-b border-white/10 pb-6 space-y-2">
             <Link
               href="/dashboard/settings"
-              className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-[#FFFF00] font-black uppercase tracking-wider mb-3 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs text-[#D9DCFF] hover:text-[#FFFF00] font-black uppercase tracking-wider mb-2 transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-3.5 h-3.5 text-[#FFFF00]" />
               <span>Back to Profile</span>
             </Link>
-            <h1 className="text-3xl sm:text-4xl font-black text-white font-display uppercase tracking-wider">
-              Player Career & Achievements
-            </h1>
-            <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-2xl leading-relaxed">
-              Track your lifetime tournament statistics, recent form momentum, head-to-head records, and unlocked trophies.
-            </p>
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFFF00] text-[#08088F] text-[11px] font-black uppercase tracking-widest shadow-sm mb-2">
+                <Award className="h-3.5 w-3.5" />
+                <span>Career History & Honours</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-display uppercase tracking-wider">
+                Player Career & Achievements
+              </h1>
+              <p className="text-xs sm:text-sm text-[#D9DCFF] mt-1 max-w-2xl leading-relaxed font-medium">
+                Track your lifetime tournament statistics, recent form momentum, head-to-head records, and unlocked trophies.
+              </p>
+            </div>
           </div>
 
           <PlayerCareerClientView

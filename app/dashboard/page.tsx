@@ -20,6 +20,7 @@ import {
   MessageCircle,
   Settings,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,7 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
       console.warn('Dashboard getPlayerMatches error:', err);
       return { data: [], error: 'Failed to load matches' };
     }),
-    getPlayerWalletOverview(user.id).catch((err) => {
+    getPlayerWalletOverview(user.id, supabase).catch((err) => {
       console.warn('Dashboard getPlayerWalletOverview error:', err);
       return null;
     }),
@@ -120,8 +121,9 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
         )}
 
         {/* Welcome Hero Banner */}
-        <div className="relative overflow-hidden rounded-[32px] bg-[#1010C5] p-6 sm:p-8 lg:p-10 pb-8 sm:pb-10 lg:pb-12 xl:pb-14 text-white shadow-2xl border border-white/20 mb-6 sm:mb-8 lg:mb-10">
-          <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 max-w-full bg-[#3434FF]/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] bg-gradient-to-br from-[#1E1EF5] via-[#2A2AFF] to-[#1212B8] p-6 sm:p-8 lg:p-10 pb-8 sm:pb-10 lg:pb-12 xl:pb-14 text-white shadow-2xl border border-white/20 mb-6 sm:mb-8 lg:mb-10">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#FFFF00]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#FF168B]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -163,8 +165,14 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Hero Quick Actions: View Matches, My Tournaments, Wallet, Contact Admin */}
-            <div className="grid grid-cols-2 sm:flex sm:flex-row md:grid md:grid-cols-2 gap-2 shrink-0">
+            {/* Hero Quick Actions: 1v1 Arena, View Matches, My Tournaments, Wallet, Contact Admin */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap md:grid md:grid-cols-2 gap-2 shrink-0">
+              <Button asChild className="bg-[#FF168B] hover:bg-[#FF168B]/90 text-white font-black text-xs shadow-lg shadow-pink-500/25 rounded-full h-10 px-4 gap-1.5 uppercase tracking-wider col-span-2 sm:col-span-1">
+                <Link href="/dashboard/matches?mode=1v1">
+                  <Flame className="h-3.5 w-3.5 text-white" />
+                  <span>1v1 Arena</span>
+                </Link>
+              </Button>
               <Button asChild className="bg-[#FFFF00] hover:bg-[#FFFF00]/90 text-[#08088F] font-black text-xs shadow-lg rounded-full h-10 px-4 gap-1.5 uppercase tracking-wider">
                 <Link href="/dashboard/matches">
                   <Swords className="h-3.5 w-3.5 text-[#08088F]" />
@@ -181,12 +189,6 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
                 <Link href="/dashboard/wallet">
                   <Wallet className="h-3.5 w-3.5 text-[#00E676]" />
                   <span>My Wallet</span>
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/15 text-xs font-black rounded-full h-10 px-4 gap-1.5 uppercase tracking-wider">
-                <Link href="/dashboard/settings">
-                  <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
-                  <span>Contact Admin</span>
                 </Link>
               </Button>
             </div>
@@ -316,6 +318,69 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
               )}
             </p>
           </Card>
+        </div>
+
+        {/* 1 VS 1 Challenge Arena Shortcut & Feature Banner */}
+        <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#0A0A70] via-[#070748] to-[#0A0A70] border border-blue-400/30 p-5 sm:p-7 text-white shadow-2xl group hover:border-[#FFFF00]/50 transition-all">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF168B]/15 rounded-full blur-3xl pointer-events-none group-hover:bg-[#FF168B]/25 transition-all duration-700" />
+          <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-[#FFFF00]/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-[#FF168B] text-white font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full shadow-md shadow-pink-500/30 flex items-center gap-1.5">
+                  <Flame className="h-3 w-3 fill-current" />
+                  <span>1 VS 1 ARENA</span>
+                </span>
+                <span className="bg-emerald-500/15 border border-emerald-500/30 text-[#00E676] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E676] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00E676]" />
+                  </span>
+                  <span>Instant Matchmaking Live</span>
+                </span>
+                <span className="bg-[#FFFF00]/15 border border-[#FFFF00]/30 text-[#FFFF00] text-[10px] font-bold px-2.5 py-1 rounded-full">
+                  Wallet Prize Rewards
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black font-display uppercase tracking-wider text-white">
+                  eFootball 1 VS 1 Challenge Arena
+                </h2>
+                <p className="text-xs sm:text-sm text-blue-100/80 mt-1 leading-relaxed">
+                  No need to wait for tournament rounds! Select your entry tier, match instantly with real opponents, host friend matches, and win verified wallet payouts.
+                </p>
+              </div>
+
+              {/* Feature Highlights Pills */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-white/90">
+                <span className="bg-white/5 border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="text-[#FFFF00] font-black">⚡</span> Instant Queue
+                </span>
+                <span className="bg-white/5 border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="text-[#00E676] font-black">₹</span> Fast Wallet Settlement
+                </span>
+                <span className="bg-white/5 border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="text-[#FF168B] font-black">🛡️</span> Strict Anti-Cheat
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Action Button */}
+            <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+              <Button asChild size="lg" className="rounded-full bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs sm:text-sm uppercase tracking-wider px-7 py-3 shadow-xl hover:scale-105 active:scale-95 transition-all gap-2 cursor-pointer">
+                <Link href="/dashboard/matches?mode=1v1">
+                  <Flame className="h-4 w-4 text-[#FF168B]" />
+                  <span>Enter 1v1 Arena</span>
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+              <span className="text-[10px] text-center text-blue-200/60 font-medium">
+                Tiers from ₹10 • Automatic Pairing
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Two-Column Layout: Upcoming Fixtures & Registered Tournaments */}

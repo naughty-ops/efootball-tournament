@@ -365,7 +365,7 @@ export async function getPlayerMatches(
     const participantIds: string[] = userParticipants.map((p: any) => p.id);
     const userParticipantSet = new Set(participantIds);
 
-    // 2. Fetch matches using database-level ordering and bounds
+    // 2. Fetch matches using database-level ordering and bounds with embedded PostgREST relations
     const matchSelectFields = `
       id,
       round_id,
@@ -394,7 +394,11 @@ export async function getPlayerMatches(
       penalty_score_b,
       winner_id,
       live_room_name,
-      created_at
+      created_at,
+      tournaments:tournament_id (id, name, format, status),
+      rounds:round_id (id, name, round_number),
+      part_a:participant_a (id, user_id, username, real_name),
+      part_b:participant_b (id, user_id, username, real_name)
     `;
 
     const orFilter = `participant_a.in.(${participantIds.join(',')}),participant_b.in.(${participantIds.join(',')})`;
@@ -469,8 +473,10 @@ export async function getPlayerMatches(
       return { data: [], error: null };
     }
 
-    // 3. Collect round IDs and opponent participant IDs
+    // 3. Derive IDs for concurrent secondary lookups
     const roundIds = Array.from(new Set(rawMatches.map((m: any) => m.round_id).filter(Boolean)));
+    const tournamentIds = Array.from(new Set(rawMatches.map((m: any) => m.tournament_id).filter(Boolean)));
+    const matchIds = rawMatches.map((m: any) => m.id);
     const opponentIds = Array.from(
       new Set(
         rawMatches
@@ -487,8 +493,63 @@ export async function getPlayerMatches(
     }
 
     const opponentMap = new Map<string, OpponentDetail>();
+    const roundMap = new Map<string, { name: string; round_number: number; tournament_id: string }>();
+    const tournamentMap = new Map<string, string>();
+    const submissionMap = new Map<string, any[]>();
 
-    if (opponentIds.length > 0) {
+    // Pre-populate tournament, round, and opponent maps from embedded PostgREST relations
+    rawMatches.forEach((m: any) => {
+      if (m.tournaments && m.tournaments.name) {
+        tournamentMap.set(m.tournament_id, m.tournaments.name);
+      }
+      if (m.rounds && m.rounds.name) {
+        roundMap.set(m.round_id, m.rounds);
+      }
+    });
+
+    const missingRoundIds = roundIds.filter((id) => !roundMap.has(id));
+
+    const fetchRounds = async () => {
+      if (missingRoundIds.length === 0) return;
+      try {
+        const q = supabase?.from?.('rounds');
+        if (q && typeof q.select === 'function') {
+          const { data: rounds } = await q
+            .select('id, name, round_number, tournament_id')
+            .in('id', missingRoundIds);
+          if (rounds) {
+            rounds.forEach((r: any) => roundMap.set(r.id, r));
+          }
+        }
+      } catch (err) {
+        console.warn('Rounds lookup warning in player dashboard:', err);
+      }
+    };
+
+    const fetchSubmissions = async () => {
+      if (matchIds.length === 0) return;
+      try {
+        const q = (supabase as any)?.from?.('match_submissions');
+        if (q && typeof q.select === 'function') {
+          const { data: subData } = await q
+            .select('match_id, participant_id, my_score, opponent_score, screenshot_url, created_at')
+            .in('match_id', matchIds);
+          if (subData) {
+            subData.forEach((s: any) => {
+              const list = submissionMap.get(s.match_id) || [];
+              list.push(s);
+              submissionMap.set(s.match_id, list);
+            });
+          }
+        }
+      } catch (subErr) {
+        console.warn('match_submissions fetch warning in player dashboard:', subErr);
+      }
+    };
+
+    const fetchOpponents = async () => {
+      if (opponentIds.length === 0) return;
+
       let elevatedClient: any = null;
       try {
         const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -504,13 +565,37 @@ export async function getPlayerMatches(
 
       const clientToUse = elevatedClient || supabase;
 
-      try {
-        const { data: tableOpponents, error: partErr } = await clientToUse
-          .from('participants')
-          .select('id, user_id, username, real_name, contact_info')
-          .in('id', opponentIds);
+      // Check if opponents are already embedded via participant relations
+      const embeddedOpponentMap = new Map<string, any>();
+      rawMatches.forEach((m: any) => {
+        if (m.participant_a && !userParticipantSet.has(m.participant_a) && m.part_a) {
+          embeddedOpponentMap.set(m.participant_a, m.part_a);
+        }
+        if (m.participant_b && !userParticipantSet.has(m.participant_b) && m.part_b) {
+          embeddedOpponentMap.set(m.participant_b, m.part_b);
+        }
+      });
 
-        if (!partErr && tableOpponents && tableOpponents.length > 0) {
+      const missingOpponentIds = opponentIds.filter((id) => !embeddedOpponentMap.has(id));
+      let tableOpponents: any[] = Array.from(embeddedOpponentMap.values());
+
+      if (missingOpponentIds.length > 0) {
+        try {
+          const { data: missingParts, error: partErr } = await clientToUse
+            .from('participants')
+            .select('id, user_id, username, real_name, contact_info')
+            .in('id', missingOpponentIds);
+
+          if (!partErr && missingParts && missingParts.length > 0) {
+            tableOpponents = [...tableOpponents, ...missingParts];
+          }
+        } catch (partErr) {
+          console.warn('Opponents fetch notice in player dashboard:', partErr);
+        }
+      }
+
+      try {
+        if (tableOpponents && tableOpponents.length > 0) {
           const userIds = Array.from(new Set(tableOpponents.map((o: any) => o.user_id).filter(Boolean)));
           const unlinkedNames = Array.from(
             new Set(
@@ -526,48 +611,59 @@ export async function getPlayerMatches(
           const profileMapByEfootball = new Map<string, any>();
           const profileMapByName = new Map<string, any>();
 
-          // 1. Query profiles by user_id
-          if (userIds.length > 0) {
-            try {
-              const q = clientToUse.from('profiles');
-              if (q && typeof q.select === 'function') {
-                const { data: profiles } = await q
-                  .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
-                  .in('id', userIds);
+          // Execute userIds and unlinkedNames lookups concurrently
+          const profileLookups: Promise<void>[] = [];
 
-                if (profiles) {
-                  profiles.forEach((p: any) => {
-                    if (p.id) profileMapById.set(p.id, p);
-                    if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
-                    if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
-                  });
+          if (userIds.length > 0) {
+            profileLookups.push(
+              (async () => {
+                try {
+                  const q = clientToUse.from('profiles');
+                  if (q && typeof q.select === 'function') {
+                    const { data: profiles } = await q
+                      .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
+                      .in('id', userIds);
+                    if (profiles) {
+                      profiles.forEach((p: any) => {
+                        if (p.id) profileMapById.set(p.id, p);
+                        if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
+                        if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
+                      });
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Profiles query by userIds notice in player dashboard:', err);
                 }
-              }
-            } catch (err) {
-              console.warn('Profiles query by userIds notice in player dashboard:', err);
-            }
+              })()
+            );
           }
 
-          // 2. Query profiles for unlinked participants by display_name or efootball_id
           if (unlinkedNames.length > 0) {
-            try {
-              const q = clientToUse.from('profiles');
-              if (q && typeof q.select === 'function') {
-                const { data: namedProfiles } = await q
-                  .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
-                  .in('display_name', unlinkedNames);
-
-                if (namedProfiles) {
-                  namedProfiles.forEach((p: any) => {
-                    if (p.id && !profileMapById.has(p.id)) profileMapById.set(p.id, p);
-                    if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
-                    if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
-                  });
+            profileLookups.push(
+              (async () => {
+                try {
+                  const q = clientToUse.from('profiles');
+                  if (q && typeof q.select === 'function') {
+                    const { data: namedProfiles } = await q
+                      .select('id, display_name, efootball_id, whatsapp_number, whatsapp_verified, whatsapp_verification_status')
+                      .in('display_name', unlinkedNames);
+                    if (namedProfiles) {
+                      namedProfiles.forEach((p: any) => {
+                        if (p.id && !profileMapById.has(p.id)) profileMapById.set(p.id, p);
+                        if (p.efootball_id) profileMapByEfootball.set(p.efootball_id.toLowerCase().trim(), p);
+                        if (p.display_name) profileMapByName.set(p.display_name.toLowerCase().trim(), p);
+                      });
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Named profiles query notice in player dashboard:', err);
                 }
-              }
-            } catch (err) {
-              console.warn('Named profiles query notice in player dashboard:', err);
-            }
+              })()
+            );
+          }
+
+          if (profileLookups.length > 0) {
+            await Promise.all(profileLookups);
           }
 
           const extractValidPhoneNumber = (val: string | null | undefined): string | null => {
@@ -644,53 +740,36 @@ export async function getPlayerMatches(
           });
         });
       }
-    }
+    };
 
-    const [roundsRes] = await Promise.all([
-      roundIds.length > 0
-        ? supabase.from('rounds').select('id, name, round_number, tournament_id').in('id', roundIds)
-        : Promise.resolve({ data: [] }),
+    // Execute rounds, submissions, and opponents concurrently
+    await Promise.all([
+      fetchRounds(),
+      fetchSubmissions(),
+      fetchOpponents(),
     ]);
 
-    const roundMap = new Map<string, { name: string; round_number: number; tournament_id: string }>();
-    if (roundsRes.data) {
-      roundsRes.data.forEach((r: any) => roundMap.set(r.id, r));
-    }
-
-    // Fetch tournament names
-    const tournamentIds = Array.from(
-      new Set(Array.from(roundMap.values()).map((r) => r.tournament_id))
+    // Ensure any tournament IDs not yet resolved via embedded joins are fetched
+    const allTournamentIds = Array.from(
+      new Set([
+        ...tournamentIds,
+        ...Array.from(roundMap.values()).map((r) => r.tournament_id).filter(Boolean),
+      ])
     );
-    const tournamentMap = new Map<string, string>();
-    if (tournamentIds.length > 0) {
-      const { data: tournaments } = await supabase
-        .from('tournaments')
-        .select('id, name')
-        .in('id', tournamentIds);
-      if (tournaments) {
-        tournaments.forEach((t: any) => tournamentMap.set(t.id, t.name));
-      }
-    }
-
-    // 3.5. Fetch match_submissions for active and recent matches
-    const matchIds = rawMatches.map((m: any) => m.id);
-    const submissionMap = new Map<string, any[]>();
-    if (matchIds.length > 0) {
+    const missingTournamentIds = allTournamentIds.filter((id) => !tournamentMap.has(id));
+    if (missingTournamentIds.length > 0) {
       try {
-        const { data: subData } = await (supabase as any)
-          .from('match_submissions')
-          .select('match_id, participant_id, my_score, opponent_score, screenshot_url, created_at')
-          .in('match_id', matchIds);
-
-        if (subData) {
-          subData.forEach((s: any) => {
-            const list = submissionMap.get(s.match_id) || [];
-            list.push(s);
-            submissionMap.set(s.match_id, list);
-          });
+        const q = supabase?.from?.('tournaments');
+        if (q && typeof q.select === 'function') {
+          const { data: tournaments } = await q
+            .select('id, name')
+            .in('id', missingTournamentIds);
+          if (tournaments) {
+            tournaments.forEach((t: any) => tournamentMap.set(t.id, t.name));
+          }
         }
-      } catch (subErr) {
-        console.warn('match_submissions fetch warning in player dashboard:', subErr);
+      } catch (err) {
+        console.warn('Tournaments lookup warning in player dashboard:', err);
       }
     }
 
@@ -707,7 +786,7 @@ export async function getPlayerMatches(
       const opponentWhatsappVerified = Boolean(oppDetail?.whatsappVerified);
 
       const roundData = roundMap.get(m.round_id);
-      const tournamentName = roundData ? (tournamentMap.get(roundData.tournament_id) || 'Tournament') : 'Tournament';
+      const tournamentName = (m.tournament_id && tournamentMap.get(m.tournament_id)) || (roundData ? tournamentMap.get(roundData.tournament_id) : null) || 'Tournament';
 
       const userSide: 'home' | 'away' = isUserParticipantA ? 'home' : 'away';
       const userScore = isUserParticipantA ? (m.score_a ?? 0) : (m.score_b ?? 0);

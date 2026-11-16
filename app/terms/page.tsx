@@ -15,6 +15,9 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import PublicHeader from '@/components/public/PublicHeader';
+import PublicFooter from '@/components/public/PublicFooter';
+import { ThemeSideAngles, ThemeAmbientGlow } from '@/components/shared/ThemeDecorations';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions | eFootball Tournament Platform',
@@ -116,46 +119,57 @@ const CLAUSES = [
 
 export default function TermsAndConditionsPage() {
   return (
-    <div className="min-h-screen bg-[#08088F] text-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen flex flex-col bg-[#08088F] text-white w-full relative overflow-x-hidden">
+      {/* Stadium Ambient Lighting Atmosphere */}
+      <ThemeAmbientGlow />
+
+      {/* Decorative Yellow Angles matching public home */}
+      <ThemeSideAngles />
+
+      {/* Centered Pill Public Header Navigation */}
+      <PublicHeader />
+
+      {/* Main Content Container */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-20 app-view-transition space-y-8">
         {/* Navigation & Back */}
         <div className="flex items-center justify-between">
           <Button
             asChild
             variant="ghost"
             size="sm"
-            className="h-8 px-2.5 text-xs text-white/70 hover:text-white rounded-full cursor-pointer"
+            className="h-9 px-4 text-xs text-[#D9DCFF] hover:text-white hover:bg-white/10 rounded-full font-bold cursor-pointer"
           >
-            <Link href="/dashboard/settings">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Settings & Policies
+            <Link href="/">
+              <ChevronLeft className="h-4 w-4 mr-1 text-[#FFFF00]" />
+              Back to Home
             </Link>
           </Button>
 
-          <Badge className="bg-[#FFFF00] text-[#08088F] font-black uppercase tracking-wider text-[10px] px-3 py-1">
-            Version 1.0 • Active
+          <Badge className="bg-[#FFFF00] text-[#08088F] font-black uppercase tracking-wider text-[11px] px-3.5 py-1 rounded-full shadow-md">
+            Version 1.0 • Active Regulations
           </Badge>
         </div>
 
         {/* Hero Header */}
-        <div className="space-y-3 border-b border-white/10 pb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#05053B] border border-white/10 text-[#FFFF00] text-xs font-black uppercase tracking-wider">
+        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#1E1EF5] via-[#2A2AFF] to-[#1212B8] p-6 sm:p-10 border border-white/20 shadow-2xl space-y-4">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-[#FFFF00]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#FFFF00] text-xs font-black uppercase tracking-wider">
             <Scale className="w-3.5 h-3.5" />
             <span>Official Esports Tournament Regulations</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-wider text-white">
+          <h1 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-tight">
             Terms & Conditions
           </h1>
-          <p className="text-xs sm:text-sm text-white/70 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#D9DCFF] max-w-2xl leading-relaxed font-medium">
             Please read these official platform terms, match conduct regulations, and prize distribution rules carefully before competing in tournaments.
           </p>
-          <div className="flex items-center gap-4 text-[11px] text-white/50 pt-2">
-            <span className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[#D9DCFF]/80 pt-2 font-medium">
+            <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#FFFF00]" />
-              Effective Date: November 10, 2026
+              Effective Date: November 2026
             </span>
             <span>•</span>
-            <span className="text-[#00C853] font-bold">15 Comprehensive Clauses</span>
+            <span className="text-[#00E676] font-bold">15 Comprehensive Clauses</span>
           </div>
         </div>
 
@@ -164,17 +178,17 @@ export default function TermsAndConditionsPage() {
           {CLAUSES.map((clause) => (
             <Card
               key={clause.num}
-              className="bg-[#1818D4] border border-white/20 rounded-2xl p-6 text-white shadow-lg space-y-3 transition-all hover:border-[#FFFF00]/40"
+              className="bg-[#1010C5] border border-white/15 rounded-3xl p-5 sm:p-6 text-white shadow-xl space-y-3 transition-all hover:border-[#FFFF00]/60 hover:bg-[#1414D8]"
             >
               <div className="flex items-start gap-4">
-                <span className="w-8 h-8 rounded-xl bg-[#05053B] border border-white/10 flex items-center justify-center font-black text-xs text-[#FFFF00] shrink-0 font-display">
+                <span className="w-9 h-9 rounded-2xl bg-[#08088F] border border-white/15 flex items-center justify-center font-black text-xs text-[#FFFF00] shrink-0 font-display shadow-inner">
                   {clause.num < 10 ? `0${clause.num}` : clause.num}
                 </span>
-                <div className="space-y-1.5">
-                  <h2 className="text-base font-black uppercase tracking-wider text-white font-display">
+                <div className="space-y-1.5 min-w-0">
+                  <h2 className="text-base sm:text-lg font-black uppercase tracking-wide text-white font-display">
                     {clause.title}
                   </h2>
-                  <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">
+                  <p className="text-xs sm:text-sm text-[#D9DCFF] leading-relaxed font-normal">
                     {clause.content}
                   </p>
                 </div>
@@ -183,26 +197,34 @@ export default function TermsAndConditionsPage() {
           ))}
         </div>
 
-        {/* Legal Sign-off Footer */}
-        <Card className="bg-[#05053B] border border-white/10 rounded-2xl p-6 text-center space-y-3">
-          <ShieldCheck className="w-8 h-8 text-[#00C853] mx-auto" />
-          <h3 className="text-sm font-black uppercase tracking-wider text-white font-display">
+        {/* Legal Sign-off Footer Card */}
+        <Card className="bg-[#1010C5] border border-white/20 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-xl">
+          <div className="h-12 w-12 rounded-2xl bg-[#08088F] text-[#00E676] border border-white/15 flex items-center justify-center mx-auto shadow-inner">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <h3 className="text-lg font-black uppercase tracking-wider text-white font-display">
             Commitment to Fair Esports Competition
           </h3>
-          <p className="text-xs text-white/60 max-w-lg mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#D9DCFF] max-w-lg mx-auto leading-relaxed">
             All players registered on this platform agree to abide by these regulations without exception. For legal questions or rule clarifications, contact platform administration at support.
           </p>
-          <div className="pt-2 flex items-center justify-center gap-4 text-xs font-black uppercase tracking-wider">
-            <Link href="/privacy" className="text-[#FFFF00] hover:underline">
-              Privacy Policy
-            </Link>
-            <span className="text-white/30">•</span>
-            <Link href="/contact" className="text-white/70 hover:text-white hover:underline">
-              Contact Admin
-            </Link>
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild className="rounded-full bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] font-black text-xs uppercase tracking-wider px-6 py-2.5 shadow-lg">
+              <Link href="/privacy">
+                Privacy Policy
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full border-2 border-white/60 hover:border-white text-white font-black text-xs uppercase tracking-wider px-6 py-2.5 hover:bg-white/10">
+              <Link href="/contact">
+                Contact Desk
+              </Link>
+            </Button>
           </div>
         </Card>
-      </div>
+      </main>
+
+      {/* eFootball Gaming Public Footer */}
+      <PublicFooter />
     </div>
   );
 }

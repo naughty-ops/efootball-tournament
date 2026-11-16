@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ export function PlayerDashboardSwipeWrapper({
   const rawPathname = usePathname();
   const pathname = rawPathname || '';
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // Find index of current route
   const normalizedPath =
@@ -46,29 +47,41 @@ export function PlayerDashboardSwipeWrapper({
     setSlideDirection(null);
   }, [pathname]);
 
-  // Pre-fetch adjacent tabs for instantaneous navigation
+  // Pre-fetch adjacent tabs sensibly without flooding low-bandwidth mobile connections
   useEffect(() => {
-    if (currentIndex !== -1) {
+    if (currentIndex === -1) return;
+
+    // Check if client requested Data Saver mode
+    const isSaveData = typeof navigator !== 'undefined' && (navigator as any)?.connection?.saveData === true;
+    if (isSaveData) return;
+
+    const timer = setTimeout(() => {
       if (currentIndex > 0) {
         router.prefetch(DASHBOARD_ROUTES[currentIndex - 1]);
       }
       if (currentIndex < DASHBOARD_ROUTES.length - 1) {
         router.prefetch(DASHBOARD_ROUTES[currentIndex + 1]);
       }
-    }
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, [currentIndex, router]);
 
   const handleSwipeLeft = () => {
     if (currentIndex !== -1 && currentIndex < DASHBOARD_ROUTES.length - 1) {
       setSlideDirection('left');
-      router.push(DASHBOARD_ROUTES[currentIndex + 1]);
+      startTransition(() => {
+        router.push(DASHBOARD_ROUTES[currentIndex + 1]);
+      });
     }
   };
 
   const handleSwipeRight = () => {
     if (currentIndex !== -1 && currentIndex > 0) {
       setSlideDirection('right');
-      router.push(DASHBOARD_ROUTES[currentIndex - 1]);
+      startTransition(() => {
+        router.push(DASHBOARD_ROUTES[currentIndex - 1]);
+      });
     }
   };
 
@@ -83,7 +96,7 @@ export function PlayerDashboardSwipeWrapper({
     <div
       {...swipeHandlers}
       className={cn(
-        'w-full touch-pan-y transition-all duration-200 ease-out',
+        'w-full min-w-0 max-w-full touch-pan-y transition-all duration-200 ease-out',
         slideDirection === 'left' && 'motion-safe:translate-x-[-12px] motion-safe:opacity-75',
         slideDirection === 'right' && 'motion-safe:translate-x-[12px] motion-safe:opacity-75',
         className

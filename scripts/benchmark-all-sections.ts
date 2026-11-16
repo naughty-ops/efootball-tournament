@@ -15,7 +15,7 @@ interface RouteBenchmark {
   errors: string[];
 }
 
-const BASE_URL = process.env.BENCHMARK_BASE_URL || 'http://localhost:3001';
+const BASE_URL = process.env.BENCHMARK_BASE_URL || 'http://localhost:3000';
 
 const PUBLIC_ROUTES = [
   '/',

@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import * as fs from 'fs';
 
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
 const PLAYER_STATE = 'scripts/auth_storage_state.json';
 const ADMIN_STATE = 'scripts/admin_storage_state.json';
 

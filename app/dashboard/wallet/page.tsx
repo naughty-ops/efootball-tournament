@@ -1,7 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
-import PlayerDashboardHeader from '../PlayerDashboardHeader';
 import { PlayerDashboardSwipeWrapper } from '@/components/dashboard/PlayerDashboardSwipeWrapper';
 import PlayerWalletClientView from '@/components/wallet/PlayerWalletClientView';
 import { getPlayerProfile } from '@/services/playerDashboardService';
@@ -10,15 +9,17 @@ import {
   getPlayerWalletTransactions,
   getPlayerPaymentMethods,
   getPlayerPayouts,
-  getPlayerMonthlyEarnings,
+  getPlayerWalletDeposits,
+  getWalletPaymentSettings,
 } from '@/services/walletService';
+import { WalletOverview, WalletPaymentSettings } from '@/types/wallet';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Wallet & Payouts | Player Dashboard',
-  description: 'View your tournament earnings, manage bank and UPI details, and track manual payout settlements.',
+  description: 'Deposit funds via QR & UPI, view tournament prize earnings, and track manual payout settlements.',
 };
 
 export default async function PlayerWalletPage() {
@@ -30,7 +31,14 @@ export default async function PlayerWalletPage() {
 
   const supabase = await createClient();
 
-  const defaultOverview = {
+  const defaultOverview: WalletOverview = {
+    availableBalancePaise: 0,
+    availableBalanceInr: 0,
+    lockedBalancePaise: 0,
+    lockedBalanceInr: 0,
+    totalDepositedPaise: 0,
+    totalDepositedInr: 0,
+    walletStatus: 'active',
     totalEarningsPaise: 0,
     totalEarningsInr: 0,
     pendingEarningsPaise: 0,
@@ -46,24 +54,39 @@ export default async function PlayerWalletPage() {
     nextExpectedPayout: null,
   };
 
-  // Fetch player profile for header and financial data in parallel with resilient fallbacks
-  const [profile, overview, txResult, paymentMethods, payouts] = await Promise.all([
-    getPlayerProfile(supabase, user.id, user).catch(() => null),
-    getPlayerWalletOverview(user.id, supabase).catch(() => defaultOverview),
-    getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }, supabase).catch(() => ({ transactions: [], totalCount: 0 })),
-    getPlayerPaymentMethods(user.id, supabase).catch(() => []),
-    getPlayerPayouts(user.id, supabase).catch(() => []),
-  ]);
+  const defaultSettings: WalletPaymentSettings = {
+    upiQrImageUrl: '',
+    upiId: 'efootball.arena@upi',
+    upiPhoneNumber: '+91 98765 43210',
+    accountHolderName: 'eFootball Arena Financial Desk',
+    instructions: '1. Scan QR code or copy UPI ID.\n2. Complete transfer using any UPI app.\n3. Note 12-digit UTR and upload receipt screenshot.',
+    minDepositInr: 10,
+    maxDepositInr: 2000,
+  };
 
-  const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
-  const email = user.email || '';
-  const efootballId = profile?.efootball_id || user.user_metadata?.efootball_id;
-  const isVerified = profile?.efootball_id_verified === true;
+  // Fetch player profile, overview, transactions, deposits, and payment settings concurrently
+  const [profile, overview, txResult, paymentMethods, payouts, depositsResult, settings] =
+    await Promise.all([
+      getPlayerProfile(supabase, user.id, user).catch(() => null),
+      getPlayerWalletOverview(user.id, supabase).catch(() => defaultOverview),
+      getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }, supabase).catch(
+        () => ({ transactions: [], totalCount: 0 })
+      ),
+      getPlayerPaymentMethods(user.id, supabase).catch(() => []),
+      getPlayerPayouts(user.id, supabase).catch(() => []),
+      getPlayerWalletDeposits(user.id, { page: 1, pageSize: 50 }).catch(() => ({
+        deposits: [],
+        totalCount: 0,
+      })),
+      getWalletPaymentSettings(supabase).catch(() => defaultSettings),
+    ]);
 
   const safeOverview = overview || defaultOverview;
   const safeTransactions = txResult?.transactions || [];
   const safePaymentMethods = paymentMethods || [];
   const safePayouts = payouts || [];
+  const safeDeposits = depositsResult?.deposits || [];
+  const safeSettings = settings || defaultSettings;
 
   return (
     <div className="pb-16">
@@ -74,6 +97,8 @@ export default async function PlayerWalletPage() {
             transactions={safeTransactions}
             paymentMethods={safePaymentMethods}
             payouts={safePayouts}
+            deposits={safeDeposits}
+            paymentSettings={safeSettings}
           />
         </PlayerDashboardSwipeWrapper>
       </main>

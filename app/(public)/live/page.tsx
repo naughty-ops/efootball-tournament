@@ -9,6 +9,7 @@ import { queryKeys } from '@/lib/query/queryKeys';
 import { useLiveMatchesQuery } from '@/hooks/queries/useLiveMatchesQuery';
 import { useRealtimeMatches, type RealtimePayload } from '@/hooks/useRealtimeMatches';
 import type { LiveMatchEntry } from '@/services/publicTournamentService';
+import LiveMatchViewerBadge from '@/components/public/live/LiveMatchViewerBadge';
 
 export default function LivePage() {
   const queryClient = useQueryClient();
@@ -215,10 +216,7 @@ export default function LivePage() {
 
               {/* Card Action Footer */}
               <div className="flex items-center justify-between pt-1 border-t border-white/10 gap-3">
-                <div className="flex items-center gap-1.5 text-xs text-[#D9DCFF]/80">
-                  <Users className="h-3.5 w-3.5 text-[#FFFF00]" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Live Broadcast Stream</span>
-                </div>
+                <LiveMatchViewerBadge matchId={match.id} size="sm" />
 
                 <div className="inline-flex items-center gap-1.5 bg-[#FFFF00] group-hover:bg-yellow-300 text-[#08088F] font-black text-xs uppercase tracking-wider rounded-full h-9 px-4 shadow-lg shrink-0 transition-transform group-hover:scale-105">
                   <Play className="h-3 w-3 fill-current text-[#08088F]" />

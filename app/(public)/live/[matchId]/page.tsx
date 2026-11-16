@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Match, Round, Tournament, Participant } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { LiveMatchPredictionsWidget } from '@/components/public/live/LiveMatchPredictionsWidget';
-import { ViewerSessionTracker } from '@/components/public/live/ViewerSessionTracker';
+import LiveMatchViewerBadge from '@/components/public/live/LiveMatchViewerBadge';
 import LivePlayerSkeleton from '@/components/public/live/LivePlayerSkeleton';
 
 // Dynamically import LiveKit Stream Player with SSR disabled to isolate 573 KB livekit-client WebRTC bundle
@@ -45,7 +45,6 @@ export default function DedicatedLiveMatchPage({
   const [matchData, setMatchData] = useState<FullLiveMatchData | null>(null);
   const [loadingMatch, setLoadingMatch] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
-  const [viewerCount, setViewerCount] = useState<number>(1);
   const [copied, setCopied] = useState(false);
 
   // 1. Fetch Match Data
@@ -222,25 +221,15 @@ export default function DedicatedLiveMatchPage({
       <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-4 space-y-4">
         {/* ESSENTIAL INFO ONLY (ABOVE THE VIDEO) — Electric Blue Scoreboard Banner */}
         <div className="bg-[#1010C5] text-white p-4 sm:p-5 rounded-[28px] shadow-xl border border-white/20 space-y-3">
-          {/* Top Line: 🔴 LIVE & Viewer Count */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-[#FF168B] text-white font-black text-[9px] uppercase px-2.5 py-0.5 rounded-full tracking-wider gap-1 shadow-sm flex items-center">
-                <span className="relative flex h-1.5 w-1.5 mr-1">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
-                </span>
-                LIVE
-              </span>
+          {/* Top Line: Match Meta & Authoritative Live Viewer Badge */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-bold text-[#D9DCFF] truncate">
                 {tournament?.name ? `${tournament.name} • ` : ''}Match #{match.match_position}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-black text-[#FFFF00] bg-[#0A0A7A] border border-white/20 px-3 py-1 rounded-full">
-              <Users className="h-3 w-3" />
-              <span>👁 {viewerCount}</span>
-            </div>
+            <LiveMatchViewerBadge matchId={matchId} size="md" />
           </div>
 
           {/* Minimal Scoreboard Display */}
@@ -287,13 +276,9 @@ export default function DedicatedLiveMatchPage({
             tournament={tournament}
             participantA={participantA}
             participantB={participantB}
-            onViewerCountChange={setViewerCount}
           />
         </div>
       </div>
-
-      {/* Viewer Session Tracking (Background) */}
-      <ViewerSessionTracker matchId={matchId} />
 
       {/* Live Match Prediction Widget */}
       {matchData && (

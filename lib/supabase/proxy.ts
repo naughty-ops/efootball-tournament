@@ -75,9 +75,9 @@ export async function updateSession(request: NextRequest) {
   const isDashboardRoute = pathname.startsWith('/dashboard');
   const isAuthPage = pathname === '/login' || pathname === '/auth/login';
 
-  // Optimization: For public routes, if there is no auth cookie at all,
-  // there is no session to validate or refresh. Return immediately with security headers.
-  if (!hasAuthCookie && !isAdminRoute && !isDashboardRoute && !isAuthPage) {
+  // Optimization: For public routes, never block page delivery on remote session verification.
+  // Static and public routes return immediately with security headers.
+  if (!isAdminRoute && !isDashboardRoute && !isAuthPage) {
     return supabaseResponse;
   }
 
@@ -97,15 +97,13 @@ export async function updateSession(request: NextRequest) {
       url.searchParams.set('next', pathname);
       return applySecurityHeaders(NextResponse.redirect(url));
     }
+    if (isAuthPage) {
+      return supabaseResponse;
+    }
   }
 
-  // If on login page with no auth cookie, user is definitely not logged in
-  if (!hasAuthCookie && isAuthPage) {
-    return supabaseResponse;
-  }
-
-  // Candidate session cookie exists (or edge case requiring cryptographic validation):
-  // Instantiate server client and execute full server-side verification.
+  // Candidate session cookie exists on a protected route or auth page:
+  // Instantiate server client and execute cryptographic server-side verification.
   // NEVER authenticate or authorize based on cookie presence alone.
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -127,10 +125,46 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Cryptographically verify session against Supabase Auth
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Cryptographically verify session against Supabase Auth with bounded timeout (4000ms).
+  // Strictly fails closed on error or timeout to protect server resources and security boundaries.
+  let user: any = null;
+  try {
+    let timeoutId: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
+      timeoutId = setTimeout(() => {
+        resolve({ data: { user: null }, error: new Error('Auth verification timeout') });
+      }, 4000);
+    });
+
+    const authResult = await Promise.race([
+      supabase.auth.getUser(),
+      timeoutPromise,
+    ]);
+    if (timeoutId) clearTimeout(timeoutId);
+    user = authResult.data?.user ?? null;
+  } catch {
+    user = null;
+  }
+
+  // Helper to determine if authenticated user has database admin role with bounded timeout
+  async function checkUserIsAdmin(uid: string): Promise<boolean> {
+    try {
+      let timeoutId: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<any>((resolve) => {
+        timeoutId = setTimeout(() => resolve({ data: null }), 3000);
+      });
+      const queryPromise = (supabase.from('admin_users') as any)
+        .select('role')
+        .eq('id', uid)
+        .maybeSingle();
+
+      const { data: adminRecord } = await Promise.race([queryPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
+      return !!(adminRecord && adminRecord.role);
+    } catch {
+      return false;
+    }
+  }
 
   // 2. Guard /admin/* routes:
   if (isAdminRoute) {
@@ -143,17 +177,7 @@ export async function updateSession(request: NextRequest) {
 
     let isUserAdmin = false;
     if (user.id) {
-      try {
-        const { data: adminRecord } = await (supabase.from('admin_users') as any)
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (adminRecord && adminRecord.role) {
-          isUserAdmin = true;
-        }
-      } catch {
-        isUserAdmin = false;
-      }
+      isUserAdmin = await checkUserIsAdmin(user.id);
     }
 
     if (!isUserAdmin) {
@@ -171,19 +195,6 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/auth/login';
       url.searchParams.set('next', pathname);
       return applySecurityHeaders(NextResponse.redirect(url));
-    }
-  }
-
-  // Helper to determine if authenticated user has database admin role
-  async function checkUserIsAdmin(uid: string): Promise<boolean> {
-    try {
-      const { data: adminRecord } = await (supabase.from('admin_users') as any)
-        .select('role')
-        .eq('id', uid)
-        .maybeSingle();
-      return !!(adminRecord && adminRecord.role);
-    } catch {
-      return false;
     }
   }
 

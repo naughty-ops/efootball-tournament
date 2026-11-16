@@ -13,17 +13,20 @@ import {
   Hourglass,
   Calendar,
   AlertTriangle,
+  Coins,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { PayoutTransactionRecord, PayoutStatus } from '@/types/wallet';
 import { formatDate } from '@/lib/utils';
 
 interface PlayerPayoutsTrackerProps {
   payouts: PayoutTransactionRecord[];
+  onRedeemClick?: () => void;
 }
 
-export default function PlayerPayoutsTracker({ payouts }: PlayerPayoutsTrackerProps) {
+export default function PlayerPayoutsTracker({ payouts, onRedeemClick }: PlayerPayoutsTrackerProps) {
   const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
@@ -92,9 +95,21 @@ export default function PlayerPayoutsTracker({ payouts }: PlayerPayoutsTrackerPr
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 border border-white/15 text-[11px] font-bold text-white/80">
-          <Clock className="h-3.5 w-3.5 text-[#FFFF00]" />
-          <span>24-Hour Disbursement SLA</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {onRedeemClick && (
+            <Button
+              onClick={onRedeemClick}
+              size="sm"
+              className="rounded-full bg-[#00E676]/20 hover:bg-[#00E676]/30 border border-[#00E676]/40 text-[#00E676] font-black text-xs uppercase tracking-wider h-8 px-3.5 cursor-pointer"
+            >
+              <Coins className="h-3.5 w-3.5 mr-1" />
+              <span>Redeem Amount</span>
+            </Button>
+          )}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 border border-white/15 text-[11px] font-bold text-white/80">
+            <Clock className="h-3.5 w-3.5 text-[#FFFF00]" />
+            <span>24-Hour Disbursement SLA</span>
+          </div>
         </div>
       </CardHeader>
 
@@ -104,8 +119,17 @@ export default function PlayerPayoutsTracker({ payouts }: PlayerPayoutsTrackerPr
             <Receipt className="h-10 w-10 text-white/30 mx-auto mb-2" />
             <p className="text-sm font-bold text-white/70">No prize payouts recorded yet.</p>
             <p className="text-xs text-white/40 mt-1 max-w-sm mx-auto">
-              When you earn tournament podium placements, prize entitlements are automatically approved and disbursed directly to your registered bank account or UPI within 24 hours.
+              When you earn tournament podium placements or redeem wallet balance, disbursements are processed directly to your registered bank account or UPI within 24 hours.
             </p>
+            {onRedeemClick && (
+              <Button
+                onClick={onRedeemClick}
+                className="mt-3.5 rounded-full bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider h-9 px-5 cursor-pointer shadow-md"
+              >
+                <Coins className="h-3.5 w-3.5 mr-1" />
+                <span>Request Balance Redemption</span>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-white/10">

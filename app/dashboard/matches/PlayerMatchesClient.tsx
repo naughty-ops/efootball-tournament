@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -74,9 +74,13 @@ export default function PlayerMatchesClient({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const PAGE_SIZE = 10;
 
+  const [isTabPending, startTabTransition] = useTransition();
+
   const handleTabChange = (tab: string) => {
-    setSelectedTab(tab as 'all' | 'upcoming' | 'completed' | 'live');
-    setCurrentPage(1);
+    startTabTransition(() => {
+      setSelectedTab(tab as 'all' | 'upcoming' | 'completed' | 'live');
+      setCurrentPage(1);
+    });
   };
 
   const handleSearchChange = (q: string) => {
@@ -199,59 +203,59 @@ export default function PlayerMatchesClient({
   }, [filteredMatches, currentPage]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-w-0 max-w-full">
       {/* 1. Summary Cards Section */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 min-w-0 max-w-full">
         {/* Total Fixtures */}
-        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-5 shadow-lg text-white">
+        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-3.5 sm:p-5 shadow-lg text-white min-w-0">
           <div className="flex items-center justify-between pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-white/70">Total Fixtures</span>
-            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00]">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white/70">Total Fixtures</span>
+            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00] shrink-0">
               <Swords className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-[#FFFF00] font-display">{stats.total}</div>
-          <p className="text-[11px] text-white/60 mt-1">Across all tournaments</p>
+          <div className="text-2xl sm:text-3xl font-black text-[#FFFF00] font-display">{stats.total}</div>
+          <p className="text-[10px] sm:text-[11px] text-white/60 mt-1">Across all tournaments</p>
         </Card>
 
         {/* Live Matches */}
-        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-5 shadow-lg text-white">
+        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-3.5 sm:p-5 shadow-lg text-white min-w-0">
           <div className="flex items-center justify-between pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-white/70">Live Now</span>
-            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FF168B]">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white/70">Live Now</span>
+            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FF168B] shrink-0">
               <Radio className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-[#FF168B] font-display">{stats.liveCount}</div>
-          <p className="text-[11px] text-white/60 mt-1">Active match rooms</p>
+          <div className="text-2xl sm:text-3xl font-black text-[#FF168B] font-display">{stats.liveCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-white/60 mt-1">Live game rooms</p>
         </Card>
 
         {/* Upcoming Fixtures */}
-        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-5 shadow-lg text-white">
+        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-3.5 sm:p-5 shadow-lg text-white min-w-0">
           <div className="flex items-center justify-between pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-white/70">Upcoming</span>
-            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00]">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white/70">Upcoming</span>
+            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#FFFF00] shrink-0">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-[#FFFF00] font-display">{stats.upcomingCount}</div>
-          <p className="text-[11px] text-white/60 mt-1">Awaiting kickoff</p>
+          <div className="text-2xl sm:text-3xl font-black text-[#FFFF00] font-display">{stats.upcomingCount}</div>
+          <p className="text-[10px] sm:text-[11px] text-white/60 mt-1">Awaiting kickoff</p>
         </Card>
 
         {/* Completed Record */}
-        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-5 shadow-lg text-white">
+        <Card className="bg-[#1818D4] border border-white/20 rounded-[24px] p-3.5 sm:p-5 shadow-lg text-white min-w-0">
           <div className="flex items-center justify-between pb-2">
-            <span className="text-xs font-black uppercase tracking-wider text-white/70">Record</span>
-            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#00C853]">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white/70">Record</span>
+            <div className="h-8 w-8 rounded-full bg-[#0A0A7A] border border-white/20 flex items-center justify-center text-[#00C853] shrink-0">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white font-display">
+          <div className="text-lg sm:text-2xl font-black text-white font-display whitespace-nowrap">
             <span className="text-[#00C853]">{stats.wins}W</span> -{' '}
             <span className="text-white/70">{stats.draws}D</span> -{' '}
             <span className="text-red-400">{stats.losses}L</span>
           </div>
-          <p className="text-[11px] text-white/60 mt-1">
+          <p className="text-[10px] sm:text-[11px] text-white/60 mt-1">
             {stats.completedCount > 0 ? `${stats.winRate}% win rate` : 'No matches played yet'}
           </p>
         </Card>
@@ -282,13 +286,13 @@ export default function PlayerMatchesClient({
       )}
 
       {/* 2. Controls: Search & Tabs Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 min-w-0 max-w-full w-full">
         {/* Swipeable Tabs Bar */}
         <SwipeableTabBar
           tabs={tabItems}
           activeTab={selectedTab}
           onTabChange={handleTabChange}
-          className="w-full md:w-auto"
+          className="w-full min-w-0 max-w-full md:w-auto"
         />
 
         {/* Search Bar */}

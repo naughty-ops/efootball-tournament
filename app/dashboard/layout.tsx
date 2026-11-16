@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import { getPlayerProfile } from '@/services/playerDashboardService';
 import PlayerDashboardHeader from './PlayerDashboardHeader';
+import PublicFooter from '@/components/public/PublicFooter';
+import { ThemeSideAngles, ThemeAmbientGlow } from '@/components/shared/ThemeDecorations';
 
 export default async function PlayerDashboardLayout({
   children,
@@ -24,7 +26,13 @@ export default async function PlayerDashboardLayout({
   const isVerified = profile?.efootball_id_verified === true;
 
   return (
-    <div className="min-h-screen bg-[#08088F] text-white flex flex-col selection:bg-[#FFFF00] selection:text-[#08088F]">
+    <div className="min-h-screen bg-[#08088F] text-white flex flex-col selection:bg-[#FFFF00] selection:text-[#08088F] relative overflow-x-hidden w-full">
+      {/* Stadium Ambient Lighting Atmosphere */}
+      <ThemeAmbientGlow />
+
+      {/* Decorative Yellow Angles matching public site */}
+      <ThemeSideAngles />
+
       {/* Persistent Shell Navigation Header: Never unmounts or flickers across tab switches */}
       <PlayerDashboardHeader
         userId={user.id}
@@ -36,9 +44,12 @@ export default async function PlayerDashboardLayout({
       />
 
       {/* Main Dynamic Viewport */}
-      <div className="flex-1 w-full relative app-view-transition">
+      <div className="flex-1 w-full relative z-20 app-view-transition">
         {children}
       </div>
+
+      {/* Official eFootball Platform Footer */}
+      <PublicFooter />
     </div>
   );
 }

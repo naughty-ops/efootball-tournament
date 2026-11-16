@@ -247,10 +247,20 @@ export async function getAdminLiveAnalytics(matchId?: string): Promise<LiveAnaly
   const viewerData = await getAdminViewerHistory({ matchId });
   const predData = await getAdminPredictionHistory({ matchId });
 
+  let liveViewers = 0;
+  if (matchId && matchId !== 'all') {
+    try {
+      const { getActiveMatchViewersCount } = await import('@/services/viewerSessionService');
+      liveViewers = await getActiveMatchViewersCount(matchId);
+    } catch {
+      liveViewers = 0;
+    }
+  }
+
   return {
-    currentViewers: Math.max(1, viewerData.totalUniqueViewers),
+    currentViewers: liveViewers > 0 ? liveViewers : 0,
     uniqueViewers: viewerData.totalUniqueViewers,
-    peakViewers: viewerData.peakConcurrentViewers,
+    peakViewers: Math.max(liveViewers, viewerData.peakConcurrentViewers),
     avgWatchTimeMinutes: Math.round(viewerData.avgWatchDurationSeconds / 60),
     totalWatchTimeHours: viewerData.totalWatchTimeHours,
     totalPredictions: predData.totalPredictions,

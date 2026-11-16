@@ -269,35 +269,40 @@ export async function getVerificationDashboardStatsAction(): Promise<ActionRespo
     // Trigger throttled self-healing profile sync for any orphaned auth.users
     await throttleSyncMissingProfiles(supabase);
 
-    const [allRes, verifiedRes, pendingRes, rejectedRes, suspendedRes] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('whatsapp_verified', true),
-      supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .or('whatsapp_verified.eq.false,efootball_id_verified.eq.false,whatsapp_verification_status.in.(pending,not_submitted),efootball_verification_status.eq.pending')
-        .neq('whatsapp_verification_status', 'rejected')
-        .neq('efootball_verification_status', 'rejected')
-        .not('account_status', 'in', '("suspended","disabled")'),
-      supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .or('whatsapp_verification_status.eq.rejected,efootball_verification_status.eq.rejected'),
-      supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .in('account_status', ['suspended', 'disabled']),
-    ]);
+    // Single aggregated profiles query: fetches only the 5 status columns across members in 1 round trip
+    const { data: profiles, error: pErr } = await supabase
+      .from('profiles')
+      .select('id, whatsapp_verified, efootball_id_verified, whatsapp_verification_status, efootball_verification_status, account_status');
+
+    if (pErr) {
+      throw pErr;
+    }
+
+    const list = profiles || [];
+    const totalMembers = list.length;
+    const verifiedMembers = list.filter((p: any) => p.whatsapp_verified === true).length;
+    const rejectedVerification = list.filter((p: any) =>
+      p.whatsapp_verification_status === 'rejected' || p.efootball_verification_status === 'rejected'
+    ).length;
+    const suspendedMembers = list.filter((p: any) =>
+      ['suspended', 'disabled'].includes(p.account_status)
+    ).length;
+    const pendingVerification = list.filter((p: any) => {
+      const isSuspended = ['suspended', 'disabled'].includes(p.account_status);
+      if (isSuspended) return false;
+      const isRejected = p.whatsapp_verification_status === 'rejected' || p.efootball_verification_status === 'rejected';
+      if (isRejected) return false;
+      const needsWa = p.whatsapp_verified !== true || ['pending', 'not_submitted'].includes(p.whatsapp_verification_status);
+      const needsEf = p.efootball_id_verified !== true || p.efootball_verification_status === 'pending';
+      return needsWa || needsEf;
+    }).length;
 
     const stats: VerificationDashboardStats = {
-      totalMembers: allRes.count ?? 0,
-      verifiedMembers: verifiedRes.count ?? 0,
-      pendingVerification: pendingRes.count ?? 0,
-      rejectedVerification: rejectedRes.count ?? 0,
-      suspendedMembers: suspendedRes.count ?? 0,
+      totalMembers,
+      verifiedMembers,
+      pendingVerification,
+      rejectedVerification,
+      suspendedMembers,
     };
 
     return { success: true, message: 'Stats loaded', data: stats };

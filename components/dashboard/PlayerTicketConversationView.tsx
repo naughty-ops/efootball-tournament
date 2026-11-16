@@ -16,6 +16,7 @@ import {
   X,
   UploadCloud,
   ZoomIn,
+  Coins,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -135,6 +136,35 @@ export default function PlayerTicketConversationView({
             <p>Category: <span className="text-[#FFFF00] font-bold uppercase">{ticket.category.replace(/_/g, ' ')}</span></p>
           </div>
         </div>
+
+        {/* Redemption Details Banner */}
+        {(ticket.category === 'redemption_request' || !!ticket.expected_payout) && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-[#0A0A7A] to-emerald-950/60 border border-[#00E676]/40 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-emerald-950/30">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-[#00E676]/15 border border-[#00E676]/30 flex items-center justify-center text-[#00E676] shrink-0 shadow-sm">
+                <Coins className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-[#00E676] tracking-wider block">
+                  Wallet Redemption Ticket (24h SLA)
+                </span>
+                <span className="text-xl font-black font-display text-white">
+                  Requested Amount: <span className="text-[#00E676]">₹{Number(ticket.expected_payout || 0).toFixed(2)}</span>
+                </span>
+                {ticket.settlement_reference && (
+                  <p className="text-[11px] text-white/60 font-mono">
+                    Payout Ref: <span className="text-[#FFFF00] font-bold">{ticket.settlement_reference}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="text-left sm:text-right text-[11px] text-white/70">
+              <span className="px-3 py-1 rounded-full bg-[#00E676]/20 border border-[#00E676]/30 text-[#00E676] font-bold inline-block">
+                Direct Bank/UPI Disbursement
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Global Feedback */}
         {feedback && (

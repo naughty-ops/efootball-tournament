@@ -10,6 +10,12 @@ import {
   Bell,
   ArrowRight,
   Sparkles,
+  Flame,
+  Swords,
+  Wallet,
+  Zap,
+  ShieldCheck,
+  Eye,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -207,6 +213,17 @@ export default async function HomePage() {
 
                 <Button
                   asChild
+                  size="lg"
+                  className="rounded-full bg-[#FF168B] hover:bg-[#FF168B]/90 text-white font-black text-sm tracking-wider uppercase px-7 py-3.5 shadow-xl hover:scale-105 active:scale-95 transition-all shadow-pink-500/25 flex items-center gap-2"
+                >
+                  <Link href="/dashboard/matches?mode=1v1" className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 fill-white" />
+                    <span>1 VS 1 Arena</span>
+                  </Link>
+                </Button>
+
+                <Button
+                  asChild
                   variant="outline"
                   size="lg"
                   className="rounded-full border-2 border-white/60 hover:border-white text-white font-black text-sm tracking-wider uppercase px-7 py-3.5 hover:bg-white/10 transition-all"
@@ -364,6 +381,199 @@ export default async function HomePage() {
           visibilityClass={getVisibilityClass(liveSec)}
         />
       )}
+
+      {/* =========================================================================
+          3.5 1 VS 1 CHALLENGE ARENA ADVERTISEMENT & FEATURE SHOWCASE
+          ========================================================================= */}
+      <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#08088F] via-[#0A0A7A] to-[#070748] border-2 border-blue-400/30 p-6 sm:p-8 lg:p-10 shadow-2xl text-white group hover:border-[#FFFF00]/50 transition-all duration-500">
+        {/* Ambient Decorative Glows */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF168B]/20 rounded-full blur-3xl pointer-events-none group-hover:bg-[#FF168B]/30 transition-all duration-700" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#FFFF00]/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-8">
+          {/* Top Header & Badging */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-[#FF168B] text-white font-black text-xs uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg shadow-pink-500/30 flex items-center gap-1.5">
+                  <Flame className="h-3.5 w-3.5 fill-current" />
+                  <span>1 VS 1 ARENA</span>
+                </span>
+                <span className="bg-emerald-500/15 border border-emerald-500/30 text-[#00E676] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E676] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00E676]" />
+                  </span>
+                  <span>Instant 24/7 Matchmaking</span>
+                </span>
+                <span className="bg-[#FFFF00]/15 border border-[#FFFF00]/30 text-[#FFFF00] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                  <Wallet className="h-3 w-3" />
+                  <span>Instant Wallet Prize Payouts</span>
+                </span>
+              </div>
+
+              <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-[1.05]">
+                HEAD-TO-HEAD BATTLES <br />
+                <span className="text-[#FFFF00]">PLAY ANYTIME, WIN REAL PRIZES</span>
+              </h2>
+
+              <p className="text-sm sm:text-base text-[#D9DCFF] leading-relaxed font-medium max-w-xl">
+                Skip scheduled tournament waiting. Jump straight into fast-paced 1v1 eFootball matches or challenge your friends in private rooms with instant, verified wallet payouts.
+              </p>
+            </div>
+
+            {/* Quick Play CTA on desktop */}
+            <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] font-black text-base uppercase tracking-wider px-8 py-4 shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Link href="/dashboard/matches?mode=1v1">
+                  <span>Play 1 VS 1 Now</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </Button>
+              <div className="flex items-center justify-center gap-2 text-xs text-white/70 font-medium">
+                <ShieldCheck className="h-4 w-4 text-[#00E676]" />
+                <span>100% Anti-Cheat & Auto-Settled</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Core Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#08088F]/80 border border-white/10 hover:border-[#FFFF00]/40 transition-all space-y-2">
+              <div className="h-10 w-10 rounded-xl bg-[#0A0A7A] text-[#FFFF00] flex items-center justify-center font-black">
+                <Swords className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white font-display">
+                Automated Matchmaking
+              </h3>
+              <p className="text-xs text-[#D9DCFF] leading-relaxed">
+                Choose your entry tier, hit Join, and get paired automatically with an available opponent in seconds.
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#08088F]/80 border border-white/10 hover:border-[#FF168B]/40 transition-all space-y-2">
+              <div className="h-10 w-10 rounded-xl bg-[#0A0A7A] text-[#FF168B] flex items-center justify-center font-black">
+                <Users className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white font-display">
+                Private Friend Match Rooms
+              </h3>
+              <p className="text-xs text-[#D9DCFF] leading-relaxed">
+                Host a private match, share your in-game room code and password, and battle rivals for direct stakes.
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#08088F]/80 border border-white/10 hover:border-[#00E676]/40 transition-all space-y-2">
+              <div className="h-10 w-10 rounded-xl bg-[#0A0A7A] text-[#00E676] flex items-center justify-center font-black">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white font-display">
+                Instant Wallet Settlement
+              </h3>
+              <p className="text-xs text-[#D9DCFF] leading-relaxed">
+                When results are confirmed, the winner gets credited immediately with automated ledger transactions.
+              </p>
+            </div>
+          </div>
+
+          {/* Challenge Tiers Showcase */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#FFFF00]" />
+                <span className="text-xs font-black uppercase tracking-wider text-white">
+                  Popular 1 VS 1 Arena Stakes
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold">
+                <Eye className="h-3.5 w-3.5" />
+                <span>Live Active Arenas</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {/* Tier 1 */}
+              <Link
+                href="/dashboard/matches?mode=1v1"
+                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-white/15 hover:border-[#FFFF00] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
+                      Rookie Arena
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
+                      Standard
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-xs text-white/70">Entry: ₹10</span>
+                    <span className="text-base font-black text-[#00E676]">Prize: ₹15</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-black text-[#FFFF00] group-hover/tier:translate-x-1 transition-transform">
+                  <span>Enter</span>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </Link>
+
+              {/* Tier 2 */}
+              <Link
+                href="/dashboard/matches?mode=1v1"
+                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-[#FF168B]/40 hover:border-[#FF168B] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 bg-[#FF168B] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-bl-lg">
+                  HOT
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
+                      Contender Arena
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-xs text-white/70">Entry: ₹15</span>
+                    <span className="text-base font-black text-[#00E676]">Prize: ₹25</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-black text-[#FF168B] group-hover/tier:translate-x-1 transition-transform">
+                  <span>Enter</span>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </Link>
+
+              {/* Tier 3 */}
+              <Link
+                href="/dashboard/matches?mode=1v1"
+                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-white/15 hover:border-[#FFFF00] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
+                      Champions Arena
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-[#00E676]">
+                      High Return
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-xs text-white/70">Entry: ₹25</span>
+                    <span className="text-base font-black text-[#00E676]">Prize: ₹40</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-black text-[#FFFF00] group-hover/tier:translate-x-1 transition-transform">
+                  <span>Enter</span>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* =========================================================================
           4. TOURNAMENT DISCOVERY — ACTIVE & UPCOMING
