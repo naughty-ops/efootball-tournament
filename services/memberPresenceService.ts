@@ -13,6 +13,23 @@ export interface MemberPresenceItem {
   last_active_at: string;
 }
 
+export interface AdminMemberPresenceItem {
+  user_id: string;
+  display_name: string;
+  email: string | null;
+  avatar_url: string | null;
+  efootball_id: string;
+  efootball_id_verified: boolean;
+  whatsapp_number: string | null;
+  status: MemberPresenceStatus;
+  current_activity: string;
+  tab_count: number;
+  last_seen_at: string;
+  last_heartbeat_at: string;
+  last_active_at: string;
+  created_at: string;
+}
+
 export interface MemberPresenceCounts {
   total_alive: number;
   total_idle: number;
@@ -80,13 +97,31 @@ export async function getAliveMembersDirectory(): Promise<{
   }
 }
 
-export async function getAliveMembersCounts(): Promise<{
+export async function getAdminAliveMembersDirectory(supabaseOverride?: any): Promise<{
+  success: boolean;
+  members: AdminMemberPresenceItem[];
+  error?: string;
+}> {
+  try {
+    const supabase = supabaseOverride || createClient();
+    const { data, error } = await (supabase as any).rpc('get_admin_alive_members_directory');
+
+    if (error) {
+      return { success: false, members: [], error: error.message };
+    }
+    return { success: true, members: (data as AdminMemberPresenceItem[]) || [] };
+  } catch (err: any) {
+    return { success: false, members: [], error: err?.message || 'Failed to load admin directory' };
+  }
+}
+
+export async function getAliveMembersCounts(supabaseOverride?: any): Promise<{
   success: boolean;
   counts: MemberPresenceCounts;
   error?: string;
 }> {
   try {
-    const supabase = createClient();
+    const supabase = supabaseOverride || createClient();
     const { data, error } = await (supabase as any).rpc('get_alive_members_counts');
 
     if (error) {

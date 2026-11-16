@@ -20,6 +20,12 @@ import {
   getAdminVerificationQueueAction,
   getVerificationDashboardStatsAction,
 } from '@/app/actions/verificationActions';
+import {
+  getAdminAliveMembersDirectory,
+  getAliveMembersCounts,
+} from '@/services/memberPresenceService';
+import AdminOnlineMembersCard from '@/components/admin/AdminOnlineMembersCard';
+import AdminAliveMembersDesk from '@/components/admin/AdminAliveMembersDesk';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +34,17 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
   // Fetch platform-wide statistics, initial verification queue, and dashboard stats concurrently in parallel
-  const [tRes, pRes, mRes, queueRes, vStatsRes] = await Promise.all([
+  const [tRes, pRes, mRes, queueRes, vStatsRes, aliveMembersRes, aliveCountsRes] = await Promise.all([
     supabase.from('tournaments').select('*', { count: 'exact', head: true }),
     supabase.from('participants').select('*', { count: 'exact', head: true }),
     supabase.from('matches').select('*', { count: 'exact', head: true }),
     getAdminVerificationQueueAction({ tab: 'pending', sortBy: 'created_at_desc', page: 1, pageSize: 15 }).catch(() => null),
     getVerificationDashboardStatsAction().catch(() => null),
+    getAdminAliveMembersDirectory(supabase).catch(() => ({ success: false, members: [] })),
+    getAliveMembersCounts(supabase).catch(() => ({
+      success: false,
+      counts: { total_alive: 0, total_idle: 0, total_offline: 0, total_members: 0 },
+    })),
   ]);
 
   const stats = {
@@ -46,6 +57,8 @@ export default async function AdminDashboardPage() {
   const initialQueueTotal = queueRes?.success && queueRes.data ? queueRes.data.total : 0;
   const initialQueueTotalPages = queueRes?.success && queueRes.data ? queueRes.data.totalPages : 1;
   const initialVerificationStats = vStatsRes?.success && vStatsRes.data ? vStatsRes.data : undefined;
+  const initialAliveMembers = aliveMembersRes?.success && aliveMembersRes.members ? aliveMembersRes.members : [];
+  const initialAliveCounts = aliveCountsRes?.success && aliveCountsRes.counts ? aliveCountsRes.counts : undefined;
 
   return (
     <div className="space-y-8 text-white">
@@ -95,20 +108,8 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#1818D4] border border-white/20 rounded-[28px] shadow-lg text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-wider text-white/70">
-              Registered Players
-            </CardTitle>
-            <Users className="h-5 w-5 text-[#FFFF00]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-[#FFFF00] font-display">
-              {stats.participants}
-            </div>
-            <p className="text-[11px] text-white/60 mt-1">Verified platform registrations</p>
-          </CardContent>
-        </Card>
+        {/* User Presence Metric: Shows only the real-time count of online members at the top */}
+        <AdminOnlineMembersCard initialCounts={initialAliveCounts} />
 
         <Card className="bg-[#1818D4] border border-white/20 rounded-[28px] shadow-lg text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -140,6 +141,12 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Real-Time Alive Members Detailed Operations Desk */}
+      <AdminAliveMembersDesk
+        initialMembers={initialAliveMembers}
+        initialCounts={initialAliveCounts}
+      />
 
       {/* Verification Queue Desk with Server-Side Hydration */}
       <AdminVerificationQueue
