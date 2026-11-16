@@ -97,11 +97,6 @@ export default function OneVsOneResultModal({
       return;
     }
 
-    if (!screenshotFile) {
-      setErrorMsg('Final match screenshot proof is required from both players.');
-      return;
-    }
-
     setIsSubmitting(true);
     setErrorMsg(null);
 
@@ -124,9 +119,15 @@ export default function OneVsOneResultModal({
       formData.append('claimedWinnerId', claimedWinnerId);
     }
 
-    // Auto-compress match screenshot client-side to prevent HTTP 413
-    const readyFile = await compressImage(screenshotFile, { maxWidth: 1600, quality: 0.82 });
-    formData.append('screenshot', readyFile);
+    // Screenshot is optional on submission; only required if players dispute/mismatch
+    if (screenshotFile) {
+      try {
+        const readyFile = await compressImage(screenshotFile, { maxWidth: 1600, quality: 0.82 });
+        formData.append('screenshot', readyFile);
+      } catch {
+        formData.append('screenshot', screenshotFile);
+      }
+    }
 
     const res = await submitMatchResultAction(formData);
     setIsSubmitting(false);
@@ -164,7 +165,7 @@ export default function OneVsOneResultModal({
               </span>
             </div>
             <h3 className="text-lg font-black font-display uppercase tracking-wider text-white">
-              Submit Match Score & Screenshot
+              Submit Match Score
             </h3>
             <p className="text-xs text-white/60">
               Match Code: <span className="font-mono text-[#FFFF00] font-bold">{match.match_code}</span>
@@ -236,17 +237,17 @@ export default function OneVsOneResultModal({
             </div>
           )}
 
-          {/* Mandatory Screenshot Proof Upload */}
+          {/* Optional Screenshot Proof Upload - Only required if scores mismatch */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black uppercase text-white/90 flex items-center gap-1.5">
                 <ImageIcon className="h-4 w-4 text-[#FFFF00]" />
                 <span>Final Match Screenshot</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF168B]/20 text-[#FF168B] border border-[#FF168B]/40 font-black">
-                  Required
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/40 font-bold">
+                  Optional
                 </span>
               </label>
-              <span className="text-[11px] text-white/50">PNG, JPG or WEBP (Max 10MB)</span>
+              <span className="text-[11px] text-white/50">Only required if scores mismatch</span>
             </div>
 
             <input
@@ -260,17 +261,17 @@ export default function OneVsOneResultModal({
             {!screenshotPreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-blue-400/30 hover:border-[#FFFF00]/60 rounded-2xl p-5 text-center cursor-pointer bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-2 group"
+                className="border-2 border-dashed border-blue-400/30 hover:border-[#FFFF00]/60 rounded-2xl p-4 text-center cursor-pointer bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1.5 group"
               >
-                <div className="h-10 w-10 rounded-xl bg-blue-500/10 group-hover:bg-[#FFFF00]/10 border border-blue-400/30 group-hover:border-[#FFFF00]/40 flex items-center justify-center text-blue-300 group-hover:text-[#FFFF00] transition-colors">
-                  <Upload className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-xl bg-blue-500/10 group-hover:bg-[#FFFF00]/10 border border-blue-400/30 group-hover:border-[#FFFF00]/40 flex items-center justify-center text-blue-300 group-hover:text-[#FFFF00] transition-colors">
+                  <Upload className="h-4 w-4" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-white group-hover:text-[#FFFF00] transition-colors">
-                    Click to upload your end-match screenshot
+                    Click to upload match screenshot (Optional)
                   </p>
                   <p className="text-[11px] text-white/50 mt-0.5">
-                    Clear image of the final whistle score & match summary
+                    Clear image of final whistle score screen (PNG, JPG, WEBP)
                   </p>
                 </div>
               </div>
@@ -307,14 +308,14 @@ export default function OneVsOneResultModal({
           <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-400/25 text-blue-200 text-xs space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold text-[#FFFF00]">
               <Clock className="w-4 h-4 shrink-0 text-[#FFFF00]" />
-              <span>Score Verification & Screenshot Policy:</span>
+              <span>Score Verification & Instant Settlement:</span>
             </div>
             <ul className="list-disc pl-4 space-y-1 text-[11px] text-blue-200/90 leading-relaxed">
               <li>
-                <strong className="text-white">Both players are required to submit screenshot proof</strong> of the final match score screen.
+                <strong className="text-white">Screenshot is NOT required</strong> if both players report or agree on matching scores.
               </li>
-              <li>Your opponent must also upload their screenshot when confirming this result.</li>
-              <li>Once both screenshots and scores align, the match completes and wallet payout settles instantly.</li>
+              <li>When your opponent confirms this score, prize funds settle to your wallet immediately.</li>
+              <li>Final match screenshot is <strong className="text-[#FF168B]">only required if there is a score mismatch or dispute</strong>.</li>
             </ul>
           </div>
 
@@ -331,7 +332,7 @@ export default function OneVsOneResultModal({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !hasValidScores || !screenshotFile}
+              disabled={isSubmitting || !hasValidScores}
               className="rounded-full text-xs font-black uppercase tracking-wider bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] h-10 px-6 shadow-lg shadow-[#FFFF00]/25 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
@@ -339,7 +340,7 @@ export default function OneVsOneResultModal({
                   <Loader2 className="h-4 w-4 animate-spin text-[#08088F]" /> Submitting...
                 </span>
               ) : (
-                'Confirm & Submit Result'
+                'Confirm & Submit Score'
               )}
             </Button>
           </div>

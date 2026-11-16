@@ -219,11 +219,6 @@ export async function submitMatchResultAction(formData: FormData): Promise<Actio
       return { success: false, error: 'Please enter valid non-negative scores.' };
     }
 
-    // Both players must submit screenshot proof
-    if (!file || file.size === 0) {
-      return { success: false, error: 'Final match screenshot proof is required from both players.' };
-    }
-
     const supabase = await createClient();
 
     let finalClaimedWinnerId: string | null = claimedWinnerId || null;
@@ -246,33 +241,35 @@ export async function submitMatchResultAction(formData: FormData): Promise<Actio
 
     let screenshotUrl: string | null = null;
 
-    // Handle required screenshot upload
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      return { success: false, error: 'Supported screenshot formats: JPG, PNG, WEBP.' };
+    // Handle optional screenshot upload (only required if players disagree/mismatch)
+    if (file && file.size > 0) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        return { success: false, error: 'Supported screenshot formats: JPG, PNG, WEBP.' };
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return { success: false, error: 'Screenshot file size exceeds 5MB limit.' };
+      }
+
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const storagePath = `1v1/${matchId}/${user.id}_result_${Date.now()}.${fileExt}`;
+      const adminClient = createAdminClient();
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const { error: uploadErr } = await adminClient.storage
+        .from('payment-proofs')
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        return { success: false, error: `Failed to upload screenshot: ${uploadErr.message}` };
+      }
+
+      screenshotUrl = storagePath;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      return { success: false, error: 'Screenshot file size exceeds 5MB limit.' };
-    }
-
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const storagePath = `1v1/${matchId}/${user.id}_result_${Date.now()}.${fileExt}`;
-    const adminClient = createAdminClient();
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { error: uploadErr } = await adminClient.storage
-      .from('payment-proofs')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: true,
-      });
-
-    if (uploadErr) {
-      return { success: false, error: `Failed to upload screenshot: ${uploadErr.message}` };
-    }
-
-    screenshotUrl = storagePath;
 
     const { error } = await (supabase.rpc as any)('submit_one_vs_one_result', {
       p_match_id: matchId,
@@ -318,40 +315,43 @@ export async function confirmMatchResultAction(params: FormData | { matchId: str
       return { success: false, error: 'Match ID is required.' };
     }
 
-    if (!file || file.size === 0) {
-      return { success: false, error: 'Your final match screenshot proof is required to confirm the result.' };
-    }
+    let opponentScreenshotUrl: string | null = null;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      return { success: false, error: 'Supported screenshot formats: JPG, PNG, WEBP.' };
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      return { success: false, error: 'Screenshot file size exceeds 5MB limit.' };
-    }
+    // Screenshot is optional when confirming - only needed if players disagree/mismatch
+    if (file && file.size > 0) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        return { success: false, error: 'Supported screenshot formats: JPG, PNG, WEBP.' };
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return { success: false, error: 'Screenshot file size exceeds 5MB limit.' };
+      }
 
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const storagePath = `1v1/${matchId}/${user.id}_confirm_${Date.now()}.${fileExt}`;
-    const adminClient = createAdminClient();
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const storagePath = `1v1/${matchId}/${user.id}_confirm_${Date.now()}.${fileExt}`;
+      const adminClient = createAdminClient();
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-    const { error: uploadErr } = await adminClient.storage
-      .from('payment-proofs')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: true,
-      });
+      const { error: uploadErr } = await adminClient.storage
+        .from('payment-proofs')
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: true,
+        });
 
-    if (uploadErr) {
-      return { success: false, error: `Failed to upload confirmation screenshot: ${uploadErr.message}` };
+      if (uploadErr) {
+        return { success: false, error: `Failed to upload confirmation screenshot: ${uploadErr.message}` };
+      }
+
+      opponentScreenshotUrl = storagePath;
     }
 
     const supabase = await createClient();
     const { error } = await (supabase.rpc as any)('confirm_one_vs_one_result', {
       p_match_id: matchId,
       p_user_id: user.id,
-      p_opponent_screenshot_url: storagePath,
+      p_opponent_screenshot_url: opponentScreenshotUrl,
     });
 
     if (error) {
@@ -405,6 +405,11 @@ export async function disputeMatchResultAction(formData: FormData): Promise<Acti
     if (!matchId) return { success: false, error: 'Match ID required.' };
     if (!reason || !reason.trim()) return { success: false, error: 'Dispute reason is required.' };
     if (!description || !description.trim()) return { success: false, error: 'Description is required.' };
+
+    // Final Match Screenshot is strictly required on score mismatch
+    if (reason === 'Wrong Score Marked by Opponent' && (!file || file.size === 0)) {
+      return { success: false, error: 'Final match screenshot proof is required when reporting a score mismatch.' };
+    }
 
     let evidenceUrl: string | null = null;
     if (file && file.size > 0) {

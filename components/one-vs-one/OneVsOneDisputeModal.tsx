@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Upload, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { disputeMatchResultAction } from '@/app/actions/oneVsOneActions';
+import { compressImage } from '@/lib/utils/compressImage';
 
 interface OneVsOneDisputeModalProps {
   isOpen: boolean;
@@ -48,7 +49,12 @@ export default function OneVsOneDisputeModal({
     formData.append('reason', reason);
     formData.append('description', description.trim());
     if (file) {
-      formData.append('evidence', file);
+      try {
+        const readyFile = await compressImage(file, { maxWidth: 1600, quality: 0.82 });
+        formData.append('evidence', readyFile);
+      } catch {
+        formData.append('evidence', file);
+      }
     }
 
     const res = await disputeMatchResultAction(formData);
@@ -183,7 +189,7 @@ export default function OneVsOneDisputeModal({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !description.trim()}
+              disabled={isSubmitting || !description.trim() || (reason === 'Wrong Score Marked by Opponent' && !file)}
               className="rounded-full text-xs font-black uppercase tracking-wider bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] h-10 px-6 shadow-lg shadow-[#FFFF00]/25 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (

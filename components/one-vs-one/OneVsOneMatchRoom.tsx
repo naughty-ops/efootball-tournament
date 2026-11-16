@@ -34,6 +34,7 @@ import {
   confirmMatchResultAction,
   cancelWaitingMatchAction,
 } from '@/app/actions/oneVsOneActions';
+import { compressImage } from '@/lib/utils/compressImage';
 import OneVsOneResultModal from './OneVsOneResultModal';
 import OneVsOneDisputeModal from './OneVsOneDisputeModal';
 import OneVsOneCreditIssueModal from './OneVsOneCreditIssueModal';
@@ -244,17 +245,19 @@ export default function OneVsOneMatchRoom({
   };
 
   const handleConfirmResult = async () => {
-    if (!opponentScreenshotFile) {
-      setConfirmError('Your final match screenshot proof is required to confirm the result.');
-      return;
-    }
-
     setIsConfirmingResult(true);
     setConfirmError(null);
 
     const formData = new FormData();
     formData.append('matchId', match.id);
-    formData.append('screenshot', opponentScreenshotFile);
+    if (opponentScreenshotFile) {
+      try {
+        const readyFile = await compressImage(opponentScreenshotFile, { maxWidth: 1600, quality: 0.82 });
+        formData.append('screenshot', readyFile);
+      } catch {
+        formData.append('screenshot', opponentScreenshotFile);
+      }
+    }
 
     const res = await confirmMatchResultAction(formData);
     setIsConfirmingResult(false);
@@ -1102,7 +1105,7 @@ export default function OneVsOneMatchRoom({
               <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-[#FFFF00]" />
                 <span>
-                  {match.result.submitted_by === currentUserId ? 'Your' : `${opponent?.profile?.display_name || 'Opponent'}'s`} Match Screenshot
+                  {match.result.submitted_by === currentUserId ? 'Your' : `${opponent?.profile?.display_name || 'Opponent'}'s`} Match Submission
                 </span>
               </span>
               <span className="text-[10px] font-bold text-[#00E676] bg-[#00E676]/15 border border-[#00E676]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1136,34 +1139,42 @@ export default function OneVsOneMatchRoom({
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-white/50 italic">Screenshot proof attached and securely saved in match records.</p>
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white/70">
+                <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-300 shrink-0">
+                  <CheckCircle2 className="h-4 w-4 text-[#00E676]" />
+                </div>
+                <div>
+                  <p className="font-bold text-white">Score Submitted Directly</p>
+                  <p className="text-[11px] text-white/50">Screenshots are only required if scores mismatch or a dispute is registered.</p>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Action Row for Confirmer / Opponent */}
           {match.result.submitted_by !== currentUserId ? (
             <div className="space-y-4 pt-2">
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-[#FFFF00]">
-                  <Clock className="w-4 h-4 shrink-0 text-[#FFFF00]" />
-                  <span>Dual Screenshot Requirement:</span>
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-[#00E676]">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-[#00E676]" />
+                  <span>Instant Settlement If Score Matches:</span>
                 </div>
-                <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                  Both players are required to submit final match screenshots. Upload your end-match screenshot below to confirm this result. Once confirmed, prize funds settle immediately.
+                <p className="text-[11px] text-emerald-200/90 leading-relaxed">
+                  If the score above is accurate, click <strong className="text-white">Confirm Score & Settle Payout</strong> to receive your prize instantly (no screenshot required). Final match screenshot is <strong className="text-[#FF168B]">only required if there is a score mismatch</strong>.
                 </p>
               </div>
 
-              {/* Opponent's Screenshot Upload Dropzone */}
+              {/* Opponent's Screenshot Upload Dropzone (Optional) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black uppercase text-white/90 flex items-center gap-1.5">
                     <Upload className="h-4 w-4 text-[#FFFF00]" />
-                    <span>Upload Your Match Screenshot Proof</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF168B]/20 text-[#FF168B] border border-[#FF168B]/40 font-black">
-                      Required to Confirm
+                    <span>Attach Screenshot Proof</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/40 font-bold">
+                      Optional
                     </span>
                   </label>
-                  <span className="text-[11px] text-white/50">PNG, JPG or WEBP (Max 10MB)</span>
+                  <span className="text-[11px] text-white/50">Only required if scores mismatch</span>
                 </div>
 
                 <input
@@ -1177,17 +1188,17 @@ export default function OneVsOneMatchRoom({
                 {!opponentScreenshotPreview ? (
                   <div
                     onClick={() => opponentFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-blue-400/30 hover:border-[#FFFF00]/60 rounded-2xl p-5 text-center cursor-pointer bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-2 group"
+                    className="border-2 border-dashed border-blue-400/30 hover:border-[#FFFF00]/60 rounded-2xl p-4 text-center cursor-pointer bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-1.5 group"
                   >
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 group-hover:bg-[#FFFF00]/10 border border-blue-400/30 group-hover:border-[#FFFF00]/40 flex items-center justify-center text-blue-300 group-hover:text-[#FFFF00] transition-colors">
-                      <Upload className="h-5 w-5" />
+                    <div className="h-9 w-9 rounded-xl bg-blue-500/10 group-hover:bg-[#FFFF00]/10 border border-blue-400/30 group-hover:border-[#FFFF00]/40 flex items-center justify-center text-blue-300 group-hover:text-[#FFFF00] transition-colors">
+                      <Upload className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white group-hover:text-[#FFFF00] transition-colors">
-                        Click to upload your end-match screenshot proof
+                        Click to upload match screenshot (Optional)
                       </p>
                       <p className="text-[11px] text-white/50 mt-0.5">
-                        Clear image of your final whistle score screen
+                        Clear image of your final whistle score screen (PNG, JPG, WEBP)
                       </p>
                     </div>
                   </div>
@@ -1234,12 +1245,12 @@ export default function OneVsOneMatchRoom({
                   className="w-full sm:w-auto rounded-full text-xs font-black uppercase tracking-wider border-[#FF168B]/40 text-[#FF168B] hover:bg-[#FF168B]/10 h-11 px-5 cursor-pointer transition-all"
                 >
                   <AlertTriangle className="h-4 w-4 mr-1.5" />
-                  <span>Wrong Marking / Dispute</span>
+                  <span>Wrong Score / Dispute (Screenshot Required)</span>
                 </Button>
 
                 <Button
                   onClick={handleConfirmResult}
-                  disabled={isConfirmingResult || !opponentScreenshotFile}
+                  disabled={isConfirmingResult}
                   className="w-full sm:w-auto rounded-full text-xs font-black uppercase tracking-wider bg-[#00E676] hover:bg-[#00C853] text-[#08088F] h-11 px-7 shadow-lg shadow-[#00E676]/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isConfirmingResult ? (
@@ -1249,7 +1260,7 @@ export default function OneVsOneMatchRoom({
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-1.5" />
-                      <span>Upload Proof & Confirm Score</span>
+                      <span>Confirm Score & Settle Payout</span>
                     </>
                   )}
                 </Button>
@@ -1259,7 +1270,7 @@ export default function OneVsOneMatchRoom({
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-white/70 text-center space-y-1">
               <p className="font-bold text-white">Waiting for {opponent?.profile?.display_name || 'Opponent'}</p>
               <p>
-                Your opponent is reviewing your submitted score and uploading their screenshot proof to confirm. Match completes and settles automatically once confirmed.
+                Your opponent is reviewing your submitted score. When they confirm, the match completes and payout settles instantly. Final match screenshots are only required if scores mismatch.
               </p>
             </div>
           )}
@@ -1304,18 +1315,18 @@ export default function OneVsOneMatchRoom({
             </div>
           )}
 
-          {/* Both Players' Verified Screenshot Proofs */}
+          {/* Match Verification & Proof Records */}
           <div className="max-w-lg mx-auto p-4 rounded-2xl bg-[#07073B] border border-blue-400/25 space-y-3 text-left">
             <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-[#00E676]" />
-              <span>Verified Match Proofs (Both Players)</span>
+              <span>Match Verification & Proof Records</span>
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               {/* Submitter Proof */}
               <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
                 <span className="text-[10px] font-bold uppercase text-white/70 block">
-                  Submitter Proof
+                  Submitter Record
                 </span>
                 {match.result.screenshot_signed_url ? (
                   <div
@@ -1335,8 +1346,10 @@ export default function OneVsOneMatchRoom({
                     </div>
                   </div>
                 ) : (
-                  <div className="h-24 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[11px] text-white/40 italic">
-                    Screenshot Verified
+                  <div className="h-24 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center p-2">
+                    <CheckCircle2 className="h-4 w-4 text-[#00E676] mb-1" />
+                    <span className="text-[11px] text-white/80 font-bold">Score Confirmed</span>
+                    <span className="text-[9px] text-white/40">Proof optional on score agreement</span>
                   </div>
                 )}
               </div>
@@ -1344,7 +1357,7 @@ export default function OneVsOneMatchRoom({
               {/* Opponent Proof */}
               <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
                 <span className="text-[10px] font-bold uppercase text-white/70 block">
-                  Confirmer Proof
+                  Confirmer Record
                 </span>
                 {match.result.opponent_screenshot_signed_url ? (
                   <div
@@ -1364,8 +1377,10 @@ export default function OneVsOneMatchRoom({
                     </div>
                   </div>
                 ) : (
-                  <div className="h-24 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[11px] text-white/40 italic">
-                    Screenshot Verified
+                  <div className="h-24 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center p-2">
+                    <CheckCircle2 className="h-4 w-4 text-[#00E676] mb-1" />
+                    <span className="text-[11px] text-white/80 font-bold">Score Confirmed</span>
+                    <span className="text-[9px] text-white/40">Proof optional on score agreement</span>
                   </div>
                 )}
               </div>
