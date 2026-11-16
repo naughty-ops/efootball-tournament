@@ -74,7 +74,7 @@ function recordTest(
 {
   const ordinaryUserEmail = 'casualplayer@gmail.com';
   const isAllowed = isAllowlistedAdminEmail(ordinaryUserEmail);
-  const action = isAllowed ? 'ALLOWED' : 'DENIED (Redirected to /dashboard?error=admin_unauthorized)';
+  const action = isAllowed ? 'ALLOWED' : 'DENIED (404 Page Offside / notFound)';
   recordTest(
     3,
     'Open /admin/dashboard as an ordinary user',

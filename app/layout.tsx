@@ -22,7 +22,14 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+  : process.env.NEXT_PUBLIC_VERCEL_URL
+  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL.replace(/\/+$/, '')}`
+  : 'https://efootball-tournament-cyan.vercel.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'eFootball Tournament Platform',
     template: '%s | eFootball Tournament Platform',

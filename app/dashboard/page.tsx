@@ -48,9 +48,6 @@ interface PageProps {
 }
 
 export default async function PlayerDashboardPage({ searchParams }: PageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const showAdminDeniedAlert = resolvedSearchParams.error === 'admin_unauthorized';
-
   const user = await getAuthenticatedUser();
 
   if (!user) {
@@ -107,19 +104,6 @@ export default async function PlayerDashboardPage({ searchParams }: PageProps) {
     <div className="pb-16 lg:pb-24">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8 lg:space-y-10">
         <PlayerDashboardSwipeWrapper currentSection="overview" className="space-y-6 sm:space-y-8 lg:space-y-10">
-        {/* Admin Unauthorized Alert */}
-        {showAdminDeniedAlert && (
-          <div className="p-4 rounded-2xl bg-[#0A0A7A] border border-[#FFFF00]/40 text-[#FFFF00] text-xs font-bold flex items-center justify-between shadow-md animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-[#FFFF00] shrink-0" />
-              <span>Access Denied: The administrator portal is restricted to authorized platform administrators.</span>
-            </div>
-            <Link href="/dashboard" className="text-white underline text-xs ml-4 hover:no-underline">
-              Dismiss
-            </Link>
-          </div>
-        )}
-
         {/* Welcome Hero Banner */}
         <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] bg-gradient-to-br from-[#1E1EF5] via-[#2A2AFF] to-[#1212B8] p-6 sm:p-8 lg:p-10 pb-8 sm:pb-10 lg:pb-12 xl:pb-14 text-white shadow-2xl border border-white/20 mb-6 sm:mb-8 lg:mb-10">
           <div className="absolute top-0 right-0 w-80 h-80 bg-[#FFFF00]/10 rounded-full blur-3xl pointer-events-none" />

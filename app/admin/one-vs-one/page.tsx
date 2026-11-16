@@ -1,5 +1,5 @@
 import React from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/server';
 import { createClient } from '@/lib/supabase/server';
 import AdminTopNav from '@/components/admin/AdminTopNav';
@@ -25,7 +25,7 @@ export default async function AdminOneVsOnePage() {
     const authResult = await requireAdmin();
     adminUser = authResult.user;
   } catch {
-    redirect('/login?error=admin_unauthorized');
+    notFound();
   }
 
   const supabase = await createClient();

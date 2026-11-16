@@ -1,5 +1,5 @@
 import React from 'react';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/auth/server';
 import AdminLayoutClient from '@/components/admin/AdminLayoutClient';
 import { getTicketOverviewStats } from '@/services/ticketService';
@@ -8,6 +8,10 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Admin Dashboard | eFootball Tournament',
   description: 'Administrative portal for managing tournaments, fixtures, and settings.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function AdminLayout({
@@ -18,15 +22,10 @@ export default async function AdminLayout({
   // Leverages request-cached getAuthenticatedUser (1 single auth + database admin check across the request)
   const { user, isAdmin, adminRole } = await getAuthenticatedUser();
 
-  // 1. Enforce active authentication
-  if (!user) {
-    redirect('/login');
-  }
-
-  // 2. Enforce database-authoritative administrator authorization
-  // Any valid active administrator role (streamer, moderator, admin, super_admin) is permitted into the portal
-  if (!isAdmin || !adminRole) {
-    redirect('/dashboard?error=admin_unauthorized');
+  // Enforce database-authoritative administrator authorization.
+  // Cloak portal: Unauthorized visitors receive a 404 Page Offside error rather than exposing administrative existence.
+  if (!user || !isAdmin || !adminRole) {
+    notFound();
   }
 
   let ticketStats = { totalOpen: 0, urgent: 0 };

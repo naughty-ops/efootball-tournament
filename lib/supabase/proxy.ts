@@ -87,9 +87,8 @@ export async function updateSession(request: NextRequest) {
   if (!hasAuthCookie) {
     if (isAdminRoute) {
       const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('next', pathname);
-      return applySecurityHeaders(NextResponse.redirect(url));
+      url.pathname = '/_not-found';
+      return applySecurityHeaders(NextResponse.rewrite(url, { status: 404 }));
     }
     if (isDashboardRoute) {
       const url = request.nextUrl.clone();
@@ -182,9 +181,8 @@ export async function updateSession(request: NextRequest) {
 
     if (!isUserAdmin) {
       const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
-      url.searchParams.set('error', 'admin_unauthorized');
-      return applySecurityHeaders(NextResponse.redirect(url));
+      url.pathname = '/_not-found';
+      return applySecurityHeaders(NextResponse.rewrite(url, { status: 404 }));
     }
   }
 
