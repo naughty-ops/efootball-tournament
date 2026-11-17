@@ -58,6 +58,21 @@ const TABS = [
   { key: 'completed', label: 'Completed', icon: CheckCircle2 },
 ] as const;
 
+function SafeTournamentImage({ src, alt }: { src: string | null; alt: string }) {
+  const [imgSrc, setImgSrc] = useState(src || '/images/banner1.webp');
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      loading="lazy"
+      className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+      onError={() => setImgSrc('/images/banner1.webp')}
+    />
+  );
+}
+
 export default function PlayerTournamentsClient({
   initialTournaments,
   initialPaymentRegistrations = [],
@@ -97,7 +112,9 @@ export default function PlayerTournamentsClient({
     const activeCount = tournaments.filter((t) => t.status === 'ongoing').length;
     const upcomingCount = tournaments.filter((t) => t.status === 'registration').length;
     const completedCount = tournaments.filter((t) => t.status === 'completed').length;
-    const approvedCount = tournaments.filter((t) => t.participantStatus === 'approved').length;
+    const approvedCount = tournaments.filter(
+      (t) => t.participantStatus === 'active' || t.participantStatus === 'approved'
+    ).length;
 
     return { totalJoined, activeCount, upcomingCount, completedCount, approvedCount };
   }, [tournaments]);
@@ -381,6 +398,7 @@ export default function PlayerTournamentsClient({
         activeTab={selectedTab}
         onTabChange={setSelectedTab}
         tabs={tabIds}
+        disabled={true}
       >
       {filteredTournaments.length === 0 ? (
         <Card className="p-12 text-center bg-[#1818D4] border border-white/20 rounded-[32px] space-y-4 text-white">
@@ -417,13 +435,9 @@ export default function PlayerTournamentsClient({
             >
               {/* Header Image with Gradient */}
               <div className="relative h-36 w-full bg-[#0A0A7A] overflow-hidden">
-                <Image
-                  src={t.bannerImage || '/images/banner1.webp'}
+                <SafeTournamentImage
+                  src={t.bannerImage}
                   alt={t.tournamentName}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  loading="lazy"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1818D4] via-[#1818D4]/30 to-transparent" />
                 
@@ -468,15 +482,20 @@ export default function PlayerTournamentsClient({
                     {/* Participant Status Badge */}
                     <div className="flex items-center justify-between">
                       <span className="text-white/70 font-semibold">Your Registration:</span>
-                      {t.participantStatus === 'approved' ? (
+                      {t.participantStatus === 'active' || t.participantStatus === 'approved' ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-black text-[#00C853] uppercase tracking-wider">
                           <Check className="h-3 w-3" />
                           <span>Approved & Seeded</span>
                         </span>
-                      ) : t.participantStatus === 'rejected' ? (
+                      ) : t.participantStatus === 'rejected' || t.participantStatus === 'disqualified' ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-black text-red-400 uppercase tracking-wider">
                           <XCircle className="h-3 w-3" />
-                          <span>Rejected</span>
+                          <span>{t.participantStatus === 'disqualified' ? 'Disqualified' : 'Rejected'}</span>
+                        </span>
+                      ) : t.participantStatus === 'eliminated' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-white/60 uppercase tracking-wider">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Eliminated</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[11px] font-black text-[#FFFF00] uppercase tracking-wider">

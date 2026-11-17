@@ -33,7 +33,7 @@ interface PageProps {
 }
 
 export default async function AdminTicketsPage({ searchParams }: PageProps) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin('moderator');
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const supabase = await createClient();
 

@@ -28,7 +28,7 @@ export default async function AdminTicketDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin('moderator');
   const { id } = await params;
 
   const ticket = await getUnifiedTicketById(id);

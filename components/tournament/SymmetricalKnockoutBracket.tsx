@@ -35,7 +35,6 @@ interface SymmetricalKnockoutBracketProps {
   onScoreMatch?: (match: FullMatchData) => void;
   onEditSlot?: (match: FullMatchData, slot: 'participant_a' | 'participant_b') => void;
   onMatchClick?: (match: FullMatchData) => void;
-  onReopenCelebration?: () => void;
 }
 
 type FilterStatus = 'all' | 'live' | 'upcoming' | 'completed' | 'current';
@@ -118,13 +117,13 @@ function PlayerSlot({
       className={cn(
         'group flex items-center justify-between gap-2 px-3 py-2 rounded-xl transition-all duration-200 border',
         isHoveredPlayer
-          ? 'bg-emerald-100/80 border-emerald-400 ring-2 ring-emerald-400/40 shadow-xs'
+          ? 'bg-blue-100/90 border-[#3434FF] ring-2 ring-[#3434FF]/40 shadow-xs'
           : isWinner
-          ? 'bg-gradient-to-r from-emerald-50 via-emerald-100/50 to-emerald-50 border-emerald-300 shadow-xs'
+          ? 'bg-gradient-to-r from-blue-50 via-indigo-50/80 to-blue-50 border-[#3434FF]/50 shadow-xs'
           : isLoser
           ? 'bg-slate-50/60 border-transparent opacity-60'
           : participant
-          ? 'bg-white border-slate-100 hover:border-emerald-300 hover:bg-emerald-50/30'
+          ? 'bg-white border-slate-200 hover:border-[#3434FF] hover:bg-blue-50/30'
           : 'bg-slate-50/40 border-dashed border-slate-200',
         isAdmin && onClickSlot ? 'cursor-pointer' : ''
       )}
@@ -132,7 +131,7 @@ function PlayerSlot({
       {/* Player Identity */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {participant?.seed_number ? (
-          <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-md border border-emerald-200 shrink-0">
+          <span className="text-[10px] font-extrabold text-[#08088F] bg-blue-100 px-1.5 py-0.5 rounded-md border border-blue-200 shrink-0">
             #{participant.seed_number}
           </span>
         ) : null}
@@ -142,9 +141,9 @@ function PlayerSlot({
           className={cn(
             'h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 transition-transform duration-200 group-hover:scale-110 shadow-2xs border',
             isWinner
-              ? 'bg-emerald-600 text-white border-emerald-500 ring-2 ring-emerald-200'
+              ? 'bg-[#3434FF] text-[#FFFF00] border-[#3434FF] ring-2 ring-blue-200'
               : participant
-              ? 'bg-[#0B3323] text-white border-[#0B3323]'
+              ? 'bg-[#08088F] text-white border-[#08088F]'
               : 'bg-slate-200 text-slate-400 border-slate-300'
           )}
         >
@@ -158,11 +157,11 @@ function PlayerSlot({
             className={cn(
               'text-xs font-bold block truncate tracking-tight',
               isWinner
-                ? 'text-emerald-950 font-black'
+                ? 'text-[#08088F] font-black'
                 : isLoser
                 ? 'text-slate-400 line-through'
                 : participant
-                ? 'text-[#0B3323]'
+                ? 'text-[#08088F]'
                 : 'text-slate-400 text-[10px] italic font-semibold'
             )}
           >
@@ -174,7 +173,7 @@ function PlayerSlot({
       {/* Score Box & Winner Tag */}
       <div className="flex items-center gap-1.5 shrink-0">
         {isWinner && (
-          <Badge className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0 border-0 uppercase">
+          <Badge className="bg-[#3434FF] text-[#FFFF00] text-[9px] font-black px-1.5 py-0 border-0 uppercase shadow-xs">
             WIN
           </Badge>
         )}
@@ -183,7 +182,7 @@ function PlayerSlot({
             className={cn(
               'h-7 min-w-[28px] px-1.5 rounded-lg flex items-center justify-center text-xs font-black tabular-nums border shadow-2xs transition-all gap-0.5',
               isWinner
-                ? 'bg-emerald-600 text-white border-emerald-500 scale-105'
+                ? 'bg-[#08088F] text-[#FFFF00] border-[#08088F] scale-105'
                 : isLive
                 ? 'bg-rose-100 text-rose-700 border-rose-300 font-extrabold'
                 : isCompleted
@@ -195,7 +194,7 @@ function PlayerSlot({
             {match.decided_by === 'penalties' &&
               (isSlotA ? match.penalty_score_a : match.penalty_score_b) !== null &&
               (isSlotA ? match.penalty_score_a : match.penalty_score_b) !== undefined && (
-                <span className={cn('text-[10px] font-mono font-bold ml-0.5', isWinner ? 'text-emerald-100' : 'text-emerald-700 bg-emerald-50 px-1 rounded')}>
+                <span className={cn('text-[10px] font-mono font-bold ml-0.5', isWinner ? 'text-blue-200' : 'text-[#08088F] bg-blue-50 px-1 rounded')}>
                   ({isSlotA ? match.penalty_score_a : match.penalty_score_b})
                 </span>
               )}
@@ -257,7 +256,7 @@ function MatchCard({
       className={cn(
         'relative transition-all duration-300 overflow-hidden flex flex-col justify-between group hover:-translate-y-0.5',
         containsHoveredPlayer
-          ? 'ring-4 ring-emerald-400/60 border-emerald-500 shadow-md scale-102 z-20'
+          ? 'ring-4 ring-[#3434FF]/50 border-[#3434FF] shadow-md scale-102 z-20'
           : hoveredParticipantId
           ? 'opacity-50 grayscale-20 scale-98'
           : isFinalMatch
@@ -265,7 +264,7 @@ function MatchCard({
           : isLive
           ? 'w-64 border-2 border-rose-400 bg-rose-50/20 shadow-md ring-2 ring-rose-300/30'
           : isCompleted
-          ? 'w-64 border-emerald-200/90 bg-white hover:border-emerald-400 shadow-xs hover:shadow-md'
+          ? 'w-64 border-blue-200/90 bg-white hover:border-[#3434FF] shadow-xs hover:shadow-md'
           : 'w-64 border-slate-200 bg-white/95 hover:border-slate-300 shadow-2xs'
       )}
     >
@@ -302,7 +301,7 @@ function MatchCard({
               variant={isCompleted ? 'default' : 'outline'}
               className={cn(
                 'text-[9px] font-bold px-1.5 py-0 capitalize',
-                isCompleted ? 'bg-emerald-600 text-white border-0' : 'text-slate-500 border-slate-300'
+                isCompleted ? 'bg-[#3434FF] text-white border-0' : 'text-slate-500 border-slate-300'
               )}
             >
               {match.status}
@@ -364,7 +363,7 @@ function MatchCard({
             <Button
               size="sm"
               onClick={() => onScoreMatch(match)}
-              className="h-6 px-2 text-[10px] font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 rounded-lg shadow-2xs"
+              className="h-6 px-2 text-[10px] font-extrabold bg-[#3434FF] hover:bg-blue-700 text-white gap-1 rounded-lg shadow-2xs"
             >
               <Edit className="h-3 w-3" />
               <span>Edit Score</span>
@@ -376,7 +375,7 @@ function MatchCard({
               variant="ghost"
               size="sm"
               onClick={() => onMatchClick(match)}
-              className="h-6 px-1.5 text-[10px] font-semibold text-slate-600 hover:text-emerald-800"
+              className="h-6 px-1.5 text-[10px] font-semibold text-slate-600 hover:text-[#08088F]"
             >
               <Eye className="h-3 w-3" />
             </Button>
@@ -419,7 +418,6 @@ export default function SymmetricalKnockoutBracket({
   onScoreMatch,
   onEditSlot,
   onMatchClick,
-  onReopenCelebration,
 }: SymmetricalKnockoutBracketProps) {
   const [activeMobileRoundIdx, setActiveMobileRoundIdx] = useState(0);
   const [viewMode, setViewMode] = useState<'tree' | 'list'>('tree');
@@ -475,10 +473,10 @@ export default function SymmetricalKnockoutBracket({
   if (!bracket || rounds.length === 0 || bracket.status === 'Not Generated') {
     return (
       <Card className="border-dashed border-2 border-slate-200 bg-white p-12 text-center rounded-3xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 mb-4 border border-emerald-200 shadow-2xs">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#08088F] mb-4 border border-blue-200 shadow-2xs">
           <Swords className="h-8 w-8" />
         </div>
-        <h3 className="text-lg font-black text-[#0B3323]">Knockout bracket will appear once fixtures are generated</h3>
+        <h3 className="text-lg font-black text-[#08088F]">Knockout bracket will appear once fixtures are generated</h3>
         <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
           The playoff tree will automatically map Round of 16, Quarter-Finals, Semi-Finals, and Grand Final matches dynamically as participants qualify.
         </p>
@@ -514,22 +512,22 @@ export default function SymmetricalKnockoutBracket({
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Badge className="bg-[#0B3323] text-emerald-400 font-black text-[10px] uppercase px-2.5 py-0.5">
+            <Badge className="bg-[#08088F] text-[#FFFF00] font-black text-[10px] uppercase px-2.5 py-0.5">
               TOURNAMENT JOURNEY
             </Badge>
-            <span className="text-xs font-black text-[#0B3323]">
+            <span className="text-xs font-black text-[#08088F]">
               {completionPercentage}% Complete ({completedMatchesCount}/{totalMatchesCount} Matches)
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-xs text-slate-500 font-bold">
             <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5 text-emerald-600" />
+              <Users className="h-3.5 w-3.5 text-[#3434FF]" />
               <span>{remainingPlayersCount} Players Remaining</span>
             </span>
             <span className="text-slate-300">•</span>
-            <span className="flex items-center gap-1 text-emerald-700">
-              <Target className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1 text-[#08088F]">
+              <Target className="h-3.5 w-3.5 text-[#3434FF]" />
               <span>Current Stage: Round {currentActiveRoundNumber}</span>
             </span>
           </div>
@@ -548,18 +546,18 @@ export default function SymmetricalKnockoutBracket({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all border',
                     isFinalStage && isCompleted
-                      ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-300 shadow-xs'
+                      ? 'bg-[#FFFF00] text-[#08088F] border-[#FFFF00] shadow-sm'
                       : isCurrentStage
-                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs ring-2 ring-emerald-200'
+                      ? 'bg-[#3434FF] text-white border-[#3434FF] shadow-xs ring-2 ring-blue-200'
                       : isRoundComplete
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      ? 'bg-blue-50 text-[#08088F] border-blue-200'
                       : 'bg-slate-50 text-slate-400 border-slate-200'
                   )}
                 >
                   {isRoundComplete ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#3434FF] shrink-0" />
                   ) : isFinalStage ? (
-                    <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <Trophy className="h-3.5 w-3.5 text-[#08088F] shrink-0" />
                   ) : null}
                   <span>{r.name.toUpperCase()}</span>
                 </div>
@@ -583,7 +581,7 @@ export default function SymmetricalKnockoutBracket({
         {/* Dynamic Progress Indicator Line */}
         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
           <div
-            className="bg-emerald-600 h-full transition-all duration-500"
+            className="bg-gradient-to-r from-[#3434FF] to-[#08088F] h-full transition-all duration-500"
             style={{ width: `${completionPercentage}%` }}
           />
         </div>
@@ -593,8 +591,8 @@ export default function SymmetricalKnockoutBracket({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
         {/* Filters */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-extrabold text-[#0B3323] flex items-center gap-1 mr-1">
-            <Filter className="h-3.5 w-3.5 text-emerald-600" />
+          <span className="text-xs font-extrabold text-[#08088F] flex items-center gap-1 mr-1">
+            <Filter className="h-3.5 w-3.5 text-[#3434FF]" />
             <span>Filter Matches:</span>
           </span>
 
@@ -613,8 +611,8 @@ export default function SymmetricalKnockoutBracket({
               className={cn(
                 'px-2.5 py-1 text-xs font-bold rounded-lg transition-all border',
                 filterStatus === key
-                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-2xs'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-[#0B3323]'
+                  ? 'bg-[#08088F] text-[#FFFF00] border-[#08088F] shadow-2xs'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-[#08088F]'
               )}
             >
               {label}
@@ -629,21 +627,10 @@ export default function SymmetricalKnockoutBracket({
               variant="outline"
               size="sm"
               onClick={() => setHoveredParticipantId(null)}
-              className="h-8 text-xs font-bold gap-1 border-emerald-300 text-emerald-800 bg-emerald-50"
+              className="h-8 text-xs font-bold gap-1 border-blue-300 text-[#08088F] bg-blue-50"
             >
               <RotateCcw className="h-3 w-3" />
               <span>Clear Path Highlight</span>
-            </Button>
-          )}
-
-          {isCompleted && champion && onReopenCelebration && (
-            <Button
-              size="sm"
-              onClick={onReopenCelebration}
-              className="h-8 text-xs font-extrabold bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 hover:from-amber-600 hover:to-yellow-600 gap-1.5 shadow-sm"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Winner Celebration</span>
             </Button>
           )}
 
@@ -652,7 +639,7 @@ export default function SymmetricalKnockoutBracket({
               onClick={() => setViewMode('tree')}
               className={cn(
                 'px-3 py-1 text-xs font-bold rounded-lg transition-all',
-                viewMode === 'tree' ? 'bg-white text-[#0B3323] shadow-2xs' : 'text-slate-500 hover:text-[#0B3323]'
+                viewMode === 'tree' ? 'bg-[#08088F] text-white shadow-2xs' : 'text-slate-500 hover:text-[#08088F]'
               )}
             >
               Playoff Tree
@@ -661,7 +648,7 @@ export default function SymmetricalKnockoutBracket({
               onClick={() => setViewMode('list')}
               className={cn(
                 'px-3 py-1 text-xs font-bold rounded-lg transition-all',
-                viewMode === 'list' ? 'bg-white text-[#0B3323] shadow-2xs' : 'text-slate-500 hover:text-[#0B3323]'
+                viewMode === 'list' ? 'bg-[#08088F] text-white shadow-2xs' : 'text-slate-500 hover:text-[#08088F]'
               )}
             >
               Round List
@@ -685,11 +672,11 @@ export default function SymmetricalKnockoutBracket({
                   <div key={`left-round-${round.id}`} className="flex flex-col gap-6 items-center">
                     {/* Round Title */}
                     <div className="text-center py-1.5 px-4 bg-white/90 rounded-xl border border-slate-200 shadow-2xs w-full flex items-center justify-center gap-1.5">
-                      <span className="text-[11px] font-black text-[#0B3323] uppercase tracking-wider">
+                      <span className="text-[11px] font-black text-[#08088F] uppercase tracking-wider">
                         {round.name}
                       </span>
                       {round.round_number === currentActiveRoundNumber && (
-                        <Badge className="bg-emerald-600 text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>
+                        <Badge className="bg-[#3434FF] text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>
                       )}
                     </div>
 
@@ -788,11 +775,11 @@ export default function SymmetricalKnockoutBracket({
                   <div key={`right-round-${round.id}`} className="flex flex-col gap-6 items-center">
                     {/* Round Title */}
                     <div className="text-center py-1.5 px-4 bg-white/90 rounded-xl border border-slate-200 shadow-2xs w-full flex items-center justify-center gap-1.5">
-                      <span className="text-[11px] font-black text-[#0B3323] uppercase tracking-wider">
+                      <span className="text-[11px] font-black text-[#08088F] uppercase tracking-wider">
                         {round.name}
                       </span>
                       {round.round_number === currentActiveRoundNumber && (
-                        <Badge className="bg-emerald-600 text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>
+                        <Badge className="bg-[#3434FF] text-white text-[8px] px-1 py-0 border-0">ACTIVE</Badge>
                       )}
                     </div>
 
@@ -832,7 +819,7 @@ export default function SymmetricalKnockoutBracket({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <span className="text-xs font-black text-[#0B3323]">
+            <span className="text-xs font-black text-[#08088F]">
               {rounds[activeMobileRoundIdx]?.name || `Round ${activeMobileRoundIdx + 1}`} ({activeMobileRoundIdx + 1}/{rounds.length})
             </span>
 

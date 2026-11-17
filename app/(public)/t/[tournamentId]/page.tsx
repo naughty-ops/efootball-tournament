@@ -2,7 +2,7 @@ import React, { cache } from 'react';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { getPublicTournament, redactPrivateTournament } from '@/services/publicTournamentService';
+import { getPublicTournament, getPublicParticipants, redactPrivateTournament } from '@/services/publicTournamentService';
 import { verifySignedTournamentAccessToken, getTournamentCookieName } from '@/lib/security/tournamentAccessCookie';
 import PublicTournamentClientView from './PublicTournamentClientView';
 
@@ -71,7 +71,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicTournamentPage({ params }: PageProps) {
   const { tournamentId } = await params;
-  const initialTournament = await getCachedTournament(tournamentId);
+  const [initialTournament, initialParticipants] = await Promise.all([
+    getCachedTournament(tournamentId),
+    getPublicParticipants(tournamentId).catch(() => []),
+  ]);
 
   if (!initialTournament) {
     return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={null} />;
@@ -114,5 +117,11 @@ export default async function PublicTournamentPage({ params }: PageProps) {
     }
   }
 
-  return <PublicTournamentClientView tournamentId={tournamentId} initialTournament={initialTournament} />;
+  return (
+    <PublicTournamentClientView
+      tournamentId={tournamentId}
+      initialTournament={initialTournament}
+      initialParticipants={initialParticipants}
+    />
+  );
 }

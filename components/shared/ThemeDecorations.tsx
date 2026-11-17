@@ -7,7 +7,7 @@ import React from 'react';
  */
 export function ThemeSideAngles() {
   return (
-    <div className="hidden xl:block pointer-events-none select-none z-10" aria-hidden="true">
+    <div className="hidden xl:block pointer-events-none select-none absolute inset-0 overflow-hidden z-10" aria-hidden="true">
       <div className="yellow-angle-left top-48" />
       <div className="yellow-angle-right top-48" />
       <div className="yellow-angle-left top-[750px]" />

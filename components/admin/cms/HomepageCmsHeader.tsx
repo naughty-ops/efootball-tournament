@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ExternalLink, UploadCloud, RotateCcw, ShieldCheck, History } from 'lucide-react';
+import { ExternalLink, UploadCloud, ShieldCheck, History, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,6 +10,7 @@ interface HomepageCmsHeaderProps {
   pendingDraftCount: number;
   onPublishAll: () => void;
   onOpenAuditHistory: () => void;
+  onOpenFullPreview: () => void;
   isPublishing: boolean;
 }
 
@@ -17,13 +18,14 @@ export function HomepageCmsHeader({
   pendingDraftCount,
   onPublishAll,
   onOpenAuditHistory,
+  onOpenFullPreview,
   isPublishing,
 }: HomepageCmsHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-[#1414B8] border border-white/20 rounded-[28px] p-6 sm:p-8 shadow-2xl">
       <div className="space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
-          <Badge className="bg-[#FFFF00] text-[#08088F] font-black uppercase text-xs px-3 py-1 tracking-wider">
+          <Badge className="bg-[#FFFF00] text-[#08088F] font-black uppercase text-xs px-3 py-1 tracking-wider shadow-sm">
             Phase 1 CMS
           </Badge>
           <span className="text-xs text-[#D9DCFF] font-semibold flex items-center gap-1.5">
@@ -35,11 +37,22 @@ export function HomepageCmsHeader({
           Homepage Management
         </h1>
         <p className="text-xs sm:text-sm text-[#D9DCFF] max-w-2xl font-medium leading-relaxed">
-          Control, configure, reorder, and publish public homepage sections in real-time. Changes can be saved as drafts or published instantly to live visitors.
+          Configure, visually customize, reorder, and publish public homepage sections in real-time. Changes can be edited with visual form controls, verified with live interactive previews, and published instantly.
         </p>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onOpenFullPreview}
+          className="rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2"
+        >
+          <Eye className="h-3.5 w-3.5 text-[#FFFF00]" />
+          <span>Preview Page</span>
+        </Button>
+
         <Button
           asChild
           variant="outline"

@@ -36,9 +36,13 @@ function getAllowedOrigin(request: Request): string | null {
 
   const normalizedOrigin = parsed.origin.toLowerCase();
 
-  // 1. Authoritative Canonical Production Domain
-  const prodDomain = 'https://efootball-tournament-cyan.vercel.app';
-  if (normalizedOrigin === prodDomain) return origin;
+  // 1. Authoritative Canonical Production Domains
+  const prodDomains = [
+    'https://www.e-football.in',
+    'https://e-football.in',
+    'https://efootball-tournament-cyan.vercel.app',
+  ];
+  if (prodDomains.includes(normalizedOrigin)) return origin;
 
   // 2. Explicit Environment Site URL (if configured)
   if (process.env.NEXT_PUBLIC_SITE_URL) {

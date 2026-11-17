@@ -85,17 +85,18 @@ async function recordAdminAuditLog(
   } = {}
 ) {
   try {
-    await (supabase.from('admin_audit_logs') as any).insert({
-      admin_id: adminId,
-      target_user_id: targetUserId,
-      action,
-      entity_type: options.entityType || 'profile',
-      details: options.details || null,
-      previous_values: options.previousValues || null,
-      new_values: options.newValues || null,
-      reason: options.reason || null,
-      status: 'success',
+    const { error } = await supabase.rpc('record_admin_audit_entry', {
+      p_target_user_id: targetUserId,
+      p_action: action,
+      p_entity_type: options.entityType || 'profile',
+      p_details: options.details || null,
+      p_previous_values: options.previousValues || null,
+      p_new_values: options.newValues || null,
+      p_reason: options.reason || null,
     });
+    if (error) {
+      console.warn('Failed to record admin audit log via RPC (non-fatal):', error);
+    }
   } catch (err) {
     console.warn('Failed to record admin audit log (non-fatal):', err);
   }
@@ -263,7 +264,7 @@ async function throttleSyncMissingProfiles(supabase: any) {
  */
 export async function getVerificationDashboardStatsAction(): Promise<ActionResponse<VerificationDashboardStats>> {
   try {
-    await requireAdmin();
+    await requireAdmin('moderator');
     const supabase = await createClient();
 
     // Trigger throttled self-healing profile sync for any orphaned auth.users
@@ -341,7 +342,7 @@ export async function getAdminVerificationQueueAction(options: {
   totalPages: number;
 }>> {
   try {
-    await requireAdmin();
+    await requireAdmin('moderator');
     const supabase = await createClient();
 
     // Trigger throttled self-healing profile sync for any orphaned auth.users
@@ -454,7 +455,7 @@ export async function getMemberVerificationDetailsAction(
   targetUserId: string
 ): Promise<ActionResponse<MemberDetailedVerificationView>> {
   try {
-    await requireAdmin();
+    await requireAdmin('moderator');
     const supabase = await createClient();
 
     // 1. Fetch profile
@@ -547,7 +548,7 @@ export async function adminVerifyWhatsAppAction(
   rejectionReason?: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     if (decision === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
@@ -621,7 +622,7 @@ export async function adminVerifyWhatsAppByNumberAction(
   rejectionReason?: string
 ): Promise<ActionResponse<{ profile: any }>> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const clean = identifier.trim();
@@ -700,7 +701,7 @@ export async function adminVerifyEfootballIdAction(
   rejectionReason?: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     if (decision === 'rejected' && (!rejectionReason || rejectionReason.trim() === '')) {
@@ -771,7 +772,7 @@ export async function adminVerifyBothAction(
   targetUserId: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const { data: currentProfile, error: fetchErr } = await (supabase.from('profiles') as any)
@@ -851,7 +852,7 @@ export async function adminRevokeVerificationAction(
   reason: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const cleanReason = reason.trim();
@@ -932,7 +933,7 @@ export async function adminSuspendMemberAction(
   reason: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const cleanReason = reason.trim();
@@ -1001,7 +1002,7 @@ export async function adminUnsuspendMemberAction(
   adminNotes?: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const { data: previousProfile, error: pErr } = await (supabase.from('profiles') as any)
@@ -1066,7 +1067,7 @@ export async function adminUpdateMemberNotesAction(
   notes: string
 ): Promise<ActionResponse> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const supabase = await createClient();
 
     const nowIso = new Date().toISOString();

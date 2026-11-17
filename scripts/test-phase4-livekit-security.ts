@@ -50,6 +50,23 @@ function makeRequest(
 // -------------------------------------------------------------
 
 tests.push({
+  id: 'SEC-LK-00',
+  name: 'Canonical production origin (www.e-football.in) is allowed',
+  run: async () => {
+    const req = makeRequest('OPTIONS', 'https://www.e-football.in/api/livekit/token', {
+      origin: 'https://www.e-football.in',
+    });
+    const res = await OPTIONS(req);
+    const cors = res.headers.get('access-control-allow-origin');
+    const passed = res.status === 200 && cors === 'https://www.e-football.in';
+    return {
+      passed,
+      message: `Status: ${res.status}, CORS Origin: ${cors}`,
+    };
+  },
+});
+
+tests.push({
   id: 'SEC-LK-01',
   name: 'Canonical production origin (efootball-tournament-cyan.vercel.app) is allowed',
   run: async () => {

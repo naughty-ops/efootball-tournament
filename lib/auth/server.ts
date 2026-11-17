@@ -9,24 +9,55 @@ import type { User } from '@supabase/supabase-js';
  */
 export const PRIMARY_ADMIN_EMAIL = 'ye.agrajj@gmail.com';
 
-export type AdminRole = 'super_admin' | 'admin' | 'moderator' | 'streamer';
+export type AdminRole =
+  | 'super_admin'
+  | 'admin'
+  | 'finance_admin'
+  | 'support_admin'
+  | 'moderator'
+  | 'streamer';
 
 export const ADMIN_ROLE_RANK: Record<AdminRole, number> = {
-  super_admin: 40,
-  admin: 30,
-  moderator: 20,
+  super_admin: 50,
+  admin: 40,
+  finance_admin: 30,
+  support_admin: 20,
+  moderator: 15,
   streamer: 10,
 };
 
 /**
- * Checks if a user's role meets the minimum required administrative hierarchy.
- * Hierarchy: super_admin (40) > admin (30) > moderator (20) > streamer (10)
+ * Checks if a user's role meets the required administrative domain or hierarchy.
+ * Enforces domain isolation matching PostgreSQL has_admin_role().
  */
 export function hasRequiredAdminRole(userRole: string | null | undefined, minRole: AdminRole = 'moderator'): boolean {
   if (!userRole) return false;
-  const userRank = ADMIN_ROLE_RANK[userRole as AdminRole] || 0;
-  const requiredRank = ADMIN_ROLE_RANK[minRole] || 0;
-  return userRank >= requiredRank;
+  const role = userRole as AdminRole;
+
+  // 1. super_admin satisfies any administrative role
+  if (role === 'super_admin') return true;
+
+  // 2. Exact match
+  if (role === minRole) return true;
+
+  // 3. Any active administrator satisfies base staff/streamer requirement (used for base admin layout / dashboard)
+  if (minRole === 'streamer') {
+    return ['admin', 'finance_admin', 'support_admin', 'moderator', 'streamer'].includes(role);
+  }
+
+  // 4. Operations admin satisfies operational hierarchy (admin, moderator)
+  // Admin CANNOT satisfy finance_admin or support_admin
+  if (role === 'admin' && minRole === 'moderator') {
+    return true;
+  }
+
+  // 5. Support admin satisfies support & dispute resolution duties (support_admin, moderator)
+  // Support admin CANNOT satisfy admin, streamer, or finance_admin
+  if (role === 'support_admin' && minRole === 'moderator') {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -55,8 +86,9 @@ export const getAdminUserRecord = cache(async (userId?: string): Promise<AdminUs
   try {
     const supabase = await createClient();
     const { data, error } = await (supabase.from('admin_users') as any)
-      .select('id, email, role')
+      .select('id, email, role, is_active')
       .eq('id', userId)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (!error && data && data.role) {
@@ -181,10 +213,41 @@ export async function requireAdmin(minRole: AdminRole = 'admin'): Promise<{ user
 }
 
 /**
- * Require financial administrator access (super_admin or admin in public.admin_users).
+ * Require financial administrator access (super_admin or finance_admin in public.admin_users).
  */
 export async function requireFinancialAdmin(): Promise<{ user: User; role: AdminRole }> {
-  return await requireAdminRole('admin');
+  const { user, isAdmin, adminRole } = (process.env.NODE_ENV !== 'production' && process.env.TEST_AUTH_USER_EMAIL !== undefined)
+    ? await fetchAuthenticatedUser()
+    : await getAuthenticatedUser();
+
+  if (!user) {
+    throw new Error('Authentication required.');
+  }
+
+  if (!isAdmin || !adminRole || (adminRole !== 'super_admin' && adminRole !== 'finance_admin')) {
+    throw new Error("Unauthorized: Requires financial administrator privileges.");
+  }
+
+  return { user, role: adminRole };
+}
+
+/**
+ * Require support administrator access (super_admin, admin, or support_admin in public.admin_users).
+ */
+export async function requireSupportAdmin(): Promise<{ user: User; role: AdminRole }> {
+  const { user, isAdmin, adminRole } = (process.env.NODE_ENV !== 'production' && process.env.TEST_AUTH_USER_EMAIL !== undefined)
+    ? await fetchAuthenticatedUser()
+    : await getAuthenticatedUser();
+
+  if (!user) {
+    throw new Error('Authentication required.');
+  }
+
+  if (!isAdmin || !adminRole || (adminRole !== 'super_admin' && adminRole !== 'admin' && adminRole !== 'support_admin')) {
+    throw new Error("Unauthorized: Requires support administrator privileges.");
+  }
+
+  return { user, role: adminRole };
 }
 
 /**

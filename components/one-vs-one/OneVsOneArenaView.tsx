@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
   Swords,
   Trophy,
@@ -43,7 +44,11 @@ import JoinMatchModal from './JoinMatchModal';
 import ShareMatchModal from './ShareMatchModal';
 import { useMemberPresence } from '@/hooks/useMemberPresence';
 import { useRealtimeOneVsOneMatch } from '@/hooks/useRealtimeOneVsOneMatch';
-import { joinWaitingMatchByCodeAction } from '@/app/actions/oneVsOneActions';
+import {
+  joinWaitingMatchByCodeAction,
+  getActiveMatchAction,
+  getAvailableWaitingMatchesAction,
+} from '@/app/actions/oneVsOneActions';
 
 interface OneVsOneArenaViewProps {
   cards: OneVsOneCard[];
@@ -130,14 +135,91 @@ export default function OneVsOneArenaView({
     }
   };
 
-  // Subscribe to Realtime updates on active match
+  const isSyncingActiveMatchRef = useRef(false);
+
+  // Synchronize active match data with sub-50ms targeted execution
+  // Eliminates full-page router.refresh() cascades while preserving authoritative state
+  const syncActiveMatch = useCallback(async () => {
+    if (isSyncingActiveMatchRef.current) return;
+    isSyncingActiveMatchRef.current = true;
+
+    try {
+      const res = await getActiveMatchAction();
+      if (res.success) {
+        const fresh = res.data ?? null;
+        setActiveMatch((prev) => {
+          // If match record was removed/ended on server:
+          if (!fresh) {
+            // If transitioning from an active match to null (completed/cancelled),
+            // dispatch a single targeted page refresh to update match history and wallet balances.
+            if (prev) {
+              router.refresh();
+            }
+            return null;
+          }
+
+          // Race condition prevention: Never overwrite newer client state with older payload
+          if (prev && prev.id === fresh.id) {
+            const prevTime = new Date(prev.updated_at || 0).getTime();
+            const freshTime = new Date(fresh.updated_at || 0).getTime();
+            if (freshTime < prevTime) {
+              return prev;
+            }
+          }
+
+          return fresh;
+        });
+      }
+    } catch (err) {
+      console.warn('[OneVsOneArenaView] Error syncing active match:', err);
+    } finally {
+      isSyncingActiveMatchRef.current = false;
+    }
+  }, [router]);
+
+  // Subscribe to Realtime updates on active match with automatic backoff reconnection
   useRealtimeOneVsOneMatch({
     matchId: activeMatch?.id,
     userId: currentUserId,
-    onUpdate: () => {
-      router.refresh();
-    },
+    onUpdate: syncActiveMatch,
   });
+
+  // Realtime subscription for available open challenges in the lobby
+  // Eliminates 12s polling while ensuring instantaneous discovery of new waiting matches
+  useEffect(() => {
+    if (activeMatch || arenaModeTab !== '1v1') return;
+
+    const supabase = createClient();
+    const channelTopic = '1v1:lobby:available_matches';
+    let isMounted = true;
+
+    const channel = supabase
+      .channel(channelTopic)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'one_vs_one_matches',
+        },
+        async (payload: any) => {
+          if (!isMounted) return;
+          const status = payload.new?.status || payload.old?.status;
+          if (status === 'waiting' || status === 'matched' || status === 'cancelled' || status === 'expired') {
+            const res = await getAvailableWaitingMatchesAction();
+            if (isMounted && res.success && res.data) {
+              setAvailableMatches(res.data);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [activeMatch, arenaModeTab]);
 
   const handleMatchInitiated = (data: {
     matchId: string;
@@ -189,7 +271,6 @@ export default function OneVsOneArenaView({
         result: null,
       });
     }
-    router.refresh();
   };
 
   const handleQueueCancelled = () => {
@@ -209,7 +290,7 @@ export default function OneVsOneArenaView({
       return;
     }
 
-    router.refresh();
+    await syncActiveMatch();
   };
 
   const scrollToLeaderboard = () => {
@@ -391,7 +472,7 @@ export default function OneVsOneArenaView({
               match={activeMatch}
               currentUserId={currentUserId}
               userDisplayName={userDisplayName}
-              onRefreshRequested={() => router.refresh()}
+              onRefreshRequested={syncActiveMatch}
               onQueueCancelled={handleQueueCancelled}
             />
           ) : (
@@ -727,9 +808,9 @@ export default function OneVsOneArenaView({
         <JoinMatchModal
           initialCode={joinModalCode}
           onClose={() => setShowJoinModal(false)}
-          onJoined={(matchId) => {
+          onJoined={async (matchId) => {
             setShowJoinModal(false);
-            router.refresh();
+            await syncActiveMatch();
           }}
         />
       )}

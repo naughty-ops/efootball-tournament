@@ -7,12 +7,12 @@ import { Trophy, Shield, Gamepad2, Radio, Heart } from 'lucide-react';
 
 export default function PublicFooter() {
   return (
-    <footer className="w-full bg-[#050566] border-t border-white/15 text-white mt-16 sm:mt-24 relative overflow-hidden">
+    <footer className="w-full bg-[#050566] border-t border-white/15 text-white mt-12 sm:mt-16 relative overflow-hidden">
       {/* Decorative Top Yellow Bar */}
       <div className="w-full h-1 bg-[#FFFF00]" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 pb-12 border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-6 sm:pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 pb-8 sm:pb-10 border-b border-white/10">
           {/* Brand Info */}
           <div className="md:col-span-1 space-y-4">
             <Link href="/" className="flex items-center gap-2 group">
@@ -120,7 +120,7 @@ export default function PublicFooter() {
         </div>
 
         {/* Legal Disclaimer & Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#D9DCFF]/70 text-center sm:text-left">
+        <div className="pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#D9DCFF]/70 text-center sm:text-left">
           <p>
             © {new Date().getFullYear()} eFootball Tournament Platform. All rights reserved.
           </p>

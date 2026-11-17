@@ -4,6 +4,7 @@ import Image from 'next/image';
 import {
   Trophy,
   ChevronRight,
+  ChevronLeft,
   Play,
   Calendar,
   Users,
@@ -127,6 +128,10 @@ export default async function HomePage() {
 
   const liveSec = cmsSections['live_matches'];
   const isLiveVisible = !isCmsLoaded || Boolean(liveSec);
+
+  const arena1v1Sec = cmsSections['arena_1v1'];
+  const isArena1v1Visible = !isCmsLoaded || Boolean(arena1v1Sec);
+  const arenaData = arena1v1Sec?.published_content || {};
 
   const upcomingSec = cmsSections['upcoming_tournaments'];
   const isTournamentsVisible = !isCmsLoaded || Boolean(upcomingSec);
@@ -385,7 +390,13 @@ export default async function HomePage() {
       {/* =========================================================================
           3.5 1 VS 1 CHALLENGE ARENA ADVERTISEMENT & FEATURE SHOWCASE
           ========================================================================= */}
-      <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#08088F] via-[#0A0A7A] to-[#070748] border-2 border-blue-400/30 p-6 sm:p-8 lg:p-10 shadow-2xl text-white group hover:border-[#FFFF00]/50 transition-all duration-500">
+      {isArena1v1Visible && (
+        <section
+          className={cn(
+            'relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#08088F] via-[#0A0A7A] to-[#070748] border-2 border-blue-400/30 p-6 sm:p-8 lg:p-10 shadow-2xl text-white group hover:border-[#FFFF00]/50 transition-all duration-500',
+            getVisibilityClass(arena1v1Sec)
+          )}
+        >
         {/* Ambient Decorative Glows */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF168B]/20 rounded-full blur-3xl pointer-events-none group-hover:bg-[#FF168B]/30 transition-all duration-700" />
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#FFFF00]/15 rounded-full blur-3xl pointer-events-none" />
@@ -397,28 +408,29 @@ export default async function HomePage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="bg-[#FF168B] text-white font-black text-xs uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg shadow-pink-500/30 flex items-center gap-1.5">
                   <Flame className="h-3.5 w-3.5 fill-current" />
-                  <span>1 VS 1 ARENA</span>
+                  <span>{(arenaData.badge as string) || '1 VS 1 ARENA'}</span>
                 </span>
                 <span className="bg-emerald-500/15 border border-emerald-500/30 text-[#00E676] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E676] opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00E676]" />
                   </span>
-                  <span>Instant 24/7 Matchmaking</span>
+                  <span>{(arenaData.pill1_text as string) || 'Instant 24/7 Matchmaking'}</span>
                 </span>
                 <span className="bg-[#FFFF00]/15 border border-[#FFFF00]/30 text-[#FFFF00] text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                   <Wallet className="h-3 w-3" />
-                  <span>Instant Wallet Prize Payouts</span>
+                  <span>{(arenaData.pill2_text as string) || 'Instant Wallet Prize Payouts'}</span>
                 </span>
               </div>
 
               <h2 className="text-3xl sm:text-5xl font-black font-display uppercase tracking-tight text-white leading-[1.05]">
-                HEAD-TO-HEAD BATTLES <br />
-                <span className="text-[#FFFF00]">PLAY ANYTIME, WIN REAL PRIZES</span>
+                {(arenaData.title_main as string) || 'HEAD-TO-HEAD BATTLES'} <br />
+                <span className="text-[#FFFF00]">{(arenaData.title_highlight as string) || 'PLAY ANYTIME, WIN REAL PRIZES'}</span>
               </h2>
 
               <p className="text-sm sm:text-base text-[#D9DCFF] leading-relaxed font-medium max-w-xl">
-                Skip scheduled tournament waiting. Jump straight into fast-paced 1v1 eFootball matches or challenge your friends in private rooms with instant, verified wallet payouts.
+                {(arenaData.subtitle as string) ||
+                  'Skip scheduled tournament waiting. Jump straight into fast-paced 1v1 eFootball matches or challenge your friends in private rooms with instant, verified wallet payouts.'}
               </p>
             </div>
 
@@ -429,8 +441,8 @@ export default async function HomePage() {
                 size="lg"
                 className="rounded-full bg-[#FFFF00] hover:bg-yellow-300 text-[#08088F] font-black text-base uppercase tracking-wider px-8 py-4 shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                <Link href="/dashboard/matches?mode=1v1">
-                  <span>Play 1 VS 1 Now</span>
+                <Link href={(arenaData.cta_url as string) || '/dashboard/matches?mode=1v1'}>
+                  <span>{(arenaData.cta_label as string) || 'Play 1 VS 1 Now'}</span>
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
@@ -486,94 +498,98 @@ export default async function HomePage() {
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-[#FFFF00]" />
                 <span className="text-xs font-black uppercase tracking-wider text-white">
-                  Popular 1 VS 1 Arena Stakes
+                  Popular 1 VS 1 Arena Stakes (Up to ₹100)
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold">
-                <Eye className="h-3.5 w-3.5" />
-                <span>Live Active Arenas</span>
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:inline-flex text-[11px] font-bold text-white/50">
+                  Swipe horizontally →
+                </span>
+                <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold">
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>Live Active Arenas</span>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              {/* Tier 1 */}
-              <Link
-                href="/dashboard/matches?mode=1v1"
-                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-white/15 hover:border-[#FFFF00] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
-                      Rookie Arena
-                    </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
-                      Standard
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-xs text-white/70">Entry: ₹10</span>
-                    <span className="text-base font-black text-[#00E676]">Prize: ₹15</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-black text-[#FFFF00] group-hover/tier:translate-x-1 transition-transform">
-                  <span>Enter</span>
-                  <ChevronRight className="h-4 w-4" />
-                </div>
-              </Link>
+            {(() => {
+              const defaultTiers = [
+                { name: 'Rookie Challenge', entry_inr: 10, prize_inr: 15, badge: 'STARTER', hot: false },
+                { name: 'Pro Contender', entry_inr: 15, prize_inr: 25, badge: 'HOT', hot: true },
+                { name: 'Challenger Striker', entry_inr: 20, prize_inr: 34, badge: 'POPULAR', hot: false },
+                { name: 'Champions Arena', entry_inr: 25, prize_inr: 42, badge: 'HIGH RETURN', hot: false },
+                { name: 'Master League', entry_inr: 30, prize_inr: 50, badge: 'PRO DUEL', hot: false },
+                { name: 'Apex Gladiator', entry_inr: 40, prize_inr: 70, badge: 'HIGH STAKES', hot: true },
+                { name: 'Legendary Arena', entry_inr: 50, prize_inr: 90, badge: 'LEGENDARY', hot: false },
+                { name: 'Elite Warrior', entry_inr: 60, prize_inr: 108, badge: 'ELITE', hot: false },
+                { name: 'Grandmaster Clash', entry_inr: 75, prize_inr: 135, badge: 'GRANDMASTER', hot: false },
+                { name: 'Ultimate Titan', entry_inr: 100, prize_inr: 180, badge: 'TITAN CLASH', hot: true },
+              ];
 
-              {/* Tier 2 */}
-              <Link
-                href="/dashboard/matches?mode=1v1"
-                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-[#FF168B]/40 hover:border-[#FF168B] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 bg-[#FF168B] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-bl-lg">
-                  HOT
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
-                      Contender Arena
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-xs text-white/70">Entry: ₹15</span>
-                    <span className="text-base font-black text-[#00E676]">Prize: ₹25</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-black text-[#FF168B] group-hover/tier:translate-x-1 transition-transform">
-                  <span>Enter</span>
-                  <ChevronRight className="h-4 w-4" />
-                </div>
-              </Link>
+              const tiersToDisplay = (Array.isArray(arenaData.tiers) && arenaData.tiers.length > 3)
+                ? arenaData.tiers
+                : defaultTiers;
 
-              {/* Tier 3 */}
-              <Link
-                href="/dashboard/matches?mode=1v1"
-                className="group/tier p-4 rounded-2xl bg-[#1010C5] border border-white/15 hover:border-[#FFFF00] hover:bg-[#1414D8] transition-all flex items-center justify-between shadow-lg"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
-                      Champions Arena
-                    </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-[#00E676]">
-                      High Return
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-xs text-white/70">Entry: ₹25</span>
-                    <span className="text-base font-black text-[#00E676]">Prize: ₹40</span>
-                  </div>
+              return (
+                <div className="flex gap-3.5 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scroll-smooth no-scrollbar items-stretch">
+                  {tiersToDisplay.map((tier: any, idx: number) => {
+                    const isHot = tier.hot || tier.badge === 'HOT' || tier.entry_inr === 15 || tier.entry_inr === 100;
+                    const isHighStakes = tier.entry_inr >= 40;
+                    return (
+                      <Link
+                        key={idx}
+                        href={(arenaData.cta_url as string) || '/dashboard/matches?mode=1v1'}
+                        className={`group/tier w-[240px] sm:w-[270px] shrink-0 snap-start p-4 rounded-2xl bg-[#1010C5] border transition-all flex flex-col justify-between shadow-lg relative overflow-hidden hover:-translate-y-1 ${
+                          isHot
+                            ? 'border-[#FF168B]/50 hover:border-[#FF168B] shadow-pink-500/10 hover:shadow-pink-500/20'
+                            : isHighStakes
+                            ? 'border-yellow-400/50 hover:border-[#FFFF00] shadow-yellow-500/10 hover:shadow-yellow-500/20'
+                            : 'border-white/15 hover:border-[#FFFF00]'
+                        }`}
+                      >
+                        {isHot && (
+                          <div className="absolute top-0 right-0 bg-[#FF168B] text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg shadow-sm">
+                            {tier.badge || 'HOT'}
+                          </div>
+                        )}
+                        {isHighStakes && !isHot && (
+                          <div className="absolute top-0 right-0 bg-[#FFFF00] text-[#08088F] text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg shadow-sm">
+                            {tier.badge || 'HIGH STAKES'}
+                          </div>
+                        )}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black uppercase tracking-wider text-[#FFFF00]">
+                              {tier.name}
+                            </span>
+                            {!isHot && !isHighStakes && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
+                                {tier.badge || 'Standard'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2 pt-1 border-t border-white/10">
+                            <span className="text-xs text-white/70">Entry: ₹{tier.entry_inr}</span>
+                            <span className="text-base font-black text-[#00E676]">Prize: ₹{tier.prize_inr}</span>
+                          </div>
+                        </div>
+                        <div className="pt-4 flex items-center justify-between text-xs font-black text-[#FFFF00] group-hover/tier:translate-x-1 transition-transform">
+                          <span className="text-[11px] uppercase tracking-wider text-white/80">Enter Arena</span>
+                          <div className="flex items-center gap-1">
+                            <span>Play</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center gap-1 text-xs font-black text-[#FFFF00] group-hover/tier:translate-x-1 transition-transform">
-                  <span>Enter</span>
-                  <ChevronRight className="h-4 w-4" />
-                </div>
-              </Link>
-            </div>
+              );
+            })()}
           </div>
         </div>
       </section>
+      )}
 
       {/* =========================================================================
           4. TOURNAMENT DISCOVERY — ACTIVE & UPCOMING

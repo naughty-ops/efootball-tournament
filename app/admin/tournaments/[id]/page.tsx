@@ -36,7 +36,6 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate, formatRupees } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/modal';
 import { StageProgressIndicator } from '@/components/tournament/StageProgressIndicator';
-import { WinnerCelebrationOverlay } from '@/components/tournament/WinnerCelebrationOverlay';
 import { SeasonStatsCards } from '@/components/tournament/SeasonStatsCards';
 import { TournamentPrizeShowcase } from '@/components/tournament/TournamentPrizeShowcase';
 import { TournamentSubStage } from '@/lib/lifecycle/lifecycleEngine';

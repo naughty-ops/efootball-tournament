@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminVerificationQueue } from '@/components/admin/AdminVerificationQueue';
 import AdminSignOutButton from '@/components/admin/AdminSignOutButton';
-import { requireAdmin } from '@/lib/auth/server';
+import { requireAdmin, hasRequiredAdminRole } from '@/lib/auth/server';
 import {
   getAdminVerificationQueueAction,
   getVerificationDashboardStatsAction,
@@ -82,12 +82,14 @@ export default async function AdminDashboardPage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <AdminSignOutButton />
 
-          <Button asChild className="w-full sm:w-auto justify-center bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider gap-2 rounded-full h-10 px-6 shadow-lg cursor-pointer">
-            <Link href="/admin/tournaments/new">
-              <Plus className="h-4 w-4" />
-              <span>Create Tournament</span>
-            </Link>
-          </Button>
+          {hasRequiredAdminRole(admin.role, 'admin') && (
+            <Button asChild className="w-full sm:w-auto justify-center bg-[#FFFF00] hover:bg-[#E6E600] text-[#08088F] font-black text-xs uppercase tracking-wider gap-2 rounded-full h-10 px-6 shadow-lg cursor-pointer">
+              <Link href="/admin/tournaments/new">
+                <Plus className="h-4 w-4" />
+                <span>Create Tournament</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -174,11 +176,18 @@ export default async function AdminDashboardPage() {
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">{admin.user.email}</h3>
-                <p className="text-xs text-[#FFFF00] font-bold uppercase tracking-wider">Lead Administrator • Full Control</p>
+                <p className="text-xs text-[#FFFF00] font-bold uppercase tracking-wider">
+                  {admin.role === 'super_admin' ? 'Super Administrator • Full Control' :
+                   admin.role === 'finance_admin' ? 'Finance Administrator • Financial Operations' :
+                   admin.role === 'support_admin' ? 'Support Administrator • Tickets & Dispute Desk' :
+                   'Operations Administrator • Tournament Operations'}
+                </p>
               </div>
             </div>
             <p className="text-xs text-white/70 pt-3 border-t border-white/10">
-              Manage tournament lifecycle, player application approvals, bracket generation, and match scheduling directly from the admin navigation.
+              {admin.role === 'finance_admin' ? 'Review deposits, approve payout requests, verify bank accounts, and manage prize settlements.' :
+               admin.role === 'support_admin' ? 'Respond to player support inquiries, verify member credentials, and resolve match disputes.' :
+               'Manage tournament lifecycle, player application approvals, bracket generation, and match scheduling directly from the admin navigation.'}
             </p>
           </div>
         </CardContent>

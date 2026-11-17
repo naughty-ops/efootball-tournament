@@ -137,7 +137,7 @@ export default function OneVsOneMatchRoom({
     const origin =
       typeof window !== 'undefined'
         ? window.location.origin
-        : 'https://efootball-tournament-cyan.vercel.app';
+        : 'https://www.e-football.in';
     const url = `${origin}/dashboard/matches?joinMatch=${match.match_code}`;
     navigator.clipboard.writeText(url);
     setCopiedMatchLink(true);
@@ -154,7 +154,7 @@ export default function OneVsOneMatchRoom({
     const origin =
       typeof window !== 'undefined'
         ? window.location.origin
-        : 'https://efootball-tournament-cyan.vercel.app';
+        : 'https://www.e-football.in';
     const matchUrl = `${origin}/dashboard/matches?joinMatch=${match.match_code}`;
     const text = `⚔️ *eFootball 1v1 Arena Challenge!* ⚔️\n\nI created a match room! Join my room now:\n\n🏆 *Tier:* ${
       match.card?.name || '1v1 Arena'

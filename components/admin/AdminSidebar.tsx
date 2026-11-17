@@ -72,6 +72,7 @@ interface AdminSidebarProps {
   onClose?: () => void;
   unresolvedTicketCount?: number;
   hasUrgentTickets?: boolean;
+  adminRole?: string | null;
 }
 
 export default function AdminSidebar({
@@ -79,11 +80,34 @@ export default function AdminSidebar({
   onClose,
   unresolvedTicketCount = 0,
   hasUrgentTickets = false,
+  adminRole = null,
 }: AdminSidebarProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname || '';
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const filteredNavSections = navSections
+    .map((section) => {
+      if (!adminRole || adminRole === 'super_admin' || adminRole === 'admin') {
+        return section;
+      }
+
+      if (adminRole === 'finance_admin') {
+        const allowedHrefs = ['/admin/dashboard', '/admin/payouts', '/admin/wallet'];
+        const filteredItems = section.items.filter((item) => allowedHrefs.includes(item.href));
+        return { ...section, items: filteredItems };
+      }
+
+      if (adminRole === 'support_admin') {
+        const allowedHrefs = ['/admin/dashboard', '/admin/tickets'];
+        const filteredItems = section.items.filter((item) => allowedHrefs.includes(item.href));
+        return { ...section, items: filteredItems };
+      }
+
+      return section;
+    })
+    .filter((section) => section.items.length > 0);
 
   const handleSignOut = async () => {
     setIsLoggingOut(true);
@@ -155,7 +179,7 @@ export default function AdminSidebar({
 
           {/* Navigation Sections */}
           <nav className="flex flex-col gap-4 overflow-y-auto pr-1">
-            {navSections.map((section, idx) => (
+            {filteredNavSections.map((section, idx) => (
               <div key={section.title || idx} className="space-y-1.5">
                 {section.title && (
                   <p className="px-4 text-[10px] font-black uppercase tracking-widest text-[#FFFF00]/70">

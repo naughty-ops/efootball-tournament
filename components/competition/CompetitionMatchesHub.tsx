@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Swords, Flame, Trophy, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PlayerMatchesClient from '@/app/dashboard/matches/PlayerMatchesClient';
@@ -48,24 +48,31 @@ export default function CompetitionMatchesHub({
   initialAvailableMatches = [],
   initialLeaderboard = [],
 }: CompetitionMatchesHubProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+
   const [activeMode, setActiveMode] = useState<'tournaments' | '1v1'>(() => {
     const modeParam = searchParams?.get('mode');
-    if (modeParam === '1v1') return '1v1';
+    if (modeParam === '1v1' || modeParam === 'tournaments') return modeParam;
     if (active1v1Match) return '1v1';
     return initialMode;
   });
 
+  // Keep state synchronized if URL search param changes externally
   useEffect(() => {
     const modeParam = searchParams?.get('mode');
-    if (modeParam === '1v1') {
-      setActiveMode('1v1');
-    } else if (active1v1Match) {
-      setActiveMode('1v1');
-    } else if (initialMode) {
-      setActiveMode(initialMode);
+    if (modeParam === '1v1' || modeParam === 'tournaments') {
+      setActiveMode(modeParam);
     }
-  }, [searchParams, active1v1Match, initialMode]);
+  }, [searchParams]);
+
+  const handleModeChange = (mode: 'tournaments' | '1v1') => {
+    setActiveMode(mode);
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('mode', mode);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Real-time member presence tracking in Competition Center
   useMemberPresence({
@@ -84,7 +91,7 @@ export default function CompetitionMatchesHub({
       {/* Competition Mode Segmented Selector */}
       <div className="flex items-center gap-2 p-1.5 bg-[#07074A] border border-white/15 rounded-2xl w-fit max-w-full overflow-x-auto no-scrollbar shadow-inner">
         <button
-          onClick={() => setActiveMode('tournaments')}
+          onClick={() => handleModeChange('tournaments')}
           className={cn(
             'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shrink-0',
             activeMode === 'tournaments'
@@ -109,7 +116,7 @@ export default function CompetitionMatchesHub({
         </button>
 
         <button
-          onClick={() => setActiveMode('1v1')}
+          onClick={() => handleModeChange('1v1')}
           className={cn(
             'flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shrink-0',
             activeMode === '1v1'
@@ -119,18 +126,50 @@ export default function CompetitionMatchesHub({
         >
           <Flame className={cn('h-4 w-4', activeMode === '1v1' ? 'text-[#FF168B]' : 'text-[#FF168B]/80')} />
           <span>1 VS 1 Challenge Arena</span>
-          <span
-            className={cn(
-              'ml-1 px-2 py-0.5 text-[10px] rounded-full font-black leading-none border',
-              activeMode === '1v1'
-                ? 'bg-[#FF168B] text-white border-[#FF168B]'
-                : 'bg-[#FF168B]/20 text-[#FF168B] border-[#FF168B]/40'
-            )}
-          >
-            Live
-          </span>
+          {active1v1Match ? (
+            <span className="ml-1 px-2 py-0.5 text-[10px] rounded-full font-black leading-none bg-[#FF168B] text-white animate-pulse">
+              Active Match
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'ml-1 px-2 py-0.5 text-[10px] rounded-full font-black leading-none border',
+                activeMode === '1v1'
+                  ? 'bg-[#FF168B] text-white border-[#FF168B]'
+                  : 'bg-[#FF168B]/20 text-[#FF168B] border-[#FF168B]/40'
+              )}
+            >
+              Live
+            </span>
+          )}
         </button>
       </div>
+
+      {/* Ongoing 1v1 Match Notice when navigating Tournament Fixtures */}
+      {active1v1Match && activeMode === 'tournaments' && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-[#FF168B]/10 border border-[#FF168B]/30 rounded-2xl text-white">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF168B] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#FF168B]"></span>
+            </span>
+            <div className="space-y-0.5">
+              <p className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+                Active 1v1 Match in Progress ({active1v1Match.match_code})
+              </p>
+              <p className="text-[11px] text-white/70">
+                Your live 1v1 match is currently running. You can jump back to the arena anytime.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleModeChange('1v1')}
+            className="px-4 py-2 bg-[#FF168B] hover:bg-[#FF168B]/90 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#FF168B]/25 cursor-pointer shrink-0"
+          >
+            Return to Arena
+          </button>
+        </div>
+      )}
 
       {/* Mode View */}
       {activeMode === 'tournaments' ? (

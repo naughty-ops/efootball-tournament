@@ -87,7 +87,7 @@ async function runTestSuite() {
 
     // 3. Request Password Reset via anonClient
     console.log('\n[Step 3] Submitting resetPasswordForEmail request...');
-    const redirectTo = 'https://efootball-tournament-cyan.vercel.app/auth/callback?type=recovery&next=/auth/reset-password';
+    const redirectTo = 'https://www.e-football.in/auth/callback?type=recovery&next=/reset-password';
     const { error: resetRequestErr } = await anonClient.auth.resetPasswordForEmail(TEST_EMAIL, {
       redirectTo,
     });

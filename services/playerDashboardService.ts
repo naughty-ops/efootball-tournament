@@ -1135,10 +1135,15 @@ export interface SelfRegisterResult {
   amountPaise?: number;
   entryFeeINR?: number;
   currency?: string;
+  code?: string;
+  paymentMethod?: string;
+  balanceAfterInr?: number;
+  shortfallInr?: number;
+  availableBalanceInr?: number;
 }
 
 /**
- * Perform self-registration for an open tournament (Free or Paid with manual WhatsApp payment)
+ * Perform self-registration for an open tournament (Wallet-powered atomic debit or Free)
  */
 export async function selfRegisterTournament(
   supabase: AnySupabaseClient,
@@ -1146,7 +1151,42 @@ export async function selfRegisterTournament(
   tournamentId: string,
   options?: { rulesAccepted?: boolean; accessCode?: string }
 ): Promise<SelfRegisterResult> {
-  // 0. High-concurrency Fast Path: Attempt atomic database RPC
+  // 0. Primary Fast Path: Attempt atomic wallet-powered registration RPC
+  try {
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+      'register_tournament_with_wallet',
+      {
+        p_tournament_id: tournamentId,
+        p_user_id: userId,
+        p_rules_accepted: options?.rulesAccepted ?? true,
+        p_access_code: options?.accessCode || null,
+      }
+    );
+
+    if (!rpcErr && rpcData && typeof rpcData === 'object') {
+      const res = rpcData as Record<string, any>;
+      return {
+        success: Boolean(res.success),
+        message: res.message || (res.success ? 'Registration completed.' : 'Registration failed.'),
+        participantId: res.participant_id || undefined,
+        isPaid: res.is_paid,
+        registrationId: res.registration_id,
+        status: res.status || (res.success ? 'confirmed' : undefined),
+        amountPaise: res.amount_paise,
+        entryFeeINR: res.entry_fee_inr,
+        currency: res.currency || 'INR',
+        code: res.code,
+        paymentMethod: res.payment_method,
+        balanceAfterInr: res.balance_after_inr,
+        shortfallInr: res.shortfall_inr,
+        availableBalanceInr: res.available_balance_inr,
+      };
+    }
+  } catch {
+    // Stored procedure not available; try legacy RPC
+  }
+
+  // Fallback: Legacy atomic registration RPC
   try {
     const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
       'register_player_for_tournament',

@@ -36,6 +36,7 @@ interface AddMoneyModalProps {
   currentAvailableInr: number;
   paymentSettings: WalletPaymentSettings;
   onDepositSuccess?: () => void;
+  initialAmount?: number;
 }
 
 const PREDEFINED_AMOUNTS = [30, 50, 100, 200, 500, 1000] as const;
@@ -46,11 +47,12 @@ export default function AddMoneyModal({
   currentAvailableInr = 0,
   paymentSettings,
   onDepositSuccess,
+  initialAmount,
 }: AddMoneyModalProps) {
   // Step 1: amount | Step 2: payment | Step 3: success
   const [step, setStep] = useState<'amount' | 'payment' | 'success'>('amount');
-  const [selectedAmount, setSelectedAmount] = useState<number>(100);
-  const [customAmount, setCustomAmount] = useState<string>('100');
+  const [selectedAmount, setSelectedAmount] = useState<number>(initialAmount && initialAmount > 0 ? initialAmount : 100);
+  const [customAmount, setCustomAmount] = useState<string>(initialAmount && initialAmount > 0 ? String(initialAmount) : '100');
   const [amountError, setAmountError] = useState<string | null>(null);
 
   // Step 2 Form
@@ -82,9 +84,10 @@ export default function AddMoneyModal({
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       // Reset state on open
+      const startAmt = initialAmount && initialAmount > 0 ? initialAmount : 100;
       setStep('amount');
-      setSelectedAmount(100);
-      setCustomAmount('100');
+      setSelectedAmount(startAmt);
+      setCustomAmount(String(startAmt));
       setAmountError(null);
       setUtr('');
       setPlayerNotes('');
@@ -98,7 +101,7 @@ export default function AddMoneyModal({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, initialAmount]);
 
   if (!isOpen || !mounted) return null;
 

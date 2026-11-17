@@ -18,6 +18,18 @@ export default async function PlayerDashboardLayout({
   }
 
   const supabase = await createClient();
+
+  // Enforce: Administrators have no user dashboard; route exclusively to /admin/dashboard
+  const { data: adminRecord } = await (supabase.from('admin_users') as any)
+    .select('role')
+    .eq('id', user.id)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (adminRecord && adminRecord.role) {
+    redirect('/admin/dashboard');
+  }
+
   const profile = await getPlayerProfile(supabase, user.id, user).catch(() => null);
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';

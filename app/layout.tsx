@@ -26,7 +26,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
   : process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL.replace(/\/+$/, '')}`
-  : 'https://efootball-tournament-cyan.vercel.app';
+  : 'https://www.e-football.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

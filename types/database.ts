@@ -1184,6 +1184,7 @@ export type HomepageSectionKey =
   | 'hero_banner'
   | 'featured_tournament'
   | 'live_matches'
+  | 'arena_1v1'
   | 'upcoming_tournaments'
   | 'leaderboard'
   | 'featured_players'

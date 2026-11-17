@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { getAuthenticatedUser, requireAdmin } from '@/lib/auth/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { saveUserEligibility } from '@/services/oneVsOneService';
+import {
+  saveUserEligibility,
+  getUserActiveOneVsOneMatch,
+  getAvailableWaitingMatches,
+} from '@/services/oneVsOneService';
+import type { OneVsOneMatchDetail, AvailableWaitingMatch } from '@/types/oneVsOne';
 
 export interface ActionResult<T = any> {
   success: boolean;
@@ -864,5 +869,40 @@ export async function joinWaitingMatchByCodeAction(matchCode: string): Promise<
   } catch (err: any) {
     console.error('[joinWaitingMatchByCodeAction] Error:', err);
     return { success: false, error: err.message || 'Failed to join match.' };
+  }
+}
+
+/**
+ * Fetches the authenticated user's active 1v1 match detail with targeted sub-50ms execution.
+ * Used by client-side Realtime listeners to eliminate full-page router.refresh() loops.
+ */
+export async function getActiveMatchAction(): Promise<ActionResult<OneVsOneMatchDetail | null>> {
+  try {
+    const { user } = await getAuthenticatedUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized. Please sign in.' };
+    }
+    const supabase = await createClient();
+    const match = await getUserActiveOneVsOneMatch(supabase, user.id);
+    return { success: true, data: match };
+  } catch (err: any) {
+    console.error('[getActiveMatchAction] Error:', err);
+    return { success: false, error: err.message || 'Failed to fetch active match.' };
+  }
+}
+
+/**
+ * Fetches currently available open challenges waiting for opponents in the 1v1 lobby.
+ * Used for targeted event-driven updates without full-page refreshes.
+ */
+export async function getAvailableWaitingMatchesAction(): Promise<ActionResult<AvailableWaitingMatch[]>> {
+  try {
+    const { user } = await getAuthenticatedUser();
+    const supabase = await createClient();
+    const res = await getAvailableWaitingMatches(supabase, user?.id);
+    return { success: true, data: res.data || [] };
+  } catch (err: any) {
+    console.error('[getAvailableWaitingMatchesAction] Error:', err);
+    return { success: false, error: err.message || 'Failed to fetch available matches.' };
   }
 }

@@ -147,7 +147,7 @@ export async function assignTicketAction(params: {
   explanation?: string;
 }): Promise<ActionResult> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
@@ -201,7 +201,7 @@ export async function updateTicketPriorityAction(params: {
   explanation?: string;
 }): Promise<ActionResult> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
@@ -255,7 +255,7 @@ export async function updateTicketStatusAction(params: {
   explanation?: string;
 }): Promise<ActionResult> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
@@ -456,7 +456,7 @@ export async function resolveTicketAction(params: {
   newKickoffTime?: string;
 }): Promise<ActionResult> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const now = new Date().toISOString();
 
@@ -565,7 +565,7 @@ export async function rejectTicketAction(params: {
       return { success: false, error: 'A mandatory rejection reason is required (minimum 5 characters).' };
     }
 
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
     const now = new Date().toISOString();
@@ -631,7 +631,7 @@ export async function reopenTicketAction(params: {
 }): Promise<ActionResult> {
   try {
     const explanation = params.explanation?.trim() || 'Ticket reopened for further investigation.';
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const adminClient = createAdminClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
     const now = new Date().toISOString();
@@ -685,7 +685,7 @@ export async function bulkAssignTicketsAction(params: {
   explanation?: string;
 }): Promise<ActionResult<{ updatedCount: number }>> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     if (!params.tickets || params.tickets.length === 0) {
       return { success: false, error: 'No tickets selected.' };
     }
@@ -740,7 +740,7 @@ export async function bulkUpdateTicketPriorityAction(params: {
   explanation?: string;
 }): Promise<ActionResult<{ updatedCount: number }>> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     if (!params.tickets || params.tickets.length === 0) {
       return { success: false, error: 'No tickets selected.' };
     }
@@ -795,7 +795,7 @@ export async function bulkUpdateTicketStatusAction(params: {
   explanation?: string;
 }): Promise<ActionResult<{ updatedCount: number }>> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     if (!params.tickets || params.tickets.length === 0) {
       return { success: false, error: 'No tickets selected.' };
     }
@@ -855,7 +855,7 @@ export async function escalateTicketAction(params: {
   reason: string;
 }): Promise<ActionResult> {
   try {
-    const { user: adminUser } = await requireAdmin();
+    const { user: adminUser } = await requireAdmin('moderator');
     const reason = params.reason?.trim();
     if (!reason) {
       return { success: false, error: 'Escalation reason is required.' };

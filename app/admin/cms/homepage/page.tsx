@@ -22,6 +22,7 @@ import { HomepageOverviewCards } from '@/components/admin/cms/HomepageOverviewCa
 import { HomepageSectionList } from '@/components/admin/cms/HomepageSectionList';
 import { HomepageSectionEditModal } from '@/components/admin/cms/HomepageSectionEditModal';
 import { HomepageAuditHistoryModal } from '@/components/admin/cms/HomepageAuditHistoryModal';
+import { HomepageFullPreviewModal } from '@/components/admin/cms/HomepageFullPreviewModal';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function AdminHomepageCmsPage() {
@@ -39,6 +40,7 @@ export default function AdminHomepageCmsPage() {
   const [isPublishingAll, setIsPublishingAll] = useState(false);
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
@@ -236,6 +238,7 @@ export default function AdminHomepageCmsPage() {
         pendingDraftCount={stats.draftChangesCount}
         onPublishAll={handlePublishAll}
         onOpenAuditHistory={handleOpenAuditHistory}
+        onOpenFullPreview={() => setIsFullPreviewOpen(true)}
         isPublishing={isPublishingAll}
       />
 
@@ -267,6 +270,13 @@ export default function AdminHomepageCmsPage() {
         section={editingSection}
         onSaveDraft={handleSaveDraft}
         onPublishNow={handlePublishSection}
+      />
+
+      {/* Full Page Preview Modal */}
+      <HomepageFullPreviewModal
+        isOpen={isFullPreviewOpen}
+        onClose={() => setIsFullPreviewOpen(false)}
+        sections={sections}
       />
 
       {/* Audit History Modal */}

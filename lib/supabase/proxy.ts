@@ -155,6 +155,7 @@ export async function updateSession(request: NextRequest) {
       const queryPromise = (supabase.from('admin_users') as any)
         .select('role')
         .eq('id', uid)
+        .eq('is_active', true)
         .maybeSingle();
 
       const { data: adminRecord } = await Promise.race([queryPromise, timeoutPromise]);
@@ -192,6 +193,18 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/auth/login';
       url.searchParams.set('next', pathname);
+      return applySecurityHeaders(NextResponse.redirect(url));
+    }
+
+    // Administrators have no user dashboard; route exclusively to /admin/dashboard
+    let isUserAdmin = false;
+    if (user.id) {
+      isUserAdmin = await checkUserIsAdmin(user.id);
+    }
+    if (isUserAdmin) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/dashboard';
+      url.search = '';
       return applySecurityHeaders(NextResponse.redirect(url));
     }
   }

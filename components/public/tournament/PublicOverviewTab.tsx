@@ -75,51 +75,6 @@ export default function PublicOverviewTab({
 
   return (
     <div className="space-y-6">
-      {/* Championship Honor Roll Banner if Completed */}
-      {isCompleted && (
-        <div className="rounded-[32px] bg-[#1010C5] border border-[#FFFF00]/40 p-6 shadow-2xl text-white space-y-4">
-          <div className="flex items-center justify-between border-b border-white/20 pb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-[#FFFF00] text-[#08088F] font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full">
-                CHAMPIONSHIP RESULT
-              </span>
-              <span className="text-xs text-[#FFFF00] font-black uppercase tracking-wider">Official Winner</span>
-            </div>
-            {tournament.completed_at && (
-              <span className="text-[11px] text-[#D9DCFF]/70 font-mono">
-                Completed {new Date(tournament.completed_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-            {/* Champion Card */}
-            <div className="p-5 rounded-2xl bg-[#3434FF] border border-[#FFFF00]/50 space-y-1 shadow-lg">
-              <div className="flex items-center gap-2 text-[#FFFF00] text-xs font-black uppercase tracking-wider">
-                <Trophy className="h-4 w-4 text-[#FFFF00]" />
-                <span>🏆 TOURNAMENT CHAMPION</span>
-              </div>
-              <p className="text-2xl sm:text-3xl font-black font-display uppercase tracking-wide text-white truncate">
-                {champion?.real_name || champion?.username || 'Champion TBD'}
-              </p>
-            </div>
-
-            {/* Runner Up Card */}
-            {runnerUp && (
-              <div className="p-5 rounded-2xl bg-[#0A0A7A] border border-white/20 space-y-1">
-                <div className="flex items-center gap-2 text-[#D9DCFF] text-xs font-bold uppercase tracking-wider">
-                  <Badge variant="outline" className="text-[9px] font-bold border-white/30 text-white">2nd</Badge>
-                  <span>🥈 RUNNER-UP</span>
-                </div>
-                <p className="text-xl sm:text-2xl font-bold font-display uppercase text-white truncate">
-                  {runnerUp.real_name || runnerUp.username}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Official Tournament Prize Showcase */}
       <TournamentPrizeShowcase
         tournament={tournament}
@@ -129,8 +84,8 @@ export default function PublicOverviewTab({
         variant="banner"
       />
 
-      {/* Tournament Registration Card */}
-      <TournamentRegistrationCard tournament={tournament} />
+      {/* Tournament Registration Card (Only when tournament is not completed) */}
+      {!isCompleted && <TournamentRegistrationCard tournament={tournament} />}
 
       {/* Format card */}
       <Card className="bg-[#1818D4] border-white/20 text-white rounded-[28px] shadow-lg">

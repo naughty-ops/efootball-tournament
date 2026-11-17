@@ -38,6 +38,7 @@ export default function LoginPage() {
           const { data: adminRecord } = await (supabase.from('admin_users') as any)
             .select('role')
             .eq('id', user.id)
+            .eq('is_active', true)
             .maybeSingle();
 
           if (adminRecord && adminRecord.role) {
@@ -80,6 +81,7 @@ export default function LoginPage() {
       const { data: adminRecord } = await (supabase.from('admin_users') as any)
         .select('role')
         .eq('id', authData.user.id)
+        .eq('is_active', true)
         .maybeSingle();
 
       if (adminRecord && adminRecord.role) {

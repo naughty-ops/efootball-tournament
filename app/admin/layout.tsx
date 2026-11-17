@@ -38,6 +38,7 @@ export default async function AdminLayout({
   return (
     <AdminLayoutClient
       adminEmail={user.email}
+      adminRole={adminRole}
       unresolvedTicketCount={ticketStats.totalOpen}
       hasUrgentTickets={ticketStats.urgent > 0}
     >

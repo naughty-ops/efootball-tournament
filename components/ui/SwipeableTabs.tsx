@@ -87,7 +87,20 @@ export function SwipeableTabBar({
           >
             {Icon && <Icon className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-[#08088F]' : 'text-[#FFFF00]')} />}
             <span>{tab.label}</span>
-            {tab.badge}
+            {tab.badge !== undefined && tab.badge !== null && (
+              typeof tab.badge === 'number' || typeof tab.badge === 'string' ? (
+                <span
+                  className={cn(
+                    'ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-black leading-none',
+                    isActive ? 'bg-[#08088F] text-[#FFFF00]' : 'bg-white/15 text-white'
+                  )}
+                >
+                  {tab.badge}
+                </span>
+              ) : (
+                tab.badge
+              )
+            )}
           </button>
         );
       })}

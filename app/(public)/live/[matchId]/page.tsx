@@ -196,7 +196,7 @@ export default function DedicatedLiveMatchPage({
   const { match, tournament, participantA, participantB } = matchData;
 
   return (
-    <div className="min-h-screen bg-transparent text-white pb-12 font-sans">
+    <div className="w-full bg-transparent text-white font-sans">
       {/* Top Navbar */}
       <div className="border-b border-white/15 bg-[#1010C5] shadow-lg sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">

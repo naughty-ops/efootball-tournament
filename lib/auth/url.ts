@@ -6,6 +6,8 @@
  * and production deployment.
  */
 
+export const CANONICAL_SITE_URL = 'https://www.e-football.in';
+
 export function getAppUrl(): string {
   // If running in browser, origin is always authoritative for the current user's session
   if (typeof window !== 'undefined' && window.location?.origin) {
@@ -26,8 +28,8 @@ export function getAppUrl(): string {
     return `https://${process.env.VERCEL_URL.replace(/\/+$/, '')}`;
   }
 
-  // Production fallback
-  return 'https://efootball-tournament-cyan.vercel.app';
+  // Production canonical fallback
+  return CANONICAL_SITE_URL;
 }
 
 /**

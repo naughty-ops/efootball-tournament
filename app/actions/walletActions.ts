@@ -15,6 +15,7 @@ import {
   createWalletDepositRequest,
   adminApproveDeposit,
   adminRejectDeposit,
+  getPlayerWalletOverview,
 } from '@/services/walletService';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -533,3 +534,37 @@ export async function adminRejectDepositAction(params: {
     return { success: false, error: err.message || 'Failed to reject deposit request' };
   }
 }
+
+/**
+ * Server Action to fetch the authenticated player's wallet balance & status.
+ */
+export async function getPlayerWalletBalanceAction(): Promise<ActionResult<{
+  availableBalancePaise: number;
+  availableBalanceInr: number;
+  lockedBalancePaise: number;
+  lockedBalanceInr: number;
+  walletStatus: string;
+}>> {
+  try {
+    const { user } = await getAuthenticatedUser();
+    if (!user) {
+      return { success: false, error: 'Authentication required. Please sign in.' };
+    }
+
+    const overview = await getPlayerWalletOverview(user.id);
+    return {
+      success: true,
+      data: {
+        availableBalancePaise: overview.availableBalancePaise,
+        availableBalanceInr: overview.availableBalanceInr,
+        lockedBalancePaise: overview.lockedBalancePaise,
+        lockedBalanceInr: overview.lockedBalanceInr,
+        walletStatus: overview.walletStatus,
+      },
+    };
+  } catch (err: any) {
+    console.error('getPlayerWalletBalanceAction error:', err);
+    return { success: false, error: err.message || 'Failed to fetch wallet balance.' };
+  }
+}
+

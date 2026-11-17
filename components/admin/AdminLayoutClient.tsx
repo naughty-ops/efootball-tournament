@@ -7,11 +7,13 @@ import AdminTopNav from '@/components/admin/AdminTopNav';
 export default function AdminLayoutClient({
   children,
   adminEmail,
+  adminRole = null,
   unresolvedTicketCount = 0,
   hasUrgentTickets = false,
 }: {
   children: React.ReactNode;
   adminEmail?: string | null;
+  adminRole?: string | null;
   unresolvedTicketCount?: number;
   hasUrgentTickets?: boolean;
 }) {
@@ -25,6 +27,7 @@ export default function AdminLayoutClient({
         onClose={() => setMobileSidebarOpen(false)}
         unresolvedTicketCount={unresolvedTicketCount}
         hasUrgentTickets={hasUrgentTickets}
+        adminRole={adminRole}
       />
 
       {/* Main Content Area */}

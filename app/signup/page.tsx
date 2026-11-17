@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, UserPlus, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { signupSchema, type SignupInput } from '@/lib/validations';
 import { checkEfootballIdAvailabilityAction } from '@/app/actions/verificationActions';
+import { getAuthRedirectUrl } from '@/lib/auth/url';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,8 +49,7 @@ export default function SignupPage() {
       const normalizedEfootballId = checkResult.normalizedId;
       const supabase = createClient();
 
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const emailRedirectTo = `${origin}/auth/callback`;
+      const emailRedirectTo = getAuthRedirectUrl('/auth/callback');
 
       const { error } = await supabase.auth.signUp({
         email: data.email.trim().toLowerCase(),

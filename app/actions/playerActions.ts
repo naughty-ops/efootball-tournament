@@ -16,7 +16,7 @@ export type ActionResponse = {
  */
 export async function registerForTournamentAction(
   tournamentId: string,
-  options?: { rulesAccepted?: boolean } | boolean
+  options?: { rulesAccepted?: boolean; accessCode?: string } | boolean
 ): Promise<ActionResponse> {
   try {
     const supabase = await createClient();
@@ -29,13 +29,20 @@ export async function registerForTournamentAction(
       };
     }
 
-    const result = await selfRegisterTournament(supabase, user.id, tournamentId, { rulesAccepted: true });
+    const rulesAccepted = typeof options === 'boolean' ? options : (options?.rulesAccepted ?? true);
+    const accessCode = typeof options === 'object' && options !== null ? options.accessCode : undefined;
+
+    const result = await selfRegisterTournament(supabase, user.id, tournamentId, { 
+      rulesAccepted,
+      accessCode,
+    });
 
     if (result.success) {
       revalidatePath(`/tournaments/${tournamentId}`);
       revalidatePath(`/t/${tournamentId}`);
       revalidatePath('/dashboard');
       revalidatePath('/dashboard/tournaments');
+      revalidatePath('/dashboard/wallet');
       revalidatePath('/tournaments');
     }
 
@@ -50,6 +57,11 @@ export async function registerForTournamentAction(
         amountPaise: result.amountPaise,
         entryFeeINR: result.entryFeeINR,
         currency: result.currency,
+        paymentMethod: result.paymentMethod,
+        balanceAfterInr: result.balanceAfterInr,
+        shortfallInr: result.shortfallInr,
+        availableBalanceInr: result.availableBalanceInr,
+        code: result.code,
       },
     };
   } catch (err: any) {
@@ -62,7 +74,7 @@ export async function registerForTournamentAction(
 }
 
 /**
- * Cancel own registration before tournament starts
+ * Cancel own registration before tournament starts with atomic wallet entry fee refund
  */
 export async function cancelRegistrationAction(tournamentId: string): Promise<ActionResponse> {
   try {
@@ -74,6 +86,46 @@ export async function cancelRegistrationAction(tournamentId: string): Promise<Ac
         success: false,
         message: 'You must be signed in to manage registrations.',
       };
+    }
+
+    // Primary: Call atomic database RPC with automatic wallet refund
+    try {
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+        'cancel_tournament_registration_with_wallet_refund',
+        {
+          p_tournament_id: tournamentId,
+          p_user_id: user.id,
+        }
+      );
+
+      if (!rpcErr && rpcData && typeof rpcData === 'object') {
+        const res = rpcData as Record<string, any>;
+        if (res.success) {
+          revalidatePath(`/tournaments/${tournamentId}`);
+          revalidatePath(`/t/${tournamentId}`);
+          revalidatePath('/dashboard');
+          revalidatePath('/dashboard/tournaments');
+          revalidatePath('/dashboard/wallet');
+          revalidatePath('/tournaments');
+
+          return {
+            success: true,
+            message: res.message || 'Registration successfully withdrawn.',
+            data: {
+              refunded: Boolean(res.refunded),
+              refundAmountInr: res.refund_amount_inr,
+              balanceAfterInr: res.balance_after_inr,
+            },
+          };
+        } else {
+          return {
+            success: false,
+            message: res.message || 'Failed to cancel registration.',
+          };
+        }
+      }
+    } catch {
+      // Fallback to legacy delete if RPC not available
     }
 
     // Check tournament status
@@ -105,6 +157,7 @@ export async function cancelRegistrationAction(tournamentId: string): Promise<Ac
     revalidatePath(`/t/${tournamentId}`);
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/tournaments');
+    revalidatePath('/dashboard/wallet');
     revalidatePath('/tournaments');
 
     return {

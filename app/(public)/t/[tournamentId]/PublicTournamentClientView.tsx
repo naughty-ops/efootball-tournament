@@ -54,10 +54,6 @@ const ShareModal = dynamic(
   () => import('@/components/share/ShareModal').then((mod) => mod.ShareModal),
   { ssr: false }
 );
-const WinnerCelebrationOverlay = dynamic(
-  () => import('@/components/tournament/WinnerCelebrationOverlay').then((mod) => mod.WinnerCelebrationOverlay),
-  { ssr: false }
-);
 
 function TabLoadingSkeleton({ text }: { text: string }) {
   return (
@@ -116,7 +112,6 @@ export default function PublicTournamentClientView({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
 
   // Lazy tab data loading tracking
   const loadedTabsRef = useRef<Set<string>>(new Set(['overview', 'participants']));
@@ -140,9 +135,6 @@ export default function PublicTournamentClientView({
       const data = await res.json();
       if (data.tournament) {
         setTournament(data.tournament);
-        if (data.tournament.status === 'completed' && data.tournament.championUser) {
-          setShowCelebration(true);
-        }
       }
       if (data.participants) setParticipants(data.participants);
       if (data.stageInfo) {
@@ -198,10 +190,6 @@ export default function PublicTournamentClientView({
       setParticipants(pRes);
       setStageInfo(sInfo);
       if (sInfo) setSubStage(sInfo.subStage);
-
-      if (t.status === 'completed' && t.championUser) {
-        setShowCelebration(true);
-      }
       setError(null);
     } catch (err: unknown) {
       console.error('Error fetching tournament overview:', err);
@@ -513,18 +501,7 @@ export default function PublicTournamentClientView({
   ];
 
   return (
-    <div className="min-h-screen bg-transparent pb-16">
-      {/* 🏆 WINNER CELEBRATION OVERLAY */}
-      {isCompleted && champion && (
-        <WinnerCelebrationOverlay
-          isOpen={showCelebration}
-          championName={champion.username}
-          runnerUpName={runnerUp?.username}
-          tournamentName={tournament.name}
-          onClose={() => setShowCelebration(false)}
-        />
-      )}
-
+    <div className="w-full bg-transparent">
       {/* 1. PUBLIC HERO BANNER */}
       <div className="bg-[#1010C5] text-white border-b border-white/20 shadow-xl relative overflow-hidden rounded-[32px] mx-4 sm:mx-6 my-4 p-6 sm:p-8">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-[#3434FF]/30 rounded-full blur-3xl pointer-events-none" />

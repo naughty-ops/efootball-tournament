@@ -54,11 +54,39 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+      {
+        protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.freepik.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.britannica.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'mir-s3-cdn-cf.behance.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'thebrandinquirer.files.wordpress.com',
       },
       {
         protocol: 'https',
