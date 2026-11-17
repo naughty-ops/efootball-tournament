@@ -345,16 +345,35 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
     const storagePath = `${user.id}/${timestamp}_${randomHex}.${cleanExt}`;
 
     // Upload to private Supabase Storage bucket 'payment-proofs'
-    const adminClient = createAdminClient();
+    // Strategy: Try admin client first (bypasses RLS); if service key unavailable,
+    // fall back to authenticated user's client (path matches user_id, satisfying RLS).
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const { error: uploadError } = await adminClient.storage
+    // Prefer admin client upload (service role bypasses RLS)
+    const adminClient = createAdminClient();
+    let uploadError: any = null;
+
+    const { error: adminUploadError } = await adminClient.storage
       .from('payment-proofs')
       .upload(storagePath, buffer, {
         contentType: file.type,
         upsert: false,
       });
+
+    if (adminUploadError) {
+      // Admin client failed — fall back to authenticated user's client.
+      // The storage path starts with user.id so it satisfies the per-user RLS policy.
+      console.warn('Admin storage upload failed, falling back to user-session upload:', adminUploadError.message);
+      const userSupabase = await createClient();
+      const { error: userUploadError } = await userSupabase.storage
+        .from('payment-proofs')
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: false,
+        });
+      uploadError = userUploadError;
+    }
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
