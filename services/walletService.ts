@@ -2264,6 +2264,22 @@ export async function createWalletDepositRequest(params: {
       return { success: false, code: 'PROOF_REQUIRED', error: 'Payment screenshot proof is required.' };
     }
 
+    // ── Validate Cloudinary ownership prefix (SEC-04) ───────────────────────
+    if (params.proofCloudinaryPublicId) {
+      const cleanProofId = params.proofCloudinaryPublicId.trim();
+      const safeUidHyphen = params.userId;
+      const safeUidNoHyphen = params.userId.replace(/-/g, '');
+      const validPrefixHyphen = `efootball/payment-proofs/${safeUidHyphen}/`;
+      const validPrefixNoHyphen = `efootball/payment-proofs/${safeUidNoHyphen}/`;
+      if (!cleanProofId.startsWith(validPrefixHyphen) && !cleanProofId.startsWith(validPrefixNoHyphen)) {
+        return {
+          success: false,
+          code: 'INVALID_PROOF_OWNERSHIP',
+          error: 'Payment proof screenshot reference does not belong to your account.',
+        };
+      }
+    }
+
     // ── Wallet lookup (admin client — read-only, no RLS concern) ────────────
     const wallet = await getOrCreatePlayerWallet(params.userId);
     const amountPaise = inrToPaise(amt);
@@ -2584,8 +2600,20 @@ export async function adminApproveDeposit(params: {
       return { success: false, error: 'Admin user ID is required.' };
     }
 
-    const adminClient = createAdminClient();
-    const { data, error } = await (adminClient.rpc as any)('admin_approve_wallet_deposit', {
+    let rpcClient: any;
+    try {
+      const user = await getAuthenticatedUser();
+      if (user) {
+        rpcClient = await createClient();
+      }
+    } catch {
+      // Outside request context
+    }
+    if (!rpcClient) {
+      rpcClient = createAdminClient();
+    }
+
+    const { data, error } = await (rpcClient.rpc as any)('admin_approve_wallet_deposit', {
       p_deposit_id: params.depositId,
       p_admin_id: adminId,
       p_admin_notes: params.adminNotes || null,
@@ -2628,8 +2656,20 @@ export async function adminRejectDeposit(params: {
       return { success: false, error: 'A valid rejection reason (minimum 3 characters) is required.' };
     }
 
-    const adminClient = createAdminClient();
-    const { data, error } = await (adminClient.rpc as any)('admin_reject_wallet_deposit', {
+    let rpcClient: any;
+    try {
+      const user = await getAuthenticatedUser();
+      if (user) {
+        rpcClient = await createClient();
+      }
+    } catch {
+      // Outside request context
+    }
+    if (!rpcClient) {
+      rpcClient = createAdminClient();
+    }
+
+    const { data, error } = await (rpcClient.rpc as any)('admin_reject_wallet_deposit', {
       p_deposit_id: params.depositId,
       p_admin_id: adminId,
       p_rejection_reason: reason,
