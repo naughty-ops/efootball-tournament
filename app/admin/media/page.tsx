@@ -1,5 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import { requireAdmin } from '@/lib/auth/server';
+import { createClient } from '@/lib/supabase/server';
 import { getAdminMediaOverview } from '@/services/mediaService';
 import AdminMediaDesk from '@/components/admin/media/AdminMediaDesk';
 import type { MediaEntityType, MediaStatus } from '@/types/database';
@@ -19,6 +21,9 @@ interface PageProps {
 }
 
 export default async function AdminMediaPage({ searchParams }: PageProps) {
+  await requireAdmin('moderator');
+  const supabase = await createClient();
+
   const resolvedParams = searchParams ? await searchParams : {};
   const selectedCategory = (resolvedParams.category as MediaEntityType | 'all') || 'all';
   const selectedStatus = (resolvedParams.status as MediaStatus | 'all') || 'all';
@@ -27,7 +32,7 @@ export default async function AdminMediaPage({ searchParams }: PageProps) {
     category: selectedCategory,
     status: selectedStatus,
     limit: 100,
-  });
+  }, supabase);
 
   return (
     <AdminMediaDesk

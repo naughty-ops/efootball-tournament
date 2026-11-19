@@ -1,8 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
+import { createClient, getAdminOrAuthClient, isServiceRoleConfigured } from '@/lib/supabase/server';
 import { requireAdmin, getAuthenticatedUser } from '@/lib/auth/server';
 import { submitMatchResult } from '@/services/matchService';
 
@@ -33,7 +32,7 @@ export async function recordPlayerCheckinAction(
       return { success: false, error: 'Authentication required to start match' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     // Call atomic stored procedure
     const { data, error: rpcErr } = await (adminClient.rpc as any)('record_player_checkin', {
@@ -88,7 +87,7 @@ export async function requestWalkoverAction(
       return { success: false, error: 'Authentication required to request a walkover' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const { data, error: rpcErr } = await (adminClient.rpc as any)('request_match_walkover', {
       p_match_id: matchId,
@@ -144,7 +143,7 @@ export async function submitMatchDisputeAction(data: {
       return { success: false, error: 'Authentication required to report match issues' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     // 1. Try atomic SECURITY DEFINER RPC first (guarantees transaction integrity and bypasses client RLS discrepancies)
     const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('submit_match_dispute', {
@@ -253,7 +252,7 @@ export async function scheduleMatchAction(data: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const scheduledDate = new Date(data.scheduledTime);
     if (isNaN(scheduledDate.getTime())) {
@@ -335,7 +334,7 @@ export async function bulkScheduleMatchdayAction(data: {
 }): Promise<ActionResult<{ updatedCount: number }>> {
   try {
     const { user: adminUser } = await requireAdmin();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const startDateTime = new Date(data.startTime);
     if (isNaN(startDateTime.getTime())) {
@@ -432,7 +431,7 @@ export async function rescheduleMatchAction(data: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const scheduledDate = new Date(data.newScheduledTime);
     if (isNaN(scheduledDate.getTime())) {
@@ -513,7 +512,7 @@ export async function extendDeadlineAction(data: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const { data: match, error: fetchErr } = await (adminClient.from('matches') as any)
       .select('id, completion_deadline, checkin_deadline, scheduled_time, status')
@@ -596,7 +595,7 @@ export async function resolveDisputeAction(data: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     if (data.decision === 'resolve_with_scores') {
       let finalScoreA = data.scoreA ?? 0;
@@ -774,7 +773,7 @@ export async function startPlayerMatchAction(
       return { success: false, error: 'Authentication required to start match' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const { data, error: rpcErr } = await (adminClient.rpc as any)('start_player_match', {
       p_match_id: matchId,
@@ -845,7 +844,7 @@ export async function submitPlayerScoreAction(data: {
       return { success: false, error: 'Authentication required to submit scores' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const { data: rpcData, error: rpcErr } = await (adminClient.rpc as any)('submit_player_score', {
       p_match_id: data.matchId,
@@ -956,7 +955,7 @@ export async function submitMatchScreenshotProofAction(data: {
       return { success: false, error: 'Authentication required to submit screenshot proof' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     const { data: rpcData, error: rpcErr } = await (adminClient.rpc as any)('submit_match_screenshot_proof', {
       p_match_id: data.matchId,
@@ -994,7 +993,7 @@ export async function submitMatchScreenshotProofAction(data: {
  */
 export async function checkMatchTimeoutAction(matchId: string, tournamentId: string): Promise<ActionResult> {
   try {
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const { data: match, error: fetchErr } = await (adminClient.from('matches') as any)
       .select('id, status, actual_start_time, completion_deadline, participant_a, participant_b')
       .eq('id', matchId)
@@ -1055,7 +1054,7 @@ export async function checkMatchTimeoutAction(matchId: string, tournamentId: str
  */
 export async function evaluateOverdueMatchesAction(tournamentId?: string): Promise<ActionResult> {
   try {
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const { data, error } = await (adminClient.rpc as any)('evaluate_overdue_matches', {
       p_tournament_id: tournamentId || null,
     });

@@ -71,5 +71,27 @@ export async function createClient() {
   });
 }
 
-export { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
+export { createAdminClient, isServiceRoleConfigured };
+
+/**
+ * Resolves the optimal server client for admin and elevated operations:
+ * 1. Returns customClient explicitly if provided.
+ * 2. Uses createAdminClient() when SUPABASE_SERVICE_ROLE_KEY is configured.
+ * 3. Falls back to await createClient() (authenticated SSR client with session cookies).
+ * Never falls back to an unauthenticated/anonymous client. All queries through createClient()
+ * are strictly governed by PostgreSQL Row Level Security (RLS) based on auth.uid().
+ */
+export async function getAdminOrAuthClient(customClient?: any) {
+  if (customClient) return customClient;
+  if (isServiceRoleConfigured()) {
+    try {
+      return createAdminClient();
+    } catch {
+      // Fall through to authenticated SSR client
+    }
+  }
+  return await createClient();
+}
+
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/server';
+import { createClient } from '@/lib/supabase/server';
 import { getUnifiedTicketById, getTicketMessages, getTicketAuditLogs } from '@/services/ticketService';
 import AdminTicketDetailView from '@/components/admin/AdminTicketDetailView';
 import type { Metadata } from 'next';
@@ -30,8 +31,9 @@ export default async function AdminTicketDetailPage({
 }) {
   const admin = await requireAdmin('moderator');
   const { id } = await params;
+  const supabase = await createClient();
 
-  const ticket = await getUnifiedTicketById(id);
+  const ticket = await getUnifiedTicketById(id, supabase);
   if (!ticket) {
     notFound();
   }
@@ -40,8 +42,8 @@ export default async function AdminTicketDetailPage({
 
   // Admins are authorized to view full conversation history including internal notes
   const [messages, auditLogs] = await Promise.all([
-    getTicketMessages(ticket.id, isDispute, true),
-    getTicketAuditLogs(ticket.id, isDispute),
+    getTicketMessages(ticket.id, isDispute, true, supabase),
+    getTicketAuditLogs(ticket.id, isDispute, supabase),
   ]);
 
   return (

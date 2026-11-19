@@ -1,5 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import { requireAdmin } from '@/lib/auth/server';
+import { createClient } from '@/lib/supabase/server';
 import { getAllAvatarsAdmin } from '@/services/avatarService';
 import AdminAvatarDesk from '@/components/admin/avatars/AdminAvatarDesk';
 
@@ -11,7 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminAvatarsPage() {
-  const avatars = await getAllAvatarsAdmin();
+  await requireAdmin('moderator');
+  const supabase = await createClient();
+  const avatars = await getAllAvatarsAdmin(supabase);
 
   return <AdminAvatarDesk initialAvatars={avatars} />;
 }

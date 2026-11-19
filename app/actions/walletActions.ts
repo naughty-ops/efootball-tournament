@@ -17,8 +17,7 @@ import {
   adminRejectDeposit,
   getPlayerWalletOverview,
 } from '@/services/walletService';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getAdminOrAuthClient } from '@/lib/supabase/server';
 import { uploadPaymentProof } from '@/lib/cloudinary/payment-proof';
 import { PaymentMethodType, PayoutStatus, WalletPaymentSettings, WalletDepositRecord } from '@/types/wallet';
 
@@ -452,7 +451,7 @@ export async function uploadAdminQrCodeAction(formData: FormData): Promise<Actio
     const fileName = `admin_upi_qr_${Date.now()}.${fileExt}`;
     const storagePath = `qr/${fileName}`;
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 

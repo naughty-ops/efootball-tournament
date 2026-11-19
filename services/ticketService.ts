@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAdminOrAuthClient } from '@/lib/supabase/server';
 import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import type {
   UnifiedTicket,
@@ -112,12 +112,12 @@ export function invalidateTicketOverviewStatsCache() {
 /**
  * Computes high-level ticket KPI statistics across both support tickets and match disputes
  */
-export async function getTicketOverviewStats(): Promise<TicketOverviewStats> {
+export async function getTicketOverviewStats(customClient?: any): Promise<TicketOverviewStats> {
   if (ticketOverviewStatsCache && Date.now() - ticketOverviewStatsCache.timestamp < TICKET_STATS_TTL_MS) {
     return ticketOverviewStatsCache.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
 
   // Bounded retrieval: fetch only active, unresolved items for detailed SLA/overdue calculation,
   // plus head counts for total ticket volume, avoiding full-table memory scans
@@ -302,12 +302,12 @@ export async function getOperationalAlerts(
 /**
  * Computes accountability & SLA performance metrics using actual timestamps
  */
-export async function getTicketPerformanceMetrics(): Promise<TicketPerformanceMetrics> {
+export async function getTicketPerformanceMetrics(customClient?: any): Promise<TicketPerformanceMetrics> {
   if (ticketPerformanceMetricsCache && Date.now() - ticketPerformanceMetricsCache.timestamp < TICKET_STATS_TTL_MS) {
     return ticketPerformanceMetricsCache.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
 
   const [supportRes, disputesRes, auditLogsRes, messagesRes] = await Promise.all([
     (adminClient.from('support_tickets') as any).select('id, created_at, resolved_at, resolved_by, status'),
@@ -434,8 +434,8 @@ export async function getRecentTickets(limit: number = 8): Promise<UnifiedTicket
 /**
  * Fetches unified paginated and filtered tickets across support_tickets and match_disputes
  */
-export async function getAllUnifiedTickets(params: TicketFilterParams = {}): Promise<PaginatedTicketsResult> {
-  const adminClient = createAdminClient();
+export async function getAllUnifiedTickets(params: TicketFilterParams = {}, customClient?: any): Promise<PaginatedTicketsResult> {
+  const adminClient = await getAdminOrAuthClient(customClient);
   const page = Math.max(1, params.page || 1);
   const pageSize = Math.max(1, Math.min(100, params.pageSize || 10));
 
@@ -987,9 +987,10 @@ export async function getTicketMessages(
  */
 export async function getTicketAuditLogs(
   entityId: string,
-  isDispute: boolean
+  isDispute: boolean,
+  customClient?: any
 ): Promise<TicketAuditLog[]> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
   let query = (adminClient.from('ticket_audit_logs') as any)
     .select('*')
     .order('created_at', { ascending: false });

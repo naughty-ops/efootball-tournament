@@ -1,5 +1,6 @@
 import React from 'react';
 import { requireFinancialAdmin } from '@/lib/auth/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   getAdminWalletDeposits,
   getWalletPaymentSettings,
@@ -16,10 +17,11 @@ export const metadata: Metadata = {
 
 export default async function AdminWalletPage() {
   await requireFinancialAdmin();
+  const supabase = await createClient();
 
   const [depositsData, settings] = await Promise.all([
-    getAdminWalletDeposits({ page: 1, pageSize: 100 }),
-    getWalletPaymentSettings(),
+    getAdminWalletDeposits({ page: 1, pageSize: 100 }, supabase),
+    getWalletPaymentSettings(supabase),
   ]);
 
   return (

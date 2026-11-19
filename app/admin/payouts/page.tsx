@@ -1,5 +1,6 @@
 import React from 'react';
 import { requireAdmin, requireFinancialAdmin } from '@/lib/auth/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   getAdminFinancialOverview,
   getAdminPayoutsList,
@@ -17,11 +18,12 @@ export const metadata: Metadata = {
 
 export default async function AdminPayoutsPage() {
   await requireFinancialAdmin();
+  const supabase = await createClient();
 
   const [overview, payoutsResult, completedTournaments] = await Promise.all([
-    getAdminFinancialOverview(),
-    getAdminPayoutsList({ page: 1, pageSize: 100 }),
-    getTournamentsForPrizeDistribution(),
+    getAdminFinancialOverview(supabase),
+    getAdminPayoutsList({ page: 1, pageSize: 100 }, supabase),
+    getTournamentsForPrizeDistribution(supabase),
   ]);
 
   return (

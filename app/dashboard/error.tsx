@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Link from 'next/link';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -48,14 +47,14 @@ export default function DashboardError({
           </Button>
 
           <Button
-            asChild
+            onClick={() => {
+              window.location.href = '/';
+            }}
             variant="outline"
             className="flex-1 border-white/20 text-white hover:bg-white/10 font-bold rounded-full h-11 text-xs uppercase tracking-wider gap-2"
           >
-            <Link href="/">
-              <Home className="h-4 w-4" />
-              <span>Lobby</span>
-            </Link>
+            <Home className="h-4 w-4" />
+            <span>Lobby</span>
           </Button>
         </div>
       </div>

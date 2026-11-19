@@ -1,8 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getAdminOrAuthClient } from '@/lib/supabase/server';
 import { requireAdmin, getAuthenticatedUser } from '@/lib/auth/server';
 import { resolveDisputeAction } from '@/app/actions/matchSchedulingActions';
 import { uploadImage } from '@/services/mediaService';
@@ -49,7 +48,7 @@ export async function createSupportTicketAction(params: {
     }
 
     const { user: authUser } = await getAuthenticatedUser();
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     let uploadedEvidenceUrl = params.evidenceUrl || null;
     let uploadedEvidencePublicId = params.evidencePublicId || null;
@@ -148,7 +147,7 @@ export async function assignTicketAction(params: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
     const { data: current } = await (adminClient.from(table) as any)
@@ -202,7 +201,7 @@ export async function updateTicketPriorityAction(params: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
     const { data: current } = await (adminClient.from(table) as any)
@@ -256,7 +255,7 @@ export async function updateTicketStatusAction(params: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
     const { data: current } = await (adminClient.from(table) as any)
@@ -322,7 +321,7 @@ export async function sendTicketMessageAction(params: {
       return { success: false, error: 'Authentication required to post message.' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     // Strict Player Authorization: verify player owns the ticket or is a match participant
     if (!isAdmin) {
@@ -504,7 +503,7 @@ export async function resolveTicketAction(params: {
 }): Promise<ActionResult> {
   try {
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const now = new Date().toISOString();
 
     if (params.source === 'dispute') {
@@ -644,7 +643,7 @@ export async function rejectTicketAction(params: {
     }
 
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
     const now = new Date().toISOString();
 
@@ -752,7 +751,7 @@ export async function reopenTicketAction(params: {
   try {
     const explanation = params.explanation?.trim() || 'Ticket reopened for further investigation.';
     const { user: adminUser } = await requireAdmin('moderator');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
     const now = new Date().toISOString();
 
@@ -810,7 +809,7 @@ export async function bulkAssignTicketsAction(params: {
       return { success: false, error: 'No tickets selected.' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const now = new Date().toISOString();
     let updatedCount = 0;
 
@@ -865,7 +864,7 @@ export async function bulkUpdateTicketPriorityAction(params: {
       return { success: false, error: 'No tickets selected.' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const now = new Date().toISOString();
     let updatedCount = 0;
 
@@ -920,7 +919,7 @@ export async function bulkUpdateTicketStatusAction(params: {
       return { success: false, error: 'No tickets selected.' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const now = new Date().toISOString();
     let updatedCount = 0;
 
@@ -981,7 +980,7 @@ export async function escalateTicketAction(params: {
       return { success: false, error: 'Escalation reason is required.' };
     }
 
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
     const now = new Date().toISOString();
 

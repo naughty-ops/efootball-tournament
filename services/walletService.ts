@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
+import { createClient, getAuthenticatedUser, getAdminOrAuthClient } from '@/lib/supabase/server';
 import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import {
   WalletOverview,
@@ -97,7 +97,7 @@ async function getPlayerClient(customClient?: any) {
     // cookies() unavailable or outside request context
   }
 
-  return createAdminClient();
+  return await getAdminOrAuthClient();
 }
 
 /**
@@ -1272,13 +1272,13 @@ export async function requestPlayerPayout(
  * ============================================================================
  */
 
-export async function getAdminFinancialOverview(): Promise<AdminFinancialOverviewStats> {
+export async function getAdminFinancialOverview(customClient?: any): Promise<AdminFinancialOverviewStats> {
   const cached = adminFinancialOverviewCache.get('overview');
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
   const now = new Date();
 
   const [awardedRes, pendingRes, payoutsRes] = await Promise.all([
@@ -1393,13 +1393,13 @@ export async function getAdminFinancialOverview(): Promise<AdminFinancialOvervie
 /**
  * Retrieves tournaments ready for prize distribution (completed tournaments with winners).
  */
-export async function getTournamentsForPrizeDistribution(): Promise<any[]> {
+export async function getTournamentsForPrizeDistribution(customClient?: any): Promise<any[]> {
   const cached = adminCompletedTournamentsCache.get('completed');
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
 
   const { data, error } = await (adminClient.from('tournaments') as any)
     .select(`
@@ -1550,7 +1550,7 @@ export async function distributeTournamentPrizes(
   adminUserId: string,
   customNotes?: string
 ): Promise<{ success: boolean; error?: string; awardedCount?: number }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   // 1. Fetch tournament
   const { data: tournament, error: tourError } = await (adminClient.from('tournaments') as any)
@@ -1823,14 +1823,14 @@ export async function getAdminPayoutsList(options?: {
   search?: string;
   page?: number;
   pageSize?: number;
-}): Promise<{ payouts: PayoutTransactionRecord[]; totalCount: number }> {
+}, customClient?: any): Promise<{ payouts: PayoutTransactionRecord[]; totalCount: number }> {
   const cacheKey = JSON.stringify(options || {});
   const cached = adminPayoutsCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
   const page = Math.max(1, options?.page || 1);
   const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
   const offset = (page - 1) * pageSize;
@@ -2000,8 +2000,9 @@ export async function updatePayoutStatus(params: {
   utrReference?: string;
   failureReason?: string;
   receiptUrl?: string;
+  customClient?: any;
 }): Promise<{ success: boolean; error?: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(params.customClient);
   const now = new Date().toISOString();
 
   // 1. Fetch current payout
@@ -2121,7 +2122,7 @@ export async function updateWalletPaymentSettings(
   adminUserId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const current = await getWalletPaymentSettings(adminClient);
 
     const updated = {
@@ -2169,7 +2170,7 @@ export async function createWalletDepositRequest(params: {
 }): Promise<{ success: boolean; error?: string; code?: string; depositId?: string; depositRef?: string }> {
   try {
     // ── Pre-flight validation (client side, before hitting the DB) ──────────
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const settings = await getWalletPaymentSettings(adminClient);
 
     const amt = Number(params.amountInr);
@@ -2386,13 +2387,13 @@ export async function getAdminWalletDeposits(options?: {
   pageSize?: number;
   status?: string;
   search?: string;
-}): Promise<{
+}, customClient?: any): Promise<{
   deposits: WalletDepositRecord[];
   totalCount: number;
   summary: { pendingCount: number; approvedSumInr: number; rejectedCount: number };
 }> {
   try {
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient(customClient);
     const page = Math.max(1, options?.page || 1);
     const pageSize = Math.max(1, Math.min(100, options?.pageSize || 50));
     const offset = (page - 1) * pageSize;
@@ -2537,7 +2538,7 @@ export async function adminApproveDeposit(params: {
       // Outside request context
     }
     if (!rpcClient) {
-      rpcClient = createAdminClient();
+      rpcClient = await getAdminOrAuthClient();
     }
 
     const { data, error } = await (rpcClient.rpc as any)('admin_approve_wallet_deposit', {
@@ -2593,7 +2594,7 @@ export async function adminRejectDeposit(params: {
       // Outside request context
     }
     if (!rpcClient) {
-      rpcClient = createAdminClient();
+      rpcClient = await getAdminOrAuthClient();
     }
 
     const { data, error } = await (rpcClient.rpc as any)('admin_reject_wallet_deposit', {

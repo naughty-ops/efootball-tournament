@@ -1,7 +1,7 @@
 import 'server-only';
 import crypto from 'node:crypto';
 import { getCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getAdminOrAuthClient } from '@/lib/supabase/server';
 import {
   MEDIA_FOLDERS,
   MEDIA_SIZE_LIMITS,
@@ -73,7 +73,7 @@ export async function uploadImage(
   const uniqueSuffix = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   const publicId = `${folder}/${options.category}_${safeEntity}_${uniqueSuffix}`;
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   // 3. Upload to Cloudinary via upload_stream
   // Throws descriptive error if CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET are missing
@@ -178,7 +178,7 @@ export async function deleteImage(
   actorUserId?: string,
   isAdmin: boolean = false
 ): Promise<{ success: boolean; message: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   const { data: asset, error } = await (adminClient.from('media_assets') as any)
     .select('*')
@@ -413,14 +413,14 @@ export async function getAdminMediaOverview(options?: {
   status?: MediaStatus | 'all';
   limit?: number;
   offset?: number;
-}) {
+}, customClient?: any) {
   const cacheKey = JSON.stringify(options || {});
   const cached = adminMediaCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < MEDIA_CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
 
   let query = (adminClient.from('media_assets') as any)
     .select('*', { count: 'exact' })

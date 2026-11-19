@@ -63,9 +63,9 @@ export default async function AdminTicketsPage({ searchParams }: PageProps) {
     // satisfies BOTH the desk display (first 12) AND the operational alerts computation.
     // This completely eliminates redundant dual fetches of unified tickets.
     const [allTickets, fetchedStats, fetchedPerf, tRes] = await Promise.all([
-      getAllUnifiedTickets({ pageSize: 200, page: 1 }),
-      getTicketOverviewStats(),
-      getTicketPerformanceMetrics(),
+      getAllUnifiedTickets({ pageSize: 200, page: 1 }, supabase),
+      getTicketOverviewStats(supabase),
+      getTicketPerformanceMetrics(supabase),
       (supabase.from('tournaments') as any).select('id, name').order('created_at', { ascending: false }),
     ]);
 
@@ -97,10 +97,10 @@ export default async function AdminTicketsPage({ searchParams }: PageProps) {
         currentAdminEmail: admin.user.email || undefined,
         page,
         pageSize,
-      }),
-      getAllUnifiedTickets({ pageSize: 200, page: 1 }),
-      getTicketOverviewStats(),
-      getTicketPerformanceMetrics(),
+      }, supabase),
+      getAllUnifiedTickets({ pageSize: 200, page: 1 }, supabase),
+      getTicketOverviewStats(supabase),
+      getTicketPerformanceMetrics(supabase),
       (supabase.from('tournaments') as any).select('id, name').order('created_at', { ascending: false }),
     ]);
 

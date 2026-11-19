@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getAuthenticatedUser, requireAdmin } from '@/lib/auth/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getAdminOrAuthClient } from '@/lib/supabase/server';
 import {
   saveUserEligibility,
   getUserActiveOneVsOneMatch,
@@ -258,7 +257,7 @@ export async function submitMatchResultAction(formData: FormData): Promise<Actio
 
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
       const storagePath = `1v1/${matchId}/${user.id}_result_${Date.now()}.${fileExt}`;
-      const adminClient = createAdminClient();
+      const adminClient = await getAdminOrAuthClient();
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -334,7 +333,7 @@ export async function confirmMatchResultAction(params: FormData | { matchId: str
 
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
       const storagePath = `1v1/${matchId}/${user.id}_confirm_${Date.now()}.${fileExt}`;
-      const adminClient = createAdminClient();
+      const adminClient = await getAdminOrAuthClient();
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -378,7 +377,7 @@ export async function getOneVsOneSignedUrlAction(storagePath: string): Promise<{
     if (!storagePath) {
       return { success: false, error: 'Storage path is required.' };
     }
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
     const { data, error } = await adminClient.storage
       .from('payment-proofs')
       .createSignedUrl(storagePath, 7200);
@@ -420,7 +419,7 @@ export async function disputeMatchResultAction(formData: FormData): Promise<Acti
     if (file && file.size > 0) {
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
       const storagePath = `1v1/disputes/${matchId}/${user.id}_${Date.now()}.${fileExt}`;
-      const adminClient = createAdminClient();
+      const adminClient = await getAdminOrAuthClient();
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
@@ -566,7 +565,7 @@ export async function reportOneVsOneCreditIssueAction(formData: FormData): Promi
     }
 
     const expectedPayout = parseFloat(expectedPayoutStr) || 0;
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     // Verify user participated in this match
     const { data: matchPlayer, error: mpErr } = await (adminClient.from('one_vs_one_match_players') as any)
@@ -837,8 +836,7 @@ export async function joinWaitingMatchByCodeAction(matchCode: string): Promise<
     }
 
     const cleanCode = matchCode.trim().toUpperCase();
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const adminClient = createAdminClient();
+    const adminClient = await getAdminOrAuthClient();
 
     // Call atomic PostgreSQL stored procedure: locks match & player wallet, strictly checks balance, deducts fee, and pairs
     const { data: result, error: rpcErr } = await (adminClient.rpc as any)('join_waiting_match_by_code', {

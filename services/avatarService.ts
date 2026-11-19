@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getAdminOrAuthClient } from '@/lib/supabase/server';
 import type { Avatar, Profile } from '@/types/database';
 import { DEFAULT_AVATAR_URL } from '@/lib/avatar/constants';
 
@@ -37,12 +37,12 @@ export function invalidateAvatarCache() {
 /**
  * Admin: Retrieves all avatars (both active and inactive) with player usage counts.
  */
-export async function getAllAvatarsAdmin(): Promise<(Avatar & { usageCount: number })[]> {
+export async function getAllAvatarsAdmin(customClient?: any): Promise<(Avatar & { usageCount: number })[]> {
   if (adminAvatarsCache && Date.now() - adminAvatarsCache.timestamp < AVATAR_CACHE_TTL_MS) {
     return adminAvatarsCache.data;
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient(customClient);
 
   const { data: avatars, error: avatarErr } = await (adminClient.from('avatars') as any)
     .select('*')
@@ -78,7 +78,7 @@ export async function getAllAvatarsAdmin(): Promise<(Avatar & { usageCount: numb
  * Retrieves a single avatar by its ID.
  */
 export async function getAvatarById(avatarId: string): Promise<Avatar | null> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
   const { data, error } = await (adminClient.from('avatars') as any)
     .select('*')
     .eq('id', avatarId)
@@ -97,7 +97,7 @@ export async function selectPlayerAvatar(
   userId: string,
   avatarId: string
 ): Promise<{ success: boolean; profile?: Profile; error?: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   // 1. Verify that avatar exists and is approved/active
   const { data: avatar, error: avError } = await (adminClient.from('avatars') as any)
@@ -143,7 +143,7 @@ export async function createAdminAvatar(data: {
   displayOrder?: number;
   isActive?: boolean;
 }): Promise<{ success: boolean; avatar?: Avatar; error?: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   const { data: newAvatar, error } = await (adminClient.from('avatars') as any)
     .insert({
@@ -180,7 +180,7 @@ export async function updateAdminAvatar(
     cloudinaryPublicId?: string | null;
   }>
 ): Promise<{ success: boolean; avatar?: Avatar; error?: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   const patch: Record<string, any> = {
     updated_at: new Date().toISOString(),
@@ -215,7 +215,7 @@ export async function updateAdminAvatar(
 export async function deleteAdminAvatar(
   avatarId: string
 ): Promise<{ success: boolean; reassignedCount: number; error?: string }> {
-  const adminClient = createAdminClient();
+  const adminClient = await getAdminOrAuthClient();
 
   // Fetch avatar to check for Cloudinary public ID
   const { data: avatarToDelete } = await (adminClient.from('avatars') as any)
