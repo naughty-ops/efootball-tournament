@@ -7,6 +7,7 @@ export const MEDIA_FOLDERS: Record<MediaEntityType, string> = {
   match_evidence: 'efootball/matches/evidence',
   dispute_evidence: 'efootball/disputes/evidence',
   admin_media: 'efootball/admin/media',
+  payment_proof: 'efootball/payment-proofs',
 };
 
 export const MEDIA_SIZE_LIMITS: Record<MediaEntityType, number> = {
@@ -16,6 +17,7 @@ export const MEDIA_SIZE_LIMITS: Record<MediaEntityType, number> = {
   match_evidence: 500 * 1024,            // 500 KB (Strict screenshot limit)
   dispute_evidence: 500 * 1024,          // 500 KB (Strict screenshot limit)
   admin_media: 5 * 1024 * 1024,          // 5 MB
+  payment_proof: 5 * 1024 * 1024,        // 5 MB (payment screenshots)
 };
 
 export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;

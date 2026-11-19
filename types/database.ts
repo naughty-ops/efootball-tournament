@@ -49,6 +49,7 @@ export type MediaEntityType =
   | 'tournament_thumbnail'
   | 'match_evidence'
   | 'dispute_evidence'
+  | 'payment_proof'
   | 'admin_media';
 
 export type MediaVisibility = 'public' | 'private';

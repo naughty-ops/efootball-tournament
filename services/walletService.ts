@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient, getAuthenticatedUser } from '@/lib/supabase/server';
 import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import {
@@ -20,6 +21,10 @@ import {
   WalletDepositRecord,
   WalletPaymentSettings,
 } from '@/types/wallet';
+import {
+  generatePaymentProofUrl,
+  isValidPaymentProofPublicId,
+} from '@/lib/cloudinary/payment-proof';
 import {
   encryptSensitiveField,
   decryptSensitiveField,
@@ -2229,6 +2234,7 @@ export async function createWalletDepositRequest(params: {
   amountInr: number;
   utrReference: string;
   proofImagePath: string;
+  proofCloudinaryPublicId?: string;
   playerNotes?: string;
 }): Promise<{ success: boolean; error?: string; depositId?: string; depositRef?: string }> {
   try {
@@ -2272,21 +2278,29 @@ export async function createWalletDepositRequest(params: {
     const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
     const depositRef = `DEP-${dateStr}-${randSuffix}`;
 
+    const insertPayload: Record<string, any> = {
+      deposit_reference: depositRef,
+      user_id: params.userId,
+      wallet_id: wallet.id,
+      amount_paise: amountPaise,
+      amount_inr: amt,
+      status: 'under_review',
+      payment_method: 'upi_qr',
+      utr_reference: cleanUtr,
+      proof_image_path: params.proofImagePath.trim(),
+      admin_notes: params.playerNotes?.trim() || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Store Cloudinary metadata if provided
+    if (params.proofCloudinaryPublicId) {
+      insertPayload.proof_cloudinary_public_id = params.proofCloudinaryPublicId;
+      insertPayload.proof_asset_type = 'cloudinary';
+    }
+
     const { data: created, error } = await (adminClient.from('wallet_deposits') as any)
-      .insert({
-        deposit_reference: depositRef,
-        user_id: params.userId,
-        wallet_id: wallet.id,
-        amount_paise: amountPaise,
-        amount_inr: amt,
-        status: 'under_review',
-        payment_method: 'upi_qr',
-        utr_reference: cleanUtr,
-        proof_image_path: params.proofImagePath.trim(),
-        admin_notes: params.playerNotes?.trim() || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select('id, deposit_reference')
       .single();
 
@@ -2341,11 +2355,21 @@ export async function getPlayerWalletDeposits(
       return { deposits: [], totalCount: 0 };
     }
 
-    // Generate signed URLs for private screenshot preview (60 mins)
+    // Generate signed proof preview URLs (1 hour).
+    // New records: Cloudinary authenticated type (private, signed).
+    // Legacy records: Supabase Storage signed URL.
     const deposits: WalletDepositRecord[] = await Promise.all(
       data.map(async (row: any) => {
         let proofSignedUrl: string | null = null;
-        if (row.proof_image_path) {
+        if (row.proof_cloudinary_public_id && isValidPaymentProofPublicId(row.proof_cloudinary_public_id)) {
+          // New Cloudinary-backed record
+          try {
+            proofSignedUrl = generatePaymentProofUrl(row.proof_cloudinary_public_id, 3600);
+          } catch {
+            // non-blocking
+          }
+        } else if (row.proof_image_path) {
+          // Legacy Supabase Storage record
           try {
             const { data: signedData } = await adminClient.storage
               .from('payment-proofs')
@@ -2367,6 +2391,7 @@ export async function getPlayerWalletDeposits(
           paymentMethod: row.payment_method,
           utrReference: row.utr_reference,
           proofImagePath: row.proof_image_path,
+          proofCloudinaryPublicId: row.proof_cloudinary_public_id || null,
           proofSignedUrl,
           adminNotes: row.admin_notes,
           rejectionReason: row.rejection_reason,
@@ -2460,11 +2485,21 @@ export async function getAdminWalletDeposits(options?: {
       }
     }
 
-    // Generate signed URLs for proof screenshots
+    // Generate signed proof preview URLs (1 hour).
+    // New records: Cloudinary authenticated type (private, signed).
+    // Legacy records: Supabase Storage signed URL.
     const deposits: WalletDepositRecord[] = await Promise.all(
       data.map(async (row: any) => {
         let proofSignedUrl: string | null = null;
-        if (row.proof_image_path) {
+        if (row.proof_cloudinary_public_id && isValidPaymentProofPublicId(row.proof_cloudinary_public_id)) {
+          // New Cloudinary-backed record
+          try {
+            proofSignedUrl = generatePaymentProofUrl(row.proof_cloudinary_public_id, 3600);
+          } catch {
+            // non-blocking
+          }
+        } else if (row.proof_image_path) {
+          // Legacy Supabase Storage record
           try {
             const { data: signedData } = await adminClient.storage
               .from('payment-proofs')
@@ -2490,6 +2525,7 @@ export async function getAdminWalletDeposits(options?: {
           paymentMethod: row.payment_method,
           utrReference: row.utr_reference,
           proofImagePath: row.proof_image_path,
+          proofCloudinaryPublicId: row.proof_cloudinary_public_id || null,
           proofSignedUrl,
           adminNotes: row.admin_notes,
           rejectionReason: row.rejection_reason,

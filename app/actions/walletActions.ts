@@ -19,6 +19,7 @@ import {
 } from '@/services/walletService';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { uploadPaymentProof } from '@/lib/cloudinary/payment-proof';
 import { PaymentMethodType, PayoutStatus, WalletPaymentSettings, WalletDepositRecord } from '@/types/wallet';
 
 export interface ActionResult<T = any> {
@@ -337,59 +338,39 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
       return { success: false, error: 'Screenshot file size exceeds 5MB limit. Please upload a smaller image.' };
     }
 
-    // Generate unique storage path
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const cleanExt = ['jpg', 'jpeg', 'png', 'webp'].includes(fileExt) ? fileExt : 'png';
-    const timestamp = Date.now();
-    const randomHex = Math.random().toString(36).substring(2, 8);
-    const storagePath = `${user.id}/${timestamp}_${randomHex}.${cleanExt}`;
-
-    // Upload to private Supabase Storage bucket 'payment-proofs'
-    // Strategy: Try admin client first (bypasses RLS); if service key unavailable,
-    // fall back to authenticated user's client (path matches user_id, satisfying RLS).
+    // ── Cloudinary Upload ────────────────────────────────────────────────────
+    // Upload to Cloudinary as `type: "authenticated"` (private, requires signed URL).
+    // Server-side only: API_SECRET never touches the browser.
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Prefer admin client upload (service role bypasses RLS)
-    const adminClient = createAdminClient();
-    let uploadError: any = null;
-
-    const { error: adminUploadError } = await adminClient.storage
-      .from('payment-proofs')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (adminUploadError) {
-      // Admin client failed — fall back to authenticated user's client.
-      // The storage path starts with user.id so it satisfies the per-user RLS policy.
-      console.warn('Admin storage upload failed, falling back to user-session upload:', adminUploadError.message);
-      const userSupabase = await createClient();
-      const { error: userUploadError } = await userSupabase.storage
-        .from('payment-proofs')
-        .upload(storagePath, buffer, {
-          contentType: file.type,
-          upsert: false,
-        });
-      uploadError = userUploadError;
+    let cloudinaryPublicId: string;
+    try {
+      const proofUpload = await uploadPaymentProof(buffer, user.id);
+      cloudinaryPublicId = proofUpload.publicId;
+    } catch (uploadErr: any) {
+      console.error('[Payment Proof] Cloudinary upload failed:', uploadErr);
+      return {
+        success: false,
+        error: `Failed to upload payment proof screenshot: ${uploadErr.message || 'Upload service error.'}`,
+      };
     }
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      return { success: false, error: `Failed to upload payment proof screenshot: ${uploadError.message}` };
-    }
-
-    // Create deposit request in database
+    // Create deposit request in database (admin client bypasses RLS)
     const depositRes = await createWalletDepositRequest({
       userId: user.id,
       amountInr,
       utrReference: utrReference.trim(),
-      proofImagePath: storagePath,
+      proofImagePath: cloudinaryPublicId,   // Store Cloudinary public_id in existing column
+      proofCloudinaryPublicId: cloudinaryPublicId,
       playerNotes,
     });
 
     if (!depositRes.success) {
+      // Note: Cloudinary asset is orphaned but NOT deleted —
+      // deleting risks removing a valid record if there's a race condition.
+      // Orphaned assets are cleaned up via periodic Cloudinary audit or admin tooling.
+      console.error('[Payment Proof] DB insert failed after Cloudinary upload:', depositRes.error);
       return { success: false, error: depositRes.error };
     }
 

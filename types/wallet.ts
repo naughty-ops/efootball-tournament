@@ -60,6 +60,7 @@ export interface WalletDepositRecord {
   paymentMethod: string;
   utrReference: string;
   proofImagePath: string;
+  proofCloudinaryPublicId?: string | null;
   proofSignedUrl?: string | null;
   adminNotes?: string | null;
   rejectionReason?: string | null;
