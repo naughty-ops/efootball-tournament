@@ -2236,8 +2236,9 @@ export async function createWalletDepositRequest(params: {
   proofImagePath: string;
   proofCloudinaryPublicId?: string;
   playerNotes?: string;
-}): Promise<{ success: boolean; error?: string; depositId?: string; depositRef?: string }> {
+}): Promise<{ success: boolean; error?: string; code?: string; depositId?: string; depositRef?: string }> {
   try {
+    // ── Pre-flight validation (client side, before hitting the DB) ──────────
     const adminClient = createAdminClient();
     const settings = await getWalletPaymentSettings(adminClient);
 
@@ -2245,88 +2246,106 @@ export async function createWalletDepositRequest(params: {
     if (!Number.isFinite(amt) || amt < settings.minDepositInr || amt > settings.maxDepositInr) {
       return {
         success: false,
+        code: 'AMOUNT_OUT_OF_RANGE',
         error: `Deposit amount must be between ₹${settings.minDepositInr} and ₹${settings.maxDepositInr}.`,
       };
     }
 
     const cleanUtr = params.utrReference.trim().toUpperCase();
     if (!cleanUtr || cleanUtr.length < 6 || cleanUtr.length > 30) {
-      return { success: false, error: 'Please enter a valid 6 to 30 character UTR / Transaction Reference ID.' };
-    }
-
-    if (!params.proofImagePath || !params.proofImagePath.trim()) {
-      return { success: false, error: 'Payment screenshot proof is required.' };
-    }
-
-    // Check duplicate UTR on active/approved deposits
-    const { data: existingUtr } = await (adminClient.from('wallet_deposits') as any)
-      .select('id, deposit_reference, status')
-      .eq('utr_reference', cleanUtr)
-      .in('status', ['under_review', 'approved'])
-      .maybeSingle();
-
-    if (existingUtr) {
       return {
         success: false,
-        error: `This UTR / Transaction Reference ID has already been submitted (Reference: ${existingUtr.deposit_reference}). Duplicate submissions are not allowed.`,
+        code: 'INVALID_UTR',
+        error: 'Please enter a valid 6 to 30 character UTR / Transaction Reference ID.',
       };
     }
 
+    if (!params.proofImagePath || !params.proofImagePath.trim()) {
+      return { success: false, code: 'PROOF_REQUIRED', error: 'Payment screenshot proof is required.' };
+    }
+
+    // ── Wallet lookup (admin client — read-only, no RLS concern) ────────────
     const wallet = await getOrCreatePlayerWallet(params.userId);
     const amountPaise = inrToPaise(amt);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
     const depositRef = `DEP-${dateStr}-${randSuffix}`;
 
-    const insertPayload: Record<string, any> = {
-      deposit_reference: depositRef,
-      user_id: params.userId,
-      wallet_id: wallet.id,
-      amount_paise: amountPaise,
-      amount_inr: amt,
-      status: 'under_review',
-      payment_method: 'upi_qr',
-      utr_reference: cleanUtr,
-      proof_image_path: params.proofImagePath.trim(),
-      admin_notes: params.playerNotes?.trim() || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Store Cloudinary metadata if provided
-    if (params.proofCloudinaryPublicId) {
-      insertPayload.proof_cloudinary_public_id = params.proofCloudinaryPublicId;
-      insertPayload.proof_asset_type = 'cloudinary';
+    // ── Use authenticated user client for the SECURITY DEFINER RPC call ─────
+    // The function submit_wallet_deposit_request runs as postgres (SECURITY
+    // DEFINER) and re-validates auth.uid() internally, so the client only needs
+    // EXECUTE privilege on the function (granted to authenticated role).
+    // This avoids any dependency on the sb_secret_ key being treated as
+    // service_role at the PostgREST layer.
+    let rpcClient: any;
+    try {
+      const user = await getAuthenticatedUser();
+      if (!user) {
+        return { success: false, code: 'AUTH_REQUIRED', error: 'Your session has expired. Please sign in again.' };
+      }
+      rpcClient = await createClient();
+    } catch {
+      // Fallback to admin client if cookies unavailable (edge case)
+      rpcClient = adminClient;
     }
 
-    const { data: created, error } = await (adminClient.from('wallet_deposits') as any)
-      .insert(insertPayload)
-      .select('id, deposit_reference')
-      .single();
+    const { data: rpcResult, error: rpcError } = await (rpcClient.rpc as any)(
+      'submit_wallet_deposit_request',
+      {
+        p_user_id: params.userId,
+        p_wallet_id: wallet.id,
+        p_amount_inr: amt,
+        p_amount_paise: Number(amountPaise),
+        p_deposit_reference: depositRef,
+        p_utr_reference: cleanUtr,
+        p_proof_image_path: params.proofImagePath.trim(),
+        p_proof_cloudinary_public_id: params.proofCloudinaryPublicId ?? null,
+        p_player_notes: params.playerNotes?.trim() ?? null,
+      }
+    );
 
-    if (error || !created) {
-      return { success: false, error: error?.message || 'Failed to submit deposit request.' };
+    if (rpcError) {
+      // Network / PostgREST error (not a business-logic rejection from the function)
+      console.error('[createWalletDepositRequest] RPC error:', rpcError);
+      return {
+        success: false,
+        code: 'DB_ERROR',
+        error: 'Deposit submission failed. Please try again.',
+      };
     }
 
-    // Dispatch player notification
-    await (adminClient.from('player_notifications') as any).insert({
-      user_id: params.userId,
-      title: 'Deposit Under Review',
-      message: `Your ₹${amt} deposit request has been submitted and is awaiting verification.`,
-      type: 'financial',
-      action_url: '/dashboard/wallet?tab=deposits',
-      created_at: new Date().toISOString(),
-    });
+    // rpcResult is the jsonb returned by the function
+    const result = rpcResult as { success: boolean; code?: string; error?: string; deposit_id?: string; deposit_reference?: string };
+
+    if (!result?.success) {
+      return {
+        success: false,
+        code: result?.code,
+        error: result?.error || 'Deposit submission failed.',
+      };
+    }
+
+    // ── Dispatch player notification (best-effort, non-blocking) ────────────
+    Promise.resolve(
+      (adminClient.from('player_notifications') as any).insert({
+        user_id: params.userId,
+        title: 'Deposit Under Review',
+        message: `Your ₹${amt} deposit request has been submitted and is awaiting verification.`,
+        type: 'financial',
+        action_url: '/dashboard/wallet?tab=deposits',
+        created_at: new Date().toISOString(),
+      })
+    ).catch(() => {});
 
     invalidateWalletCache(params.userId);
 
     return {
       success: true,
-      depositId: created.id,
-      depositRef: created.deposit_reference,
+      depositId: result.deposit_id,
+      depositRef: result.deposit_reference,
     };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Error submitting deposit request' };
+    return { success: false, code: 'UNEXPECTED', error: err.message || 'Error submitting deposit request' };
   }
 }
 

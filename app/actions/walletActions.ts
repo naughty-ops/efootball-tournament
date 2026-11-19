@@ -26,6 +26,7 @@ export interface ActionResult<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  code?: string;
 }
 
 /**
@@ -301,7 +302,7 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
   try {
     const { user } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: 'Authentication required. Please sign in.' };
+      return { success: false, code: 'AUTH_REQUIRED', error: 'Authentication required. Please sign in.' };
     }
 
     const amountInrStr = formData.get('amountInr') as string;
@@ -310,32 +311,32 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
     const file = formData.get('screenshot') as File | null;
 
     if (!amountInrStr) {
-      return { success: false, error: 'Deposit amount is required.' };
+      return { success: false, code: 'AMOUNT_OUT_OF_RANGE', error: 'Deposit amount is required.' };
     }
 
     const amountInr = Number(amountInrStr);
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
-      return { success: false, error: 'Please enter a valid numeric deposit amount.' };
+      return { success: false, code: 'AMOUNT_OUT_OF_RANGE', error: 'Please enter a valid numeric deposit amount.' };
     }
 
     if (!utrReference || !utrReference.trim()) {
-      return { success: false, error: '12-digit UTR / UPI Transaction Reference ID is required.' };
+      return { success: false, code: 'INVALID_UTR', error: '12-digit UTR / UPI Transaction Reference ID is required.' };
     }
 
     if (!file || file.size === 0) {
-      return { success: false, error: 'Payment screenshot proof is mandatory.' };
+      return { success: false, code: 'PROOF_REQUIRED', error: 'Payment screenshot proof is mandatory.' };
     }
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      return { success: false, error: 'Unsupported file format. Please upload a JPG, PNG, or WEBP image.' };
+      return { success: false, code: 'INVALID_FILE_TYPE', error: 'Unsupported file format. Please upload a JPG, PNG, or WEBP image.' };
     }
 
     // Validate file size (max 5MB)
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      return { success: false, error: 'Screenshot file size exceeds 5MB limit. Please upload a smaller image.' };
+      return { success: false, code: 'FILE_TOO_LARGE', error: 'Screenshot file size exceeds 5MB limit. Please upload a smaller image.' };
     }
 
     // ── Cloudinary Upload ────────────────────────────────────────────────────
@@ -352,6 +353,7 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
       console.error('[Payment Proof] Cloudinary upload failed:', uploadErr);
       return {
         success: false,
+        code: 'CLOUDINARY_UPLOAD_FAILED',
         error: `Failed to upload payment proof screenshot: ${uploadErr.message || 'Upload service error.'}`,
       };
     }
@@ -371,7 +373,7 @@ export async function submitWalletDepositAction(formData: FormData): Promise<Act
       // deleting risks removing a valid record if there's a race condition.
       // Orphaned assets are cleaned up via periodic Cloudinary audit or admin tooling.
       console.error('[Payment Proof] DB insert failed after Cloudinary upload:', depositRes.error);
-      return { success: false, error: depositRes.error };
+      return { success: false, code: depositRes.code, error: depositRes.error };
     }
 
     revalidatePath('/dashboard/wallet');

@@ -253,7 +253,29 @@ export default function AddMoneyModal({
       const res = await submitWalletDepositAction(formData);
 
       if (!res.success) {
-        setSubmitError(res.error || 'Failed to submit deposit request.');
+        // Map server error codes to user-friendly messages
+        const code = (res as any).code as string | undefined;
+        let userMessage = res.error || 'Deposit submission failed. Please try again.';
+
+        if (code === 'AUTH_REQUIRED' || code === 'AUTH_EXPIRED') {
+          userMessage = 'Your session has expired. Please sign in again and retry.';
+        } else if (code === 'CLOUDINARY_UPLOAD_FAILED' || code === 'PROOF_UPLOAD_FAILED') {
+          userMessage = 'Screenshot upload failed. Please try again or use a smaller image.';
+        } else if (code === 'DUPLICATE_UTR') {
+          userMessage = 'This Transaction ID (UTR) has already been submitted. Please check your deposit history.';
+        } else if (code === 'INVALID_UTR') {
+          userMessage = 'Please enter a valid 6–30 character UTR / Transaction Reference ID.';
+        } else if (code === 'AMOUNT_OUT_OF_RANGE') {
+          userMessage = `Deposit amount must be between ₹${paymentSettings?.minDepositInr ?? 10} and ₹${paymentSettings?.maxDepositInr ?? 2000}.`;
+        } else if (code === 'PROOF_REQUIRED') {
+          userMessage = 'Payment screenshot proof is required. Please attach your screenshot.';
+        } else if (code === 'FORBIDDEN' || code === 'INVALID_WALLET') {
+          userMessage = 'Deposit submission failed. Please sign out and sign in again.';
+        } else if (code === 'DB_ERROR' || code === 'UNEXPECTED') {
+          userMessage = 'Deposit submission failed due to a server error. Please try again in a moment.';
+        }
+
+        setSubmitError(userMessage);
         setIsSubmitting(false);
         return;
       }
@@ -264,7 +286,7 @@ export default function AddMoneyModal({
         onDepositSuccess();
       }
     } catch (err: any) {
-      setSubmitError(err.message || 'An error occurred while submitting deposit request.');
+      setSubmitError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
