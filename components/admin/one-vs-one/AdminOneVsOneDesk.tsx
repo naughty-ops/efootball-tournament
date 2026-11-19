@@ -410,6 +410,11 @@ export default function AdminOneVsOneDesk({
                       </div>
                       <span className="text-[11px] text-white/50 block mt-0.5">
                         Created {new Date(m.created_at).toLocaleTimeString()} • Room: {m.room_id || 'Not set'}
+                        {m.players && m.players.length > 0 && (
+                          <span className="text-emerald-300/90 font-medium ml-1">
+                            • Players: {m.players.map((p: any) => p.profile?.display_name || p.profile?.efootball_id || 'Player').join(' vs ')}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>

@@ -65,32 +65,43 @@ export default async function PlayerWalletPage() {
   };
 
   // Fetch player profile, overview, transactions, deposits, and payment settings concurrently
-  const [profile, overview, txResult, paymentMethods, payouts, depositsResult, settings] =
-    await Promise.all([
-      getPlayerProfile(supabase, user.id, user).catch(() => null),
-      getPlayerWalletOverview(user.id, supabase).catch(() => defaultOverview),
-      getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }, supabase).catch(
-        () => ({ transactions: [], totalCount: 0 })
-      ),
-      getPlayerPaymentMethods(user.id, supabase).catch(() => []),
-      getPlayerPayouts(user.id, supabase).catch(() => []),
-      getPlayerWalletDeposits(user.id, { page: 1, pageSize: 50 }).catch(() => ({
-        deposits: [],
-        totalCount: 0,
-      })),
-      getWalletPaymentSettings(supabase).catch(() => defaultSettings),
+  const [profileRes, overviewRes, txRes, pmRes, payoutsRes, depositsRes, settingsRes] =
+    await Promise.allSettled([
+      getPlayerProfile(supabase, user.id, user),
+      getPlayerWalletOverview(user.id, supabase),
+      getPlayerWalletTransactions(user.id, { page: 1, pageSize: 100 }, supabase),
+      getPlayerPaymentMethods(user.id, supabase),
+      getPlayerPayouts(user.id, supabase),
+      getPlayerWalletDeposits(user.id, { page: 1, pageSize: 50 }, supabase),
+      getWalletPaymentSettings(supabase),
     ]);
 
-  const safeOverview = overview || defaultOverview;
-  const safeTransactions = txResult?.transactions || [];
-  const safePaymentMethods = paymentMethods || [];
-  const safePayouts = payouts || [];
-  const safeDeposits = depositsResult?.deposits || [];
-  const safeSettings = settings || defaultSettings;
+  if (profileRes.status === 'rejected') console.error('[PlayerWalletPage] Profile load error:', profileRes.reason);
+  if (overviewRes.status === 'rejected') console.error('[PlayerWalletPage] Overview load error:', overviewRes.reason);
+  if (txRes.status === 'rejected') console.error('[PlayerWalletPage] Transactions load error:', txRes.reason);
+  if (pmRes.status === 'rejected') console.error('[PlayerWalletPage] Payment methods load error:', pmRes.reason);
+  if (payoutsRes.status === 'rejected') console.error('[PlayerWalletPage] Payouts load error:', payoutsRes.reason);
+  if (depositsRes.status === 'rejected') console.error('[PlayerWalletPage] Deposits load error:', depositsRes.reason);
+  if (settingsRes.status === 'rejected') console.error('[PlayerWalletPage] Settings load error:', settingsRes.reason);
+
+  const safeOverview = overviewRes.status === 'fulfilled' ? overviewRes.value : defaultOverview;
+  const safeTransactions = txRes.status === 'fulfilled' ? txRes.value?.transactions || [] : [];
+  const safePaymentMethods = pmRes.status === 'fulfilled' ? pmRes.value || [] : [];
+  const safePayouts = payoutsRes.status === 'fulfilled' ? payoutsRes.value || [] : [];
+  const safeDeposits = depositsRes.status === 'fulfilled' ? depositsRes.value?.deposits || [] : [];
+  const safeSettings = settingsRes.status === 'fulfilled' ? settingsRes.value || defaultSettings : defaultSettings;
+  const hasFinancialError = overviewRes.status === 'rejected' || txRes.status === 'rejected';
 
   return (
     <div className="pb-16">
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4">
+        {hasFinancialError && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-950/40 p-4 text-white flex items-center gap-3">
+            <span className="text-red-400 font-bold text-sm">
+              Notice: Unable to retrieve your live financial ledger. Displayed figures may be incomplete. Please refresh.
+            </span>
+          </div>
+        )}
         <PlayerDashboardSwipeWrapper currentSection="wallet">
           <PlayerWalletClientView
             overview={safeOverview}

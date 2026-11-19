@@ -2,6 +2,7 @@ import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
 export function isServiceRoleConfigured(): boolean {
+  if (typeof window !== 'undefined') return false;
   return Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
     process.env.SUPABASE_SERVICE_KEY?.trim()
@@ -10,9 +11,14 @@ export function isServiceRoleConfigured(): boolean {
 
 /**
  * Creates an elevated Supabase client with SUPABASE_SERVICE_ROLE_KEY.
- * Pure server-side client without any dependency on next/headers cookies.
+ * Pure server-only client without any dependency on next/headers cookies.
+ * Strictly fails closed if the service-role secret is not configured.
  */
 export function createAdminClient() {
+  if (typeof window !== 'undefined') {
+    throw new Error('createAdminClient cannot be called from browser context.');
+  }
+
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.trim() !== ''
       ? process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -20,13 +26,12 @@ export function createAdminClient() {
 
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.SUPABASE_SERVICE_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-    'placeholder';
+    process.env.SUPABASE_SERVICE_KEY?.trim();
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() && !process.env.SUPABASE_SERVICE_KEY?.trim()) {
-    console.warn('createAdminClient: SUPABASE_SERVICE_ROLE_KEY not configured, falling back to public key.');
+  if (!serviceRoleKey) {
+    throw new Error(
+      'Configuration Error: SUPABASE_SERVICE_ROLE_KEY is required for elevated administrative operations. Ensure this environment variable is configured in the production deployment.'
+    );
   }
 
   return createSupabaseJsClient<Database>(supabaseUrl, serviceRoleKey, {

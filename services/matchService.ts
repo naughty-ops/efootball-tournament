@@ -391,7 +391,26 @@ export async function getAllAdminMatches(params?: AdminMatchFilterParams): Promi
 
   // Status Filter
   if (params?.status && params.status !== 'all') {
-    result = result.filter((m) => m.status === params.status);
+    const s = params.status.toLowerCase();
+    result = result.filter((m) => {
+      const ms = (m.status || '').toLowerCase();
+      if (s === 'scheduled' || s === 'pending') {
+        return ms === 'scheduled' || ms === 'waiting_for_players' || ms === 'pending';
+      }
+      if (s === 'live' || s === 'in_progress') {
+        return ms === 'live' || ms === 'in_progress';
+      }
+      if (s === 'awaiting_result') {
+        return ms === 'awaiting_result' || ms === 'result_verification' || ms === 'result_pending_admin' || ms === 'admin_review';
+      }
+      if (s === 'completed') {
+        return ms === 'completed' || ms === 'walkover';
+      }
+      if (s === 'disputed') {
+        return ms === 'disputed';
+      }
+      return ms === s;
+    });
   }
 
   // Date Filter (Today)
@@ -431,21 +450,30 @@ export async function getMatchDashboardStats(
   const matches = preloadedMatches ?? (await getAllAdminMatches({ tournamentId }));
   return {
     totalMatches: matches.length,
-    liveCount: matches.filter((m) => m.status === 'live').length,
-    scheduledCount: matches.filter((m) => m.status === 'pending').length,
-    completedCount: matches.filter((m) => m.status === 'completed' || m.status === 'walkover').length,
+    liveCount: matches.filter((m) => {
+      const s = (m.status || '').toLowerCase();
+      return s === 'live' || s === 'in_progress';
+    }).length,
+    scheduledCount: matches.filter((m) => {
+      const s = (m.status || '').toLowerCase();
+      return s === 'scheduled' || s === 'waiting_for_players' || s === 'pending';
+    }).length,
+    completedCount: matches.filter((m) => {
+      const s = (m.status || '').toLowerCase();
+      return s === 'completed' || s === 'walkover';
+    }).length,
   };
 }
 
 /**
- * Start a scheduled match (Pending -> Live)
+ * Start a scheduled match (Scheduled -> In Progress)
  */
 export async function startMatch(matchId: string, tournamentId: string): Promise<MatchDetailsOverview> {
   const supabase = createClient();
   const roomName = `efootball-match-${matchId}`;
   await (supabase.from('matches') as unknown as UnknownQuery)
     .update({
-      status: 'live',
+      status: 'in_progress',
       live_room_name: roomName,
       updated_at: new Date().toISOString(),
     })
@@ -469,7 +497,7 @@ export async function toggleMatchLiveStream(
 
   const { error } = await (supabase.from('matches') as unknown as UnknownQuery)
     .update({
-      status: enableLive ? 'live' : 'pending',
+      status: enableLive ? 'in_progress' : 'scheduled',
       live_room_name: enableLive ? roomName : null,
       updated_at: new Date().toISOString(),
     })

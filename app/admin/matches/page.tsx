@@ -56,8 +56,10 @@ const STAGE_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { label: 'All Statuses', value: 'all' },
-  { label: 'Scheduled', value: 'pending' },
-  { label: 'Live', value: 'live' },
+  { label: 'Scheduled', value: 'scheduled' },
+  { label: 'Live / In Progress', value: 'in_progress' },
+  { label: 'Awaiting Result', value: 'awaiting_result' },
+  { label: 'Disputed', value: 'disputed' },
   { label: 'Completed', value: 'completed' },
   { label: 'Walkover', value: 'walkover' },
 ];

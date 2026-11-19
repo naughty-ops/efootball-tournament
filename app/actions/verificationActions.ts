@@ -594,6 +594,18 @@ export async function adminVerifyWhatsAppAction(
       }
     );
 
+    // Notify player in-app
+    await (supabase.from('player_notifications') as any).insert({
+      user_id: targetUserId,
+      title: isApprove ? 'WhatsApp Verified! ✅' : 'WhatsApp Verification Unsuccessful',
+      message: isApprove
+        ? 'Your WhatsApp number has been successfully verified by an administrator.'
+        : `Your WhatsApp number verification was rejected. Reason: ${rejectionReason || 'Could not verify number'}`,
+      type: 'account',
+      action_url: '/dashboard/profile',
+      created_at: nowIso,
+    });
+
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/participants');
     revalidatePath('/dashboard/profile');
@@ -746,6 +758,18 @@ export async function adminVerifyEfootballIdAction(
       }
     );
 
+    // Notify player in-app
+    await (supabase.from('player_notifications') as any).insert({
+      user_id: targetUserId,
+      title: isApprove ? 'eFootball ID Verified! 🎮' : 'eFootball ID Verification Unsuccessful',
+      message: isApprove
+        ? 'Your eFootball ID has been verified by an administrator.'
+        : `Your eFootball ID verification was rejected. Reason: ${rejectionReason || 'Invalid ID'}`,
+      type: 'account',
+      action_url: '/dashboard/profile',
+      created_at: nowIso,
+    });
+
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/participants');
     revalidatePath('/dashboard/profile');
@@ -823,6 +847,16 @@ export async function adminVerifyBothAction(
         efootball_id_verified: true,
       },
       reason: 'Administrator bulk verified both WhatsApp and eFootball ID.',
+    });
+
+    // Notify player in-app
+    await (supabase.from('player_notifications') as any).insert({
+      user_id: targetUserId,
+      title: 'Profile Fully Verified! 🌟',
+      message: 'Both your WhatsApp number and eFootball ID have been approved and verified by an administrator.',
+      type: 'account',
+      action_url: '/dashboard/profile',
+      created_at: new Date().toISOString(),
     });
 
     revalidatePath('/admin/dashboard');
@@ -980,6 +1014,16 @@ export async function adminSuspendMemberAction(
       }
     );
 
+    // Notify player in-app
+    await (supabase.from('player_notifications') as any).insert({
+      user_id: targetUserId,
+      title: 'Account Suspended ⚠️',
+      message: `Your account has been suspended by an administrator. Reason: ${cleanReason}`,
+      type: 'account',
+      action_url: '/dashboard',
+      created_at: nowIso,
+    });
+
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/participants');
     revalidatePath('/dashboard/profile');
@@ -1044,6 +1088,16 @@ export async function adminUnsuspendMemberAction(
         details: { adminNotes, adminEmail: adminUser.email },
       }
     );
+
+    // Notify player in-app
+    await (supabase.from('player_notifications') as any).insert({
+      user_id: targetUserId,
+      title: 'Account Re-activated ✅',
+      message: 'Your account suspension has been lifted by an administrator. Full platform access is restored.',
+      type: 'account',
+      action_url: '/dashboard',
+      created_at: nowIso,
+    });
 
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/participants');

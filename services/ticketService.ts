@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isServiceRoleConfigured } from '@/lib/supabase/admin';
 import type {
   UnifiedTicket,
   TicketOverviewStats,
@@ -718,11 +718,11 @@ export async function getAllUnifiedTickets(params: TicketFilterParams = {}): Pro
 /**
  * Fetches a single unified ticket by ID enriched with player history, tournaments, and match info
  */
-export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | null> {
-  const adminClient = createAdminClient();
+export async function getUnifiedTicketById(id: string, customClient?: any): Promise<UnifiedTicket | null> {
+  const client = customClient || (isServiceRoleConfigured() ? createAdminClient() : await createClient());
 
   // Try support_tickets first
-  const { data: st } = await (adminClient.from('support_tickets') as any)
+  const { data: st } = await (client.from('support_tickets') as any)
     .select(`
       id, ticket_number, user_id, player_name, player_email, category,
       subject, description, priority, status, assigned_admin_id,
@@ -742,14 +742,14 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
 
     if (st.user_id) {
       const [prRes, ptRes, prevRes] = await Promise.all([
-        (adminClient.from('profiles') as any)
+        (client.from('profiles') as any)
           .select('id, display_name, efootball_id, whatsapp_verified, whatsapp_number, account_status, avatar_url')
           .eq('id', st.user_id)
           .maybeSingle(),
-        (adminClient.from('participants') as any)
+        (client.from('participants') as any)
           .select('tournament_id, tournaments(id, name)')
           .eq('user_id', st.user_id),
-        (adminClient.from('support_tickets') as any)
+        (client.from('support_tickets') as any)
           .select('id, ticket_number, subject, status, created_at')
           .eq('user_id', st.user_id)
           .neq('id', st.id)
@@ -765,7 +765,7 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
     }
 
     if (st.tournament_id) {
-      const { data: tr } = await (adminClient.from('tournaments') as any)
+      const { data: tr } = await (client.from('tournaments') as any)
         .select('name')
         .eq('id', st.tournament_id)
         .maybeSingle();
@@ -773,7 +773,7 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
     }
 
     if (st.match_id) {
-      const { data: mr } = await (adminClient.from('matches') as any)
+      const { data: mr } = await (client.from('matches') as any)
         .select('id, scheduled_time, actual_start_time, status')
         .eq('id', st.match_id)
         .maybeSingle();
@@ -831,7 +831,7 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
   }
 
   // Try match_disputes
-  const { data: d } = await (adminClient.from('match_disputes') as any)
+  const { data: d } = await (client.from('match_disputes') as any)
     .select(`
       id, ticket_number, tournament_id, match_id, reporter_participant_id,
       opponent_participant_id, reason, details, evidence_url, status,
@@ -845,18 +845,18 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
 
   if (d) {
     const [repRes, oppRes, tournRes, matchRes] = await Promise.all([
-      (adminClient.from('participants') as any)
+      (client.from('participants') as any)
         .select('id, user_id, username, real_name, profiles(display_name, efootball_id, whatsapp_verified, whatsapp_number, account_status, avatar_url)')
         .eq('id', d.reporter_participant_id)
         .maybeSingle(),
       d.opponent_participant_id
-        ? (adminClient.from('participants') as any)
+        ? (client.from('participants') as any)
             .select('id, user_id, username, real_name, profiles(display_name, efootball_id)')
             .eq('id', d.opponent_participant_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      (adminClient.from('tournaments') as any).select('name').eq('id', d.tournament_id).maybeSingle(),
-      (adminClient.from('matches') as any).select('id, round_id, scheduled_time, actual_start_time, score_a, score_b, status').eq('id', d.match_id).maybeSingle(),
+      (client.from('tournaments') as any).select('name').eq('id', d.tournament_id).maybeSingle(),
+      (client.from('matches') as any).select('id, round_id, scheduled_time, actual_start_time, score_a, score_b, status').eq('id', d.match_id).maybeSingle(),
     ]);
 
     const reporter = repRes.data;
@@ -871,10 +871,10 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
 
     if (reporter?.user_id) {
       const [ptRes, prevRes] = await Promise.all([
-        (adminClient.from('participants') as any)
+        (client.from('participants') as any)
           .select('tournament_id, tournaments(id, name)')
           .eq('user_id', reporter.user_id),
-        (adminClient.from('match_disputes') as any)
+        (client.from('match_disputes') as any)
           .select('id, ticket_number, reason, status, created_at')
           .eq('reporter_participant_id', d.reporter_participant_id)
           .neq('id', d.id)
@@ -955,10 +955,11 @@ export async function getUnifiedTicketById(id: string): Promise<UnifiedTicket | 
 export async function getTicketMessages(
   entityId: string,
   isDispute: boolean,
-  includeInternal: boolean = false
+  includeInternal: boolean = false,
+  customClient?: any
 ): Promise<TicketMessage[]> {
-  const adminClient = createAdminClient();
-  let query = (adminClient.from('ticket_messages') as any)
+  const client = customClient || (isServiceRoleConfigured() ? createAdminClient() : await createClient());
+  let query = (client.from('ticket_messages') as any)
     .select('*')
     .order('created_at', { ascending: true });
 
@@ -973,11 +974,12 @@ export async function getTicketMessages(
   }
 
   const { data, error } = await query;
-  if (error || !data) {
+  if (error) {
+    console.error('[getTicketMessages] Database error:', error);
     return [];
   }
 
-  return data as TicketMessage[];
+  return (data || []) as TicketMessage[];
 }
 
 /**
@@ -1024,34 +1026,42 @@ export function invalidatePlayerTicketsCache(userId?: string) {
 /**
  * Fetches a player's own tickets for the player dashboard
  */
-export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]> {
+export async function getPlayerTickets(userId: string, customClient?: any): Promise<UnifiedTicket[]> {
   const cached = playerTicketsCache.get(userId);
   if (cached && Date.now() - cached.timestamp < TICKETS_CACHE_TTL_MS) {
     return cached.data;
   }
 
   try {
-    const adminClient = createAdminClient();
+    const client = customClient || (await createClient());
 
     const [supportRes, participantRes] = await Promise.all([
-      (adminClient.from('support_tickets') as any)
+      (client.from('support_tickets') as any)
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
-      (adminClient.from('participants') as any)
+      (client.from('participants') as any)
         .select('id, tournament_id')
         .eq('user_id', userId),
     ]);
+
+    if (supportRes.error) {
+      console.error('[getPlayerTickets] Database error on support_tickets:', supportRes.error);
+      throw new Error(`Failed to load player tickets: ${supportRes.error.message}`);
+    }
 
     const rawSupport = (supportRes.data || []) as any[];
     const participantIds = ((participantRes.data || []) as any[]).map((p) => p.id);
 
     let rawDisputes: any[] = [];
     if (participantIds.length > 0) {
-      const { data: dData } = await (adminClient.from('match_disputes') as any)
+      const { data: dData, error: dErr } = await (client.from('match_disputes') as any)
         .select('*')
         .in('reporter_participant_id', participantIds)
         .order('created_at', { ascending: false });
+      if (dErr) {
+        console.warn('[getPlayerTickets] Non-fatal error on match_disputes query:', dErr);
+      }
       rawDisputes = dData || [];
     }
 
@@ -1118,7 +1128,7 @@ export async function getPlayerTickets(userId: string): Promise<UnifiedTicket[]>
     playerTicketsCache.set(userId, { data: all, timestamp: Date.now() });
     return all;
   } catch (err) {
-    console.warn('getPlayerTickets: Failed to load tickets, returning empty list:', err);
-    return [];
+    console.error('[getPlayerTickets] Failed to load tickets:', err);
+    throw err;
   }
 }

@@ -107,6 +107,8 @@ export async function cancelRegistrationAction(tournamentId: string): Promise<Ac
           revalidatePath('/dashboard/tournaments');
           revalidatePath('/dashboard/wallet');
           revalidatePath('/tournaments');
+          revalidatePath('/admin/tournaments');
+          revalidatePath('/admin/participants');
 
           return {
             success: true,

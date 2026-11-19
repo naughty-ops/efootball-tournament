@@ -37,7 +37,13 @@ export default async function AdminOneVsOnePage() {
       .from('one_vs_one_matches')
       .select(`
         *,
-        card:one_vs_one_cards(*)
+        card:one_vs_one_cards(*),
+        players:one_vs_one_match_players(
+          id,
+          user_id,
+          player_position,
+          profile:profiles(id, display_name, efootball_id, avatar_url)
+        )
       `)
       .order('created_at', { ascending: false })
       .limit(50),
@@ -66,7 +72,7 @@ export default async function AdminOneVsOnePage() {
   const cards = cardsResult.data || [];
   const recentMatches = (matchesQuery.data || []).map((m: any) => ({
     ...m,
-    players: [],
+    players: m.players || [],
   }));
   const openDisputes = disputesQuery.data || [];
   const settlements = settlementsResult.data || [];

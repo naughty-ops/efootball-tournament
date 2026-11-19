@@ -43,12 +43,23 @@ export default async function PlayerTicketsPage() {
 
   const supabase = await createClient();
 
-  const [profile, tickets, overview, paymentMethods] = await Promise.all([
-    getPlayerProfile(supabase, user.id, user).catch(() => null),
-    getPlayerTickets(user.id).catch(() => []),
-    getPlayerWalletOverview(user.id, supabase).catch(() => null),
-    getPlayerPaymentMethods(user.id, supabase).catch(() => []),
+  const [profileResult, ticketsResult, overviewResult, paymentMethodsResult] = await Promise.allSettled([
+    getPlayerProfile(supabase, user.id, user),
+    getPlayerTickets(user.id, supabase),
+    getPlayerWalletOverview(user.id, supabase),
+    getPlayerPaymentMethods(user.id, supabase),
   ]);
+
+  if (profileResult.status === 'rejected') console.error('[PlayerTicketsPage] Profile load error:', profileResult.reason);
+  if (ticketsResult.status === 'rejected') console.error('[PlayerTicketsPage] Tickets load error:', ticketsResult.reason);
+  if (overviewResult.status === 'rejected') console.error('[PlayerTicketsPage] Overview load error:', overviewResult.reason);
+  if (paymentMethodsResult.status === 'rejected') console.error('[PlayerTicketsPage] Payment methods load error:', paymentMethodsResult.reason);
+
+  const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+  const tickets = ticketsResult.status === 'fulfilled' ? ticketsResult.value : [];
+  const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
+  const paymentMethods = paymentMethodsResult.status === 'fulfilled' ? paymentMethodsResult.value : [];
+  const hasTicketsError = ticketsResult.status === 'rejected';
 
   const fullName = profile?.display_name || user.user_metadata?.full_name || 'Player';
   const email = user.email || '';
@@ -112,7 +123,15 @@ export default async function PlayerTicketsPage() {
 
         {/* Tickets Feed */}
         <Card className="bg-[#1818D4] border border-white/20 rounded-[28px] p-6 shadow-2xl text-white">
-          {tickets.length === 0 ? (
+          {hasTicketsError ? (
+            <div className="py-16 text-center space-y-3">
+              <XCircle className="h-12 w-12 text-[#FF1744] mx-auto opacity-90" />
+              <h3 className="text-lg font-bold text-white">Failed to load support tickets</h3>
+              <p className="text-xs text-white/70 max-w-sm mx-auto">
+                A server or database connection error occurred while loading your tickets. Please refresh this page or contact support if the issue persists.
+              </p>
+            </div>
+          ) : tickets.length === 0 ? (
             <div className="py-16 text-center space-y-3">
               <CheckCircle2 className="h-12 w-12 text-[#00C853] mx-auto opacity-80" />
               <h3 className="text-lg font-bold text-white">You have no active support tickets</h3>

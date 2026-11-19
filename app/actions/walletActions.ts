@@ -264,6 +264,8 @@ export async function adminUpdatePayoutStatusAction(params: {
     revalidatePath('/admin/payouts');
     revalidatePath('/dashboard/wallet');
     revalidatePath('/dashboard/profile');
+    revalidatePath('/admin/tickets');
+    revalidatePath('/dashboard/tickets');
     return { success: true };
   } catch (err: any) {
     console.error('adminUpdatePayoutStatusAction error:', err);

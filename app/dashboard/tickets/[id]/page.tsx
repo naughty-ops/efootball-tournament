@@ -13,7 +13,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const ticket = await getUnifiedTicketById(id);
+  const supabase = await createClient();
+  const ticket = await getUnifiedTicketById(id, supabase);
   if (!ticket) {
     return { title: 'Ticket Not Found | eFootball Hub' };
   }
@@ -39,7 +40,7 @@ export default async function PlayerTicketDetailPage({
   }
 
   const { id } = await params;
-  const ticket = await getUnifiedTicketById(id);
+  const ticket = await getUnifiedTicketById(id, supabase);
 
   if (!ticket) {
     notFound();
@@ -66,7 +67,7 @@ export default async function PlayerTicketDetailPage({
   const isDispute = ticket.source === 'dispute';
 
   // NEVER include internal notes for players!
-  const messages = await getTicketMessages(ticket.id, isDispute, false);
+  const messages = await getTicketMessages(ticket.id, isDispute, false, supabase);
 
   return (
     <PlayerTicketConversationView

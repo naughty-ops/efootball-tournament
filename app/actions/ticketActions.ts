@@ -390,6 +390,53 @@ export async function sendTicketMessageAction(params: {
     // Lifecycle state transition based on message context
     const table = params.source === 'dispute' ? 'match_disputes' : 'support_tickets';
 
+    if (isAdmin && !isInternal) {
+      // Dispatch in-app notification to player recipient
+      if (params.source === 'support') {
+        const { data: tData } = await (adminClient.from('support_tickets') as any)
+          .select('user_id, ticket_number')
+          .eq('id', params.ticketId)
+          .maybeSingle();
+
+        if (tData?.user_id) {
+          await (adminClient.from('player_notifications') as any).insert({
+            user_id: tData.user_id,
+            title: params.requestEvidence ? 'Action Required: Evidence Requested' : 'Support Ticket Update',
+            message: params.requestEvidence
+              ? `Support requested additional evidence on ticket #${tData.ticket_number || ''}.`
+              : `Administrator replied to ticket #${tData.ticket_number || ''}: "${message.slice(0, 100)}"`,
+            type: 'support',
+            action_url: `/dashboard/tickets/${params.ticketId}`,
+            created_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        const { data: dData } = await (adminClient.from('match_disputes') as any)
+          .select('reporter_participant_id, opponent_participant_id')
+          .eq('id', params.ticketId)
+          .maybeSingle();
+
+        const pIds = [dData?.reporter_participant_id, dData?.opponent_participant_id].filter(Boolean);
+        if (pIds.length > 0) {
+          const { data: parts } = await (adminClient.from('participants') as any)
+            .select('user_id')
+            .in('id', pIds);
+
+          const notifs = (parts || []).map((p: any) => ({
+            user_id: p.user_id,
+            title: 'Match Dispute Update',
+            message: `Administrator replied on match dispute: "${message.slice(0, 100)}"`,
+            type: 'tournament',
+            action_url: `/dashboard/matches`,
+            created_at: new Date().toISOString(),
+          }));
+          if (notifs.length > 0) {
+            await (adminClient.from('player_notifications') as any).insert(notifs);
+          }
+        }
+      }
+    }
+
     if (isAdmin && params.requestEvidence) {
       // Admin requests evidence: move to WAITING_FOR_PLAYER
       await (adminClient.from(table) as any)
@@ -508,6 +555,26 @@ export async function resolveTicketAction(params: {
         new_value: 'resolved',
         explanation: params.resolutionNotes || 'Dispute resolved by administrator.',
       });
+
+      // Dispatch notifications to dispute participants
+      const pIds = [dispute.reporter_participant_id, dispute.opponent_participant_id].filter(Boolean);
+      if (pIds.length > 0) {
+        const { data: parts } = await (adminClient.from('participants') as any)
+          .select('user_id')
+          .in('id', pIds);
+
+        const notifs = (parts || []).map((p: any) => ({
+          user_id: p.user_id,
+          title: 'Match Dispute Resolved',
+          message: `The match dispute has been resolved: ${params.resolutionNotes || 'Decision rendered by admin.'}`,
+          type: 'tournament',
+          action_url: `/dashboard/matches`,
+          created_at: now,
+        }));
+        if (notifs.length > 0) {
+          await (adminClient.from('player_notifications') as any).insert(notifs);
+        }
+      }
     } else {
       const { data: ticket } = await (adminClient.from('support_tickets') as any)
         .select('*')
@@ -537,6 +604,17 @@ export async function resolveTicketAction(params: {
         new_value: 'resolved',
         explanation: params.resolutionNotes || 'Ticket resolved by administrator.',
       });
+
+      if (ticket.user_id) {
+        await (adminClient.from('player_notifications') as any).insert({
+          user_id: ticket.user_id,
+          title: 'Support Ticket Resolved',
+          message: `Your ticket #${ticket.ticket_number || ''} (${ticket.subject || 'Support'}) has been marked resolved.`,
+          type: 'support',
+          action_url: `/dashboard/tickets/${params.ticketId}`,
+          created_at: now,
+        });
+      }
     }
 
     revalidatePath('/admin/tickets');
@@ -608,6 +686,48 @@ export async function rejectTicketAction(params: {
     if (params.source === 'dispute') msgPayload.dispute_id = params.ticketId;
     else msgPayload.ticket_id = params.ticketId;
     await (adminClient.from('ticket_messages') as any).insert(msgPayload);
+
+    // Dispatch player notification
+    if (params.source === 'support') {
+      const { data: t } = await (adminClient.from('support_tickets') as any)
+        .select('user_id, ticket_number')
+        .eq('id', params.ticketId)
+        .maybeSingle();
+
+      if (t?.user_id) {
+        await (adminClient.from('player_notifications') as any).insert({
+          user_id: t.user_id,
+          title: 'Support Ticket Rejected',
+          message: `Your ticket #${t.ticket_number || ''} was rejected. Reason: ${reason}`,
+          type: 'support',
+          action_url: `/dashboard/tickets/${params.ticketId}`,
+          created_at: now,
+        });
+      }
+    } else {
+      const { data: d } = await (adminClient.from('match_disputes') as any)
+        .select('reporter_participant_id')
+        .eq('id', params.ticketId)
+        .maybeSingle();
+
+      if (d?.reporter_participant_id) {
+        const { data: p } = await (adminClient.from('participants') as any)
+          .select('user_id')
+          .eq('id', d.reporter_participant_id)
+          .maybeSingle();
+
+        if (p?.user_id) {
+          await (adminClient.from('player_notifications') as any).insert({
+            user_id: p.user_id,
+            title: 'Match Dispute Rejected',
+            message: `Your match dispute was rejected. Reason: ${reason}`,
+            type: 'tournament',
+            action_url: `/dashboard/matches`,
+            created_at: now,
+          });
+        }
+      }
+    }
 
     revalidatePath('/admin/tickets');
     revalidatePath(`/admin/tickets/${params.ticketId}`);

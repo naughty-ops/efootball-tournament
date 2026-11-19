@@ -1287,6 +1287,12 @@ export async function getAdminFinancialOverview(): Promise<AdminFinancialOvervie
     (adminClient.from('payout_transactions') as any).select('amount_paise, payout_status, deadline_at, created_at'),
   ]);
 
+  if (awardedRes.error || pendingRes.error || payoutsRes.error) {
+    const err = awardedRes.error || pendingRes.error || payoutsRes.error;
+    console.error('[getAdminFinancialOverview] Database error:', err);
+    throw new Error(`Failed to load financial overview: ${err?.message || 'Database query failed'}`);
+  }
+
   let totalPrizeAwardedPaise = 0;
   if (awardedRes.data) {
     totalPrizeAwardedPaise = awardedRes.data.reduce(
@@ -1871,8 +1877,8 @@ export async function getAdminPayoutsList(options?: {
 
   const { data, count, error } = await query;
   if (error || !data) {
-    console.error('Error fetching admin payouts:', error);
-    return { payouts: [], totalCount: 0 };
+    console.error('[getAdminPayoutsList] Error fetching admin payouts:', error);
+    throw new Error(`Failed to load admin payouts: ${error?.message || 'Unknown database error'}`);
   }
 
   // Fetch player profiles
@@ -2024,119 +2030,43 @@ export async function updatePayoutStatus(params: {
 
   const tournamentName = payout.prize_distributions?.tournaments?.name || 'Tournament Prize';
 
-  // 2. Validate transitions
+  // 2. Validate transitions & execute atomic database stored procedure
   if (params.newStatus === 'PAID') {
     const utr = params.utrReference?.trim();
     if (!utr || utr.length < 4) {
       return { success: false, error: 'UTR / Transaction Reference is required to mark a payout as PAID.' };
     }
-
-    const { error: updateErr } = await (adminClient.from('payout_transactions') as any)
-      .update({
-        payout_status: 'PAID',
-        utr_reference: utr,
-        receipt_url: params.receiptUrl || null,
-        processed_by: params.adminUserId,
-        paid_at: now,
-        updated_at: now,
-      })
-      .eq('id', params.payoutId);
-
-    if (updateErr) {
-      return { success: false, error: 'Failed to record payout completion.' };
-    }
-
-    // Insert PAYOUT_COMPLETED transaction into financial ledger
-    const wallet = await getOrCreatePlayerWallet(payout.player_id);
-    const dateStr = now.slice(0, 10).replace(/-/g, '');
-    const txRef = `TX-PAY-${dateStr}-${payout.id.slice(0, 8).toUpperCase()}`;
-
-    await (adminClient.from('wallet_transactions') as any).insert({
-      transaction_ref: txRef,
-      wallet_id: wallet.id,
-      user_id: payout.player_id,
-      transaction_type: 'PAYOUT_COMPLETED',
-      amount_paise: payout.amount_paise,
-      amount_inr: payout.amount_inr,
-      status: 'completed',
-      reference_type: 'payout',
-      reference_id: payout.id,
-      description: `Prize Payout via ${payout.payment_method_type === 'upi' ? 'Google Pay / UPI' : 'Bank Transfer'}`,
-      idempotency_key: `payout-paid-${payout.id}`,
-      created_at: now,
-    });
-
-    // Notify player
-    await (adminClient.from('player_notifications') as any).insert({
-      user_id: payout.player_id,
-      title: 'Prize Payout Completed! 💸',
-      message: `Your tournament prize payout of ₹${Number(payout.amount_inr).toLocaleString('en-IN')} for "${tournamentName}" has been successfully transferred to your registered ${payout.payment_method_type === 'upi' ? 'Google Pay / UPI' : 'Bank'} destination.`,
-      type: 'financial',
-      action_url: '/dashboard/wallet',
-    });
-  } else if (params.newStatus === 'PROCESSING') {
-    await (adminClient.from('payout_transactions') as any)
-      .update({
-        payout_status: 'PROCESSING',
-        processed_by: params.adminUserId,
-        updated_at: now,
-      })
-      .eq('id', params.payoutId);
-
-    await (adminClient.from('player_notifications') as any).insert({
-      user_id: payout.player_id,
-      title: 'Payout Processing Initiated',
-      message: `Your prize payout of ₹${Number(payout.amount_inr).toLocaleString('en-IN')} for "${tournamentName}" is currently being transferred by our finance team.`,
-      type: 'financial',
-      action_url: '/dashboard/wallet',
-    });
   } else if (params.newStatus === 'REJECTED' || params.newStatus === 'FAILED') {
     const reason = params.failureReason?.trim();
     if (!reason) {
       return { success: false, error: 'A mandatory explanation reason is required when rejecting or failing a payout.' };
     }
-
-    await (adminClient.from('payout_transactions') as any)
-      .update({
-        payout_status: params.newStatus,
-        failure_reason: reason,
-        processed_by: params.adminUserId,
-        updated_at: now,
-      })
-      .eq('id', params.payoutId);
-
-    // Unpaid liability remains preserved because no PAYOUT_COMPLETED transaction was added
-    await (adminClient.from('player_notifications') as any).insert({
-      user_id: payout.player_id,
-      title: `Payout ${params.newStatus === 'REJECTED' ? 'Rejected' : 'Failed'}`,
-      message: `Your payout transfer (${payout.payout_reference}) for "${tournamentName}" could not be completed. Reason: ${reason}. Your balance remains preserved in your wallet; our administrator will review.`,
-      type: 'financial',
-      action_url: '/dashboard/wallet',
-    });
-  } else if (params.newStatus === 'APPROVED') {
-    // Retry / reset to approved
-    await (adminClient.from('payout_transactions') as any)
-      .update({
-        payout_status: 'APPROVED',
-        processed_by: params.adminUserId,
-        updated_at: now,
-      })
-      .eq('id', params.payoutId);
   }
 
-  // Audit log
-  await (adminClient.from('financial_audit_logs') as any).insert({
-    actor_id: params.adminUserId,
-    action: `UPDATE_PAYOUT_STATUS_${params.newStatus}`,
-    target_type: 'payout_transactions',
-    target_id: params.payoutId,
-    previous_state: { status: payout.payout_status },
-    new_state: {
-      status: params.newStatus,
-      utr_reference: params.utrReference || null,
-      failure_reason: params.failureReason || null,
-    },
+  // Call atomic stored procedure which safely manages:
+  // - Deducting locked balance on PAID
+  // - Restoring locked balance to available on REJECTED / FAILED
+  // - Idempotent ledger entry insertion
+  // - Synchronizing support_tickets status
+  // - Recording immutable financial audit logs
+  // - Dispatching player notifications
+  const { data: rpcData, error: rpcErr } = await (adminClient.rpc as any)('admin_finalize_payout_status', {
+    p_payout_id: params.payoutId,
+    p_new_status: params.newStatus,
+    p_utr_reference: params.utrReference?.trim() || null,
+    p_failure_reason: params.failureReason?.trim() || null,
+    p_receipt_url: params.receiptUrl?.trim() || null,
+    p_admin_notes: null,
   });
+
+  if (rpcErr) {
+    console.error('admin_finalize_payout_status RPC error:', rpcErr);
+    return { success: false, error: rpcErr.message || 'Failed to update payout status.' };
+  }
+
+  if (rpcData && rpcData.success === false) {
+    return { success: false, error: rpcData.message || 'Failed to update payout status.' };
+  }
 
   return { success: true };
 }
@@ -2367,15 +2297,16 @@ export async function createWalletDepositRequest(params: {
 
 export async function getPlayerWalletDeposits(
   userId: string,
-  options?: { page?: number; pageSize?: number; status?: string }
+  options?: { page?: number; pageSize?: number; status?: string },
+  customClient?: any
 ): Promise<{ deposits: WalletDepositRecord[]; totalCount: number }> {
   try {
-    const adminClient = createAdminClient();
+    const client = await getPlayerClient(customClient);
     const page = Math.max(1, options?.page || 1);
     const pageSize = Math.max(1, Math.min(100, options?.pageSize || 20));
     const offset = (page - 1) * pageSize;
 
-    let query = (adminClient.from('wallet_deposits') as any)
+    let query = (client.from('wallet_deposits') as any)
       .select('*', { count: 'exact' })
       .eq('user_id', userId);
 
@@ -2386,7 +2317,11 @@ export async function getPlayerWalletDeposits(
     query = query.order('created_at', { ascending: false }).range(offset, offset + pageSize - 1);
 
     const { data, count, error } = await query;
-    if (error || !data) {
+    if (error) {
+      console.error('[getPlayerWalletDeposits] Database error:', error);
+      throw new Error(`Failed to load deposits: ${error.message}`);
+    }
+    if (!data) {
       return { deposits: [], totalCount: 0 };
     }
 
@@ -2406,7 +2341,7 @@ export async function getPlayerWalletDeposits(
         } else if (row.proof_image_path) {
           // Legacy Supabase Storage record
           try {
-            const { data: signedData } = await adminClient.storage
+            const { data: signedData } = await client.storage
               .from('payment-proofs')
               .createSignedUrl(row.proof_image_path, 3600);
             proofSignedUrl = signedData?.signedUrl || null;
@@ -2441,8 +2376,8 @@ export async function getPlayerWalletDeposits(
 
     return { deposits, totalCount: count || 0 };
   } catch (err) {
-    console.error('getPlayerWalletDeposits error:', err);
-    return { deposits: [], totalCount: 0 };
+    console.error('[getPlayerWalletDeposits] error:', err);
+    throw err;
   }
 }
 
@@ -2498,12 +2433,8 @@ export async function getAdminWalletDeposits(options?: {
 
     const { data, count, error } = await query;
     if (error || !data) {
-      console.error('getAdminWalletDeposits query error:', error);
-      return {
-        deposits: [],
-        totalCount: 0,
-        summary: { pendingCount, approvedSumInr, rejectedCount },
-      };
+      console.error('[getAdminWalletDeposits] query error:', error);
+      throw new Error(`Failed to load admin wallet deposits: ${error?.message || 'Database query error'}`);
     }
 
     // Fetch player profiles
@@ -2579,12 +2510,8 @@ export async function getAdminWalletDeposits(options?: {
       summary: { pendingCount, approvedSumInr, rejectedCount },
     };
   } catch (err) {
-    console.error('getAdminWalletDeposits error:', err);
-    return {
-      deposits: [],
-      totalCount: 0,
-      summary: { pendingCount: 0, approvedSumInr: 0, rejectedCount: 0 },
-    };
+    console.error('[getAdminWalletDeposits] error:', err);
+    throw err;
   }
 }
 

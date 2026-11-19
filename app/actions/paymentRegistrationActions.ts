@@ -169,8 +169,10 @@ export async function adminApproveRegistrationAction(
     }
 
     revalidatePath('/admin/tournaments');
+    revalidatePath('/admin/participants');
     revalidatePath('/tournaments');
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/tournaments');
 
     return {
       success: true,
@@ -218,7 +220,10 @@ export async function adminRejectRegistrationAction(
     }
 
     revalidatePath('/admin/tournaments');
+    revalidatePath('/admin/participants');
     revalidatePath('/tournaments');
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/tournaments');
 
     return {
       success: true,
